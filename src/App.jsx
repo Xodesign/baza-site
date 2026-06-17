@@ -528,9 +528,6 @@ function App() {
 	useEffect(() => {
 		localStorage.setItem("demo_time", JSON.stringify(timeEntries));
 	}, [timeEntries]);
-	useEffect(() => {
-		localStorage.setItem("demo_engineers", JSON.stringify(engineers));
-	}, [engineers]);
 
 	// === ФУНКЦИИ ДЛЯ ПУСТЫХ ФОРМ ===
 	function getEmptyObjectForm() {
