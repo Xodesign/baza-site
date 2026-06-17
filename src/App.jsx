@@ -825,10 +825,14 @@ function App() {
 			deadline: "",
 			assignedDate: "",
 			assignedTo: "",
+			purchaseStatus: "",
+			callStatus: "",
+			thisStatus: "new",
 			objectName: "",
 			shortAddress: "",
 			whatToTransport: "",
 			toolsList: "",
+			creator: "",
 		};
 	}
 
@@ -2602,46 +2606,135 @@ function App() {
 	}
 
 	function renderTransportSection() {
+		// Обработчик выбора объекта из списка
+		const handleObjectSelect = (objectName) => {
+			const selectedObject = objects.find(
+				(o) => o["Наименование объекта"] === objectName,
+			);
+			if (selectedObject) {
+				setNewTransportData({
+					...newTransportData,
+					objectName: selectedObject["Наименование объекта"] || "",
+					shortAddress: selectedObject["Адрес сокращенный"] || "",
+				});
+			} else {
+				setNewTransportData({
+					...newTransportData,
+					objectName: objectName,
+				});
+			}
+		};
+
+		// Статусы для заявки на транспорт
+		const transportStatuses = [
+			{ value: "new", label: "Новая", className: "stat-new" },
+			{ value: "in_progress", label: "В работе", className: "stat-progress" },
+			{ value: "completed", label: "Выполнена", className: "stat-completed" },
+			{ value: "cancelled", label: "Отменена", className: "stat-cancelled" },
+		];
+
+		const getStatusBadge = (status) => {
+			const statusInfo = transportStatuses.find((s) => s.value === status);
+			if (!statusInfo) return <span className="badge">{status}</span>;
+			return (
+				<span className={`badge ${statusInfo.className}`}>
+					{statusInfo.label}
+				</span>
+			);
+		};
+
+		// Статистика
+		const stats = {
+			new: transportItems.filter((t) => t.thisStatus === "new").length,
+			in_progress: transportItems.filter((t) => t.thisStatus === "in_progress").length,
+			completed: transportItems.filter((t) => t.thisStatus === "completed").length,
+		};
+
 		return (
 			<>
 				<div className="content-header">
-					<h2>Транспорт</h2>
+					<h2>Заявки на транспорт</h2>
 				</div>
-				<div className="table-container">
+
+				{/* Статистика заявок */}
+				<div className="calls-stats">
+					<div className="stat-card stat-new">
+						<div className="stat-icon">
+							<AlertCircle size={20} />
+						</div>
+						<div className="stat-info">
+							<span className="stat-count">{stats.new}</span>
+							<span className="stat-label">Новых</span>
+						</div>
+					</div>
+					<div className="stat-card stat-progress">
+						<div className="stat-icon">
+							<Clock size={20} />
+						</div>
+						<div className="stat-info">
+							<span className="stat-count">{stats.in_progress}</span>
+							<span className="stat-label">В работе</span>
+						</div>
+					</div>
+					<div className="stat-card stat-completed">
+						<div className="stat-icon">
+							<Check size={20} />
+						</div>
+						<div className="stat-info">
+							<span className="stat-count">{stats.completed}</span>
+							<span className="stat-label">Выполнено</span>
+						</div>
+					</div>
+				</div>
+
+				<div className="table-container table-horizontal">
 					<table className="data-table">
 						<thead>
 							<tr>
 								<th>ID</th>
-								<th>Дата</th>
-								<th>Кому</th>
+								<th>Дата заявки</th>
+								<th>Дедлайн</th>
+								<th>Дата назначено</th>
+								<th>Кому (исполнитель)</th>
+								<th>Закупка</th>
+								<th>Вызов</th>
+								<th>Статус</th>
 								<th>Объект</th>
 								<th>Адрес</th>
 								<th>Что везти</th>
 								<th>Инструменты</th>
+								<th>Создатель</th>
 								<th>Действия</th>
 							</tr>
 						</thead>
 						<tbody>
 							{transportItems.length === 0 ? (
 								<tr>
-									<td colSpan="8" className="empty-state">
-										Нет заявок
+									<td colSpan="14" className="empty-state">
+										Нет заявок на транспорт
 									</td>
 								</tr>
 							) : (
 								transportItems.map((t) => (
 									<tr key={t.id}>
 										<td>{t.id}</td>
-										<td>{t.requestDate}</td>
-										<td>{t.assignedTo}</td>
-										<td>{t.objectName}</td>
-										<td>{t.shortAddress}</td>
-										<td>{t.whatToTransport}</td>
-										<td>{t.toolsList}</td>
+										<td>{t.requestDate || "-"}</td>
+										<td>{t.deadline || "-"}</td>
+										<td>{t.assignedDate || "-"}</td>
+										<td>{t.assignedTo || "-"}</td>
+										<td>{t.purchaseStatus || "-"}</td>
+										<td>{t.callStatus || "-"}</td>
+										<td>{getStatusBadge(t.thisStatus)}</td>
+										<td>{t.objectName || "-"}</td>
+										<td>{t.shortAddress || "-"}</td>
+										<td>{t.whatToTransport || "-"}</td>
+										<td>{t.toolsList || "-"}</td>
+										<td>{t.creator || "-"}</td>
 										<td>
 											<button
 												className="btn-icon btn-delete"
 												onClick={() => handleDeleteTransport(t.id)}
+												title="Удалить"
 											>
 												<Trash2 size={16} />
 											</button>
@@ -2652,15 +2745,17 @@ function App() {
 						</tbody>
 					</table>
 				</div>
-				<div className="add-form-section">
+
+				<div className="add-form-section add-form-full">
 					<h3>
 						<Plus size={20} />
-						Заявка на транспорт
+						Новая заявка на транспорт
 					</h3>
 					<form onSubmit={handleAddTransport} className="add-form">
 						<div className="form-grid">
+							{/* Дата заявки */}
 							<div className="form-group">
-								<label>Дата</label>
+								<label>Дата заявки</label>
 								<input
 									type="text"
 									value={newTransportData.requestDate}
@@ -2670,8 +2765,11 @@ function App() {
 											requestDate: e.target.value,
 										})
 									}
+									placeholder="ДД.ММ.ГГГГ"
 								/>
 							</div>
+
+							{/* Дедлайн */}
 							<div className="form-group">
 								<label>Дедлайн</label>
 								<input
@@ -2683,10 +2781,29 @@ function App() {
 											deadline: e.target.value,
 										})
 									}
+									placeholder="ДД.ММ.ГГГГ"
 								/>
 							</div>
+
+							{/* Дата назначено */}
 							<div className="form-group">
-								<label>Кому</label>
+								<label>Дата назначено</label>
+								<input
+									type="text"
+									value={newTransportData.assignedDate}
+									onChange={(e) =>
+										setNewTransportData({
+											...newTransportData,
+											assignedDate: e.target.value,
+										})
+									}
+									placeholder="ДД.ММ.ГГГГ"
+								/>
+							</div>
+
+							{/* Кому (исполнитель) */}
+							<div className="form-group">
+								<label>Кому (исполнитель)</label>
 								<input
 									type="text"
 									value={newTransportData.assignedTo}
@@ -2696,23 +2813,91 @@ function App() {
 											assignedTo: e.target.value,
 										})
 									}
+									placeholder="ФИО исполнителя"
+									list="staff-list"
 								/>
+								<datalist id="staff-list">
+									{staff.map((s) => (
+										<option key={s.id} value={s.fullName} />
+									))}
+								</datalist>
 							</div>
+
+							{/* Статус заявки на закупку */}
 							<div className="form-group">
-								<label>Объект</label>
+								<label>Статус заявки на закупку</label>
 								<input
 									type="text"
-									value={newTransportData.objectName}
+									value={newTransportData.purchaseStatus}
 									onChange={(e) =>
 										setNewTransportData({
 											...newTransportData,
-											objectName: e.target.value,
+											purchaseStatus: e.target.value,
 										})
 									}
+									placeholder="Ожидает / Закуплено / -"
 								/>
 							</div>
+
+							{/* Статус вызова */}
 							<div className="form-group">
-								<label>Адрес</label>
+								<label>Статус вызова</label>
+								<input
+									type="text"
+									value={newTransportData.callStatus}
+									onChange={(e) =>
+										setNewTransportData({
+											...newTransportData,
+											callStatus: e.target.value,
+										})
+									}
+									placeholder="Новый / В работе / Завершён"
+								/>
+							</div>
+
+							{/* Статус этой заявки */}
+							<div className="form-group">
+								<label>Статус заявки</label>
+								<select
+									value={newTransportData.thisStatus || "new"}
+									onChange={(e) =>
+										setNewTransportData({
+											...newTransportData,
+											thisStatus: e.target.value,
+										})
+									}
+								>
+									<option value="new">Новая</option>
+									<option value="in_progress">В работе</option>
+									<option value="completed">Выполнена</option>
+									<option value="cancelled">Отменена</option>
+								</select>
+							</div>
+
+							{/* Наименование объекта */}
+							<div className="form-group">
+								<label>Наименование объекта</label>
+								<input
+									type="text"
+									value={newTransportData.objectName}
+									onChange={(e) => handleObjectSelect(e.target.value)}
+									placeholder="Выберите объект"
+									list="transport-objects-list"
+									required
+								/>
+								<datalist id="transport-objects-list">
+									{objects.map((obj) => (
+										<option
+											key={obj.id}
+											value={obj["Наименование объекта"]}
+										/>
+									))}
+								</datalist>
+							</div>
+
+							{/* Сокращенный адрес */}
+							<div className="form-group">
+								<label>Сокращенный адрес</label>
 								<input
 									type="text"
 									value={newTransportData.shortAddress}
@@ -2722,10 +2907,13 @@ function App() {
 											shortAddress: e.target.value,
 										})
 									}
+									placeholder="Адрес объекта"
 								/>
 							</div>
-							<div className="form-group">
-								<label>Что везти</label>
+
+							{/* Что нужно транспортировать */}
+							<div className="form-group form-group-full">
+								<label>Что нужно транспортировать</label>
 								<input
 									type="text"
 									value={newTransportData.whatToTransport}
@@ -2735,12 +2923,14 @@ function App() {
 											whatToTransport: e.target.value,
 										})
 									}
+									placeholder="Опишите, что требуется перевезти"
 								/>
 							</div>
+
+							{/* Перечень инструмента */}
 							<div className="form-group form-group-full">
 								<label>Перечень инструмента</label>
-								<input
-									type="text"
+								<textarea
 									value={newTransportData.toolsList}
 									onChange={(e) =>
 										setNewTransportData({
@@ -2748,12 +2938,30 @@ function App() {
 											toolsList: e.target.value,
 										})
 									}
+									rows={3}
+									placeholder="Список инструмента для перевозки"
+								/>
+							</div>
+
+							{/* Создатель заявки */}
+							<div className="form-group">
+								<label>Создатель заявки</label>
+								<input
+									type="text"
+									value={newTransportData.creator}
+									onChange={(e) =>
+										setNewTransportData({
+											...newTransportData,
+											creator: e.target.value,
+										})
+									}
+									placeholder="Ваше имя"
 								/>
 							</div>
 						</div>
 						<button type="submit" className="btn btn-primary">
 							<Plus size={18} />
-							Добавить
+							Создать заявку
 						</button>
 					</form>
 				</div>

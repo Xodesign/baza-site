@@ -947,6 +947,16 @@
 	color: #059669;
 }
 
+.stat-cancelled .stat-icon {
+	background: #fee2e2;
+	color: #dc2626;
+}
+
+.badge.stat-cancelled {
+	background: #fee2e2;
+	color: #dc2626;
+}
+
 .stat-total .stat-icon {
 	background: #dbeafe;
 	color: #2563eb;
