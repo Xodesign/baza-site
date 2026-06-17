@@ -737,8 +737,45 @@ function App() {
 	const [systemPickerSearch, setSystemPickerSearch] = useState("");
 	const [selectedSystemsForObject, setSelectedSystemsForObject] = useState([]);
 
+	// --- СТЕЙТЫ ФИЛЬТРОВ ОБЪЕКТОВ ---
+	const [objectFilters, setObjectFilters] = useState({
+		type: "", // Тип договора
+		contractor: "", // Подрядчик
+		extendable: "", // Продлеваемость
+		hasTool: "", // Инструмент на объекте
+	});
+
+	// --- СТЕЙТЫ ФИЛЬТРОВ ДЛЯ ДРУГИХ РАЗДЕЛОВ ---
+	const [callDateFilter, setCallDateFilter] = useState({
+		from: "",
+		to: "",
+	});
+	const [costDateFilter, setCostDateFilter] = useState({
+		from: "",
+		to: "",
+	});
+	const [transportDateFilter, setTransportDateFilter] = useState({
+		from: "",
+		to: "",
+	});
+	const [activationDateFilter, setActivationDateFilter] = useState({
+		from: "",
+		to: "",
+	});
+
 	// Все доступные типы систем
-	const ALL_SYSTEM_TYPES = ["АПС", "СОУЭ", "ВПВ", "АПТ", "ОПС", "ВИДЕОНАБЛЮДЕНИЕ", "СКУД", "Охрана периметра", "Дымоудаление", "Пожарная автоматика"];
+	const ALL_SYSTEM_TYPES = [
+		"АПС",
+		"СОУЭ",
+		"ВПВ",
+		"АПТ",
+		"ОПС",
+		"ВИДЕОНАБЛЮДЕНИЕ",
+		"СКУД",
+		"Охрана периметра",
+		"Дымоудаление",
+		"Пожарная автоматика",
+	];
 
 	// --- СПИСОК РАЗДЕЛОВ ---
 	const MENU_ITEMS = Object.keys(SECTION_LABELS).map((id) => ({
@@ -1453,19 +1490,51 @@ function App() {
 		}, 500);
 	};
 
-	// === ФИЛЬТРАЦИЯ ===
+	// === ФИЛЬТРАЦИЯ ОБЪЕКТОВ ===
 	const filteredObjects = objects.filter((o) => {
+		// Текстовый поиск
 		const q = searchQuery.toLowerCase();
-		return (
+		const matchesSearch =
+			!q ||
 			(o["Наименование объекта"] || "").toLowerCase().includes(q) ||
 			(o["Заказчик"] || "").toLowerCase().includes(q) ||
 			(o["№ контр/дог"] || "").toLowerCase().includes(q) ||
 			(o["Адрес полный объекта"] || "").toLowerCase().includes(q) ||
 			(o["Адрес сокращенный"] || "").toLowerCase().includes(q) ||
 			(o["Арендатор"] || "").toLowerCase().includes(q) ||
-			(o["Системы"] || "").toLowerCase().includes(q)
-		);
+			(o["Системы"] || "").toLowerCase().includes(q);
+
+		// Фильтр по типу договора
+		const matchesType =
+			!objectFilters.type ||
+			o["Тип договора"] === objectFilters.type;
+
+		// Фильтр по подрядчику
+		const matchesContractor =
+			!objectFilters.contractor ||
+			o["Подрядчик"] === objectFilters.contractor;
+
+		// Фильтр по продлеваемости
+		const objExtendable = o["Продлеваемость"] || o["Продлеваемость "] || "";
+		const matchesExtendable =
+			!objectFilters.extendable ||
+			objectFilters.extendable === "all" ||
+			objectFilters.extendable === "undefined"
+				? !objExtendable
+				: objExtendable === objectFilters.extendable;
+
+		// Фильтр по наличию инструмента
+		const matchesTool =
+			!objectFilters.hasTool ||
+			o["Инструмент на объекте"] === objectFilters.hasTool;
+
+		return matchesSearch && matchesType && matchesContractor && matchesExtendable && matchesTool;
 	});
+
+	// Получение уникальных значений для фильтров
+	const uniqueContractors = [...new Set(objects.map((o) => o["Подрядчик"]).filter(Boolean))];
+	const uniqueTypes = [...new Set(objects.map((o) => o["Тип договора"]).filter(Boolean))];
+	const uniqueExtendable = [...new Set(objects.map((o) => o["Продлеваемость"] || o["Продлеваемость "]).filter(Boolean))];
 
 	// === АВТОРИЗАЦИЯ ===
 	const handleLogin = async (e) => {
@@ -1616,8 +1685,8 @@ function App() {
 				objects.map((o) =>
 					o.id === systemPickerObject.id
 						? { ...o, Системы: newSystemsString }
-						: o
-				)
+						: o,
+				),
 			);
 			setIsSystemPickerOpen(false);
 			setSystemPickerObject(null);
@@ -1628,13 +1697,13 @@ function App() {
 			setSelectedSystemsForObject((prev) =>
 				prev.includes(system)
 					? prev.filter((s) => s !== system)
-					: [...prev, system]
+					: [...prev, system],
 			);
 		};
 
 		// Фильтрованные типы систем для пикера
 		const filteredSystemTypes = ALL_SYSTEM_TYPES.filter((s) =>
-			s.toLowerCase().includes(systemPickerSearch.toLowerCase())
+			s.toLowerCase().includes(systemPickerSearch.toLowerCase()),
 		);
 
 		return (
@@ -1657,10 +1726,93 @@ function App() {
 							</button>
 						)}
 					</div>
-					<span className="badge-count">{filteredObjects.length} из {objects.length}</span>
-				</div>
+								<span className="badge-count">
+									{filteredObjects.length} из {objects.length}
+								</span>
+						</div>
 
-				{/* ФОРМА ДОБАВЛЕНИЯ ОБЪЕКТА - НАВЕРХУ */}
+						{/* ФИЛЬТРЫ ОБЪЕКТОВ */}
+						<div className="filters-bar">
+							<div className="filter-group">
+								<label>Тип договора:</label>
+								<select
+									value={objectFilters.type}
+									onChange={(e) =>
+										setObjectFilters({ ...objectFilters, type: e.target.value })
+									}
+								>
+									<option value="">Все</option>
+								{uniqueTypes.map((t) => (
+									<option key={t} value={t}>
+										{t}
+									</option>
+								))}
+								</select>
+							</div>
+							<div className="filter-group">
+								<label>Подрядчик:</label>
+								<select
+									value={objectFilters.contractor}
+									onChange={(e) =>
+										setObjectFilters({ ...objectFilters, contractor: e.target.value })
+									}
+								>
+									<option value="">Все</option>
+								{uniqueContractors.map((c) => (
+									<option key={c} value={c}>
+										{c}
+									</option>
+								))}
+								</select>
+							</div>
+							<div className="filter-group">
+								<label>Продлеваемость:</label>
+								<select
+									value={objectFilters.extendable}
+									onChange={(e) =>
+										setObjectFilters({ ...objectFilters, extendable: e.target.value })
+									}
+								>
+									<option value="">Все</option>
+									<option value="undefined">Не указано</option>
+									{uniqueExtendable.map((e) => (
+										<option key={e} value={e}>
+											{e}
+										</option>
+									))}
+								</select>
+							</div>
+							<div className="filter-group">
+								<label>Инструмент:</label>
+								<select
+									value={objectFilters.hasTool}
+									onChange={(e) =>
+										setObjectFilters({ ...objectFilters, hasTool: e.target.value })
+									}
+								>
+									<option value="">Все</option>
+									<option value="есть">Есть</option>
+									<option value="нет">Нет</option>
+								</select>
+							</div>
+							{(objectFilters.type || objectFilters.contractor || objectFilters.extendable || objectFilters.hasTool) && (
+								<button
+									className="btn-clear-filters"
+									onClick={() =>
+										setObjectFilters({
+											type: "",
+											contractor: "",
+											extendable: "",
+											hasTool: "",
+										})
+										}
+								>
+									<X size={14} /> Сбросить фильтры
+								</button>
+							)}
+						</div>
+
+						{/* ФОРМА ДОБАВЛЕНИЯ ОБЪЕКТА - НАВЕРХУ */}
 				<div className="add-form-section add-form-full">
 					<h3>
 						<Plus size={20} />
@@ -1710,34 +1862,32 @@ function App() {
 									placeholder="№ 1-2024-РБ"
 								/>
 							</div>
-							<div className="form-group">
-								<label>Начало действия договора</label>
-								<input
-									type="text"
-									value={newFormData["Начало действия договора"] || ""}
-									onChange={(e) =>
-										setNewFormData({
-											...newFormData,
-											"Начало действия договора": e.target.value,
-										})
-									}
-									placeholder="ДД.ММ.ГГГГ"
-								/>
-							</div>
-							<div className="form-group">
-								<label>Окончание действия договора</label>
-								<input
-									type="text"
-									value={newFormData["Окончание действия договора"] || ""}
-									onChange={(e) =>
-										setNewFormData({
-											...newFormData,
-											"Окончание действия договора": e.target.value,
-										})
-									}
-									placeholder="ДД.ММ.ГГГГ"
-								/>
-							</div>
+								<div className="form-group">
+									<label>Начало действия договора</label>
+									<input
+										type="date"
+										value={newFormData["Начало действия договора"] || ""}
+										onChange={(e) =>
+											setNewFormData({
+												...newFormData,
+												"Начало действия договора": e.target.value,
+											})
+											}
+									/>
+								</div>
+								<div className="form-group">
+									<label>Окончание действия договора</label>
+									<input
+										type="date"
+										value={newFormData["Окончание действия договора"] || ""}
+										onChange={(e) =>
+											setNewFormData({
+												...newFormData,
+												"Окончание действия договора": e.target.value,
+											})
+											}
+									/>
+								</div>
 							<div className="form-group">
 								<label>Тип договора</label>
 								<select
@@ -1836,7 +1986,7 @@ function App() {
 											"Кто оплачивает ремонт": e.target.value,
 										})
 									}
-								placeholder="за наш счёт / заказчик"
+									placeholder="за наш счёт / заказчик"
 								/>
 							</div>
 							<div className="form-group">
@@ -1850,7 +2000,7 @@ function App() {
 											"Как оплачиваются доп.работы": e.target.value,
 										})
 									}
-								placeholder="Сметы / КП / По договору"
+									placeholder="Сметы / КП / По договору"
 								/>
 							</div>
 							<div className="form-group">
@@ -1959,7 +2109,7 @@ function App() {
 											"Расчетное время на обслуживание": e.target.value,
 										})
 									}
-								placeholder="2 часа"
+									placeholder="2 часа"
 								/>
 							</div>
 							<div className="form-group">
@@ -1970,7 +2120,7 @@ function App() {
 									onChange={(e) =>
 										setNewFormData({ ...newFormData, Контакты: e.target.value })
 									}
-								placeholder="Иванов Иван +79991234567"
+									placeholder="Иванов Иван +79991234567"
 								/>
 							</div>
 							<div className="form-group">
@@ -1995,10 +2145,10 @@ function App() {
 									onChange={(e) =>
 										setNewFormData({ ...newFormData, Заметки: e.target.value })
 									}
-								rows={3}
-								placeholder="Дополнительная информация..."
-							/>
-						</div>
+									rows={3}
+									placeholder="Дополнительная информация..."
+								/>
+							</div>
 						</div>
 						<button type="submit" className="btn btn-primary">
 							<Plus size={18} />
@@ -2101,7 +2251,9 @@ function App() {
 											onClick={(e) => openSystemPicker(obj, e)}
 											title="Нажмите для выбора систем"
 										>
-											<span className="systems-link">{obj["Системы"] || <em>Нажмите для выбора</em>}</span>
+											<span className="systems-link">
+												{obj["Системы"] || <em>Нажмите для выбора</em>}
+											</span>
 										</td>
 										<td>{obj["Расчетное время на обслуживание"]}</td>
 										<td>{obj["Контакты"]}</td>
@@ -2116,8 +2268,14 @@ function App() {
 
 				{/* МОДАЛЬНОЕ ОКНО ВЫБОРА СИСТЕМ */}
 				{isSystemPickerOpen && systemPickerObject && (
-					<div className="modal-overlay" onClick={() => setIsSystemPickerOpen(false)}>
-						<div className="modal modal-systems" onClick={(e) => e.stopPropagation()}>
+					<div
+						className="modal-overlay"
+						onClick={() => setIsSystemPickerOpen(false)}
+					>
+						<div
+							className="modal modal-systems"
+							onClick={(e) => e.stopPropagation()}
+						>
 							<div className="modal-header">
 								<h2>
 									<Settings size={20} />
@@ -2134,7 +2292,8 @@ function App() {
 								<div className="system-picker-info">
 									<strong>{systemPickerObject["Наименование объекта"]}</strong>
 									<span className="system-picker-address">
-										{systemPickerObject["Адрес сокращенный"] || systemPickerObject["Адрес полный объекта"]}
+										{systemPickerObject["Адрес сокращенный"] ||
+											systemPickerObject["Адрес полный объекта"]}
 									</span>
 								</div>
 
@@ -2156,11 +2315,13 @@ function App() {
 											onClick={() => toggleSystem(system)}
 										>
 											<div className="system-checkbox">
-												{selectedSystemsForObject.includes(system) && <Check size={16} />}
+												{selectedSystemsForObject.includes(system) && (
+													<Check size={16} />
+												)}
 											</div>
 											<span className="system-name">{system}</span>
 										</div>
-								))}
+									))}
 									{filteredSystemTypes.length === 0 && (
 										<div className="systems-empty">
 											Системы не найдены. Попробуйте другой запрос.
@@ -2171,10 +2332,11 @@ function App() {
 								<div className="system-picker-selected">
 									<strong>Выбрано:</strong>
 									<span className="selected-tags">
-										{selectedSystemsForObject.length > 0
-											? selectedSystemsForObject.join(", ")
-											: <em>Ничего не выбрано</em>
-										}
+										{selectedSystemsForObject.length > 0 ? (
+											selectedSystemsForObject.join(", ")
+										) : (
+											<em>Ничего не выбрано</em>
+										)}
 									</span>
 								</div>
 							</div>
@@ -2373,46 +2535,43 @@ function App() {
 							{/* Дата заявки */}
 							<div className="form-group">
 								<label>Дата заявки</label>
-								<input
-									type="text"
-									value={newCallData.createdAt || ""}
-									onChange={(e) =>
-										setNewCallData({
-											...newCallData,
-											createdAt: e.target.value,
-										})
-									}
-									placeholder="ДД.ММ.ГГГГ"
-								/>
+														<input
+																type="date"
+																	value={newCallData.createdAt || ""}
+																	onChange={(e) =>
+																		setNewCallData({
+																			...newCallData,
+																				createdAt: e.target.value,
+																			})
+																	}
+																/>
 							</div>
 
 							{/* Дедлайн */}
 							<div className="form-group">
 								<label>Дедлайн</label>
-								<input
-									type="text"
-									value={newCallData.deadline || ""}
-									onChange={(e) =>
-										setNewCallData({ ...newCallData, deadline: e.target.value })
-									}
-									placeholder="ДД.ММ.ГГГГ"
-								/>
+										<input
+												type="date"
+													value={newCallData.deadline || ""}
+													onChange={(e) =>
+													setNewCallData({ ...newCallData, deadline: e.target.value })
+													}
+												/>
 							</div>
 
 							{/* Дата проведения */}
 							<div className="form-group">
 								<label>Дата проведения</label>
-								<input
-									type="text"
-									value={newCallData.executionDate || ""}
-									onChange={(e) =>
-										setNewCallData({
-											...newCallData,
-											executionDate: e.target.value,
-										})
-									}
-									placeholder="ДД.ММ.ГГГГ"
-								/>
+										<input
+												type="date"
+													value={newCallData.executionDate || ""}
+													onChange={(e) =>
+														setNewCallData({
+															...newCallData,
+															executionDate: e.target.value,
+														})
+														}
+												/>
 							</div>
 
 							{/* Исполнитель */}
@@ -3541,49 +3700,46 @@ function App() {
 							{/* Дата заявки */}
 							<div className="form-group">
 								<label>Дата заявки</label>
-								<input
-									type="text"
-									value={newTransportData.requestDate}
-									onChange={(e) =>
-										setNewTransportData({
-											...newTransportData,
-											requestDate: e.target.value,
-										})
-									}
-									placeholder="ДД.ММ.ГГГГ"
-								/>
+									<input
+										type="date"
+											value={newTransportData.requestDate}
+											onChange={(e) =>
+											setNewTransportData({
+												...newTransportData,
+												requestDate: e.target.value,
+											})
+											}
+										/>
 							</div>
 
 							{/* Дедлайн */}
 							<div className="form-group">
 								<label>Дедлайн</label>
-								<input
-									type="text"
-									value={newTransportData.deadline}
-									onChange={(e) =>
-										setNewTransportData({
-											...newTransportData,
-											deadline: e.target.value,
-										})
-									}
-									placeholder="ДД.ММ.ГГГГ"
-								/>
+									<input
+										type="date"
+											value={newTransportData.deadline}
+											onChange={(e) =>
+											setNewTransportData({
+												...newTransportData,
+												deadline: e.target.value,
+											})
+											}
+										/>
 							</div>
 
 							{/* Дата назначено */}
 							<div className="form-group">
 								<label>Дата назначено</label>
-								<input
-									type="text"
-									value={newTransportData.assignedDate}
-									onChange={(e) =>
-										setNewTransportData({
-											...newTransportData,
-											assignedDate: e.target.value,
-										})
-									}
-									placeholder="ДД.ММ.ГГГГ"
-								/>
+									<input
+										type="date"
+											value={newTransportData.assignedDate}
+											onChange={(e) =>
+											setNewTransportData({
+												...newTransportData,
+												assignedDate: e.target.value,
+											})
+											}
+										/>
 							</div>
 
 							{/* Кому (исполнитель) */}
