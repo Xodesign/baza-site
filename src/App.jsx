@@ -1107,52 +1107,48 @@ function App() {
 						)}
 					</div>
 				</div>
-				<div className="table-container">
+				<div className="table-container table-horizontal">
 					<table className="data-table">
 						<thead>
 							<tr>
-								<th>ID</th>
-								<th>Наименование</th>
+								<th className="sticky-col">Действия</th>
 								<th>Заказчик</th>
 								<th>Подрядчик</th>
-								<th>Договор</th>
+								<th>№ контр/дог</th>
+								<th>Начало</th>
+								<th>Окончание</th>
 								<th>Тип</th>
-								<th>Адрес</th>
-								<th>Действия</th>
+								<th>Продлеваемость</th>
+								<th>Письмо ТО</th>
+								<th>Повышение ТО</th>
+								<th>Доп.согл</th>
+								<th>Письма</th>
+								<th>Оплата ремонта</th>
+								<th>Доп.работы</th>
+								<th>Аванс</th>
+								<th>Адрес полный</th>
+								<th>Адрес сокр.</th>
+								<th>Наименование</th>
+								<th>РД ИД ПД</th>
+								<th>Арендатор</th>
+								<th>Системы</th>
+								<th>Время</th>
+								<th>Контакты</th>
+								<th>Инструмент</th>
+								<th>Заметки</th>
 							</tr>
 						</thead>
 						<tbody>
 							{filteredObjects.length === 0 ? (
 								<tr>
-									<td colSpan="8" className="empty-state">
+									<td colSpan="24" className="empty-state">
 										Нет объектов
 									</td>
 								</tr>
 							) : (
 								filteredObjects.map((obj) => (
 									<tr key={obj.id}>
-										<td className="cell-id">{obj.id}</td>
-										<td>
-											<strong>{obj["Наименование объекта"]}</strong>
-										</td>
-										<td>{obj["Заказчик"]}</td>
-										<td>{obj["Подрядчик"]}</td>
-										<td>{obj["№ контр/дог"]}</td>
-										<td>
-											<span
-												className={`badge badge-type badge-${(obj["Тип договора"] || "").toLowerCase()}`}
-											>
-												{obj["Тип договора"]}
-											</span>
-										</td>
-										<td>
-											<span className="address-text">
-												<MapPin size={14} />
-												{obj["Адрес сокращенный"] ||
-													obj["Адрес полный объекта"]}
-											</span>
-										</td>
-										<td className="cell-actions">
+										<td className="sticky-col cell-actions">
 											<button
 												className="btn-icon btn-edit"
 												onClick={() => handleEditObject(obj)}
@@ -1168,6 +1164,42 @@ function App() {
 												<Trash2 size={16} />
 											</button>
 										</td>
+										<td>{obj["Заказчик"]}</td>
+										<td>{obj["Подрядчик"]}</td>
+										<td>{obj["№ контр/дог"]}</td>
+										<td>{obj["Начало действия договора"]}</td>
+										<td>
+											{obj["Окончание действия договора"] ||
+												obj["окончание действия договора"]}
+										</td>
+										<td>
+											<span
+												className={`badge badge-type badge-${(obj["Тип договора"] || "").toLowerCase()}`}
+											>
+												{obj["Тип договора"]}
+											</span>
+										</td>
+										<td>{obj["Продлеваемость"] || obj["Продлеваемость "]}</td>
+										<td>
+											{obj["Письмо о повышении стоимости ТО"] ||
+												obj["Письмо о повышении стоимость ТО"]}
+										</td>
+										<td>{obj["Свершившееся повышение цены ТО"]}</td>
+										<td>{obj["Доп соглашение"] || obj["Доп соглашени"]}</td>
+										<td>{obj["Письма"]}</td>
+										<td>{obj["Кто оплачивает ремонт"]}</td>
+										<td>{obj["Как оплачиваются доп.работы"]}</td>
+										<td>{obj["К доп работам есть ли аванс"]}</td>
+										<td>{obj["Адрес полный объекта"]}</td>
+										<td>{obj["Адрес сокращенный"]}</td>
+										<td>{obj["Наименование объекта"]}</td>
+										<td>{obj["РД ИД ПД"]}</td>
+										<td>{obj["Арендатор"]}</td>
+										<td>{obj["Системы"]}</td>
+										<td>{obj["Расчетное время на обслуживание"]}</td>
+										<td>{obj["Контакты"]}</td>
+										<td>{obj["Инструмент на объекте"]}</td>
+										<td className="cell-notes">{obj["Заметки"]}</td>
 									</tr>
 								))
 							)}
