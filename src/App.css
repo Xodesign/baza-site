@@ -232,6 +232,55 @@
 	border-bottom: none;
 }
 
+/* === CHECKBOX STYLES === */
+.th-checkbox,
+.td-checkbox {
+	width: 44px;
+	text-align: center;
+	padding: 8px 16px;
+}
+
+.th-checkbox input[type="checkbox"],
+.td-checkbox input[type="checkbox"] {
+	width: 18px;
+	height: 18px;
+	cursor: pointer;
+	accent-color: var(--primary);
+	border-radius: 4px;
+}
+
+.tr-selected td {
+	background: #eff6ff;
+}
+
+.tr-selected:hover td {
+	background: #dbeafe;
+}
+
+/* === BULK DELETE BUTTON === */
+.btn-danger {
+	background: var(--danger);
+	color: white;
+	border: none;
+	padding: 8px 16px;
+	border-radius: 8px;
+	font-size: 0.875rem;
+	font-weight: 500;
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	cursor: pointer;
+	transition: background 0.2s;
+}
+
+.btn-danger:hover {
+	background: #dc2626;
+}
+
+.btn-danger:active {
+	transform: scale(0.98);
+}
+
 .cell-id {
 	color: var(--gray-400);
 	font-size: 0.8125rem;

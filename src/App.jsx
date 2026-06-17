@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import {
 	Search,
 	Plus,
@@ -728,6 +728,9 @@ function App() {
 	const [isContactModalOpen, setIsContactModalOpen] = useState(false);
 	const [contactFilter, setContactFilter] = useState("all");
 
+	// --- СТЕЙТЫ ВЫБОРА ИНСТРУМЕНТА ---
+	const [selectedToolIds, setSelectedToolIds] = useState([]);
+
 	// --- СПИСОК РАЗДЕЛОВ ---
 	const MENU_ITEMS = Object.keys(SECTION_LABELS).map((id) => ({
 		id,
@@ -769,6 +772,9 @@ function App() {
 	useEffect(() => {
 		localStorage.setItem("demo_time", JSON.stringify(timeEntries));
 	}, [timeEntries]);
+	useEffect(() => {
+		localStorage.setItem("demo_contacts", JSON.stringify(contacts));
+	}, [contacts]);
 
 	// === ФУНКЦИИ ДЛЯ ПУСТЫХ ФОРМ ===
 	function getEmptyObjectForm() {
@@ -948,6 +954,37 @@ function App() {
 	}
 
 	// === ЛОГИКА ОБЪЕКТОВ ===
+	// Синхронизация контактов при изменении объектов
+	// Используем ref-флаг, чтобы избежать зацикливания useEffect
+	const objectContactsSyncRef = useRef(false);
+	const prevObjectsLengthRef = useRef(0);
+
+	useEffect(() => {
+		// Синхронизируем контакты только при реальных изменениях объектов
+		// (добавление, удаление, редактирование через handleSaveEdit)
+		if (objectContactsSyncRef.current) {
+			objectContactsSyncRef.current = false;
+			return;
+		}
+		// Синхронизируем только если количество объектов изменилось
+		if (objects.length !== prevObjectsLengthRef.current) {
+			prevObjectsLengthRef.current = objects.length;
+			const objectContacts = extractContactsFromObjects(objects);
+			const manualContacts = contacts.filter((c) => c.source === "manual");
+			const existingIds = new Set([
+				...manualContacts.map((c) => c.id),
+				...objectContacts.map((c) => c.id),
+			]);
+			const merged = [...manualContacts];
+			objectContacts.forEach((oc) => {
+				if (!existingIds.has(oc.id)) {
+					merged.push(oc);
+				}
+			});
+			setContacts(merged);
+		}
+	}, [objects.length]);
+
 	const handleAddObject = (e) => {
 		e?.preventDefault();
 		const name = newFormData["Наименование объекта"];
@@ -965,12 +1002,14 @@ function App() {
 			objectNumber: maxNumber + 1,
 			...newFormData,
 		};
+		objectContactsSyncRef.current = true;
 		setObjects([newObj, ...objects]);
 		setNewFormData(getEmptyObjectForm());
 	};
 
 	const handleDeleteObject = (id) => {
 		if (confirm("Удалить объект?")) {
+			objectContactsSyncRef.current = true;
 			setObjects(objects.filter((o) => o.id !== id));
 		}
 	};
@@ -991,7 +1030,7 @@ function App() {
 		const newAddress = newObject["Адрес сокращенный"] || "";
 		const newTenant = newObject["Арендатор"] || "";
 
-		// Обновляем объекты
+		objectContactsSyncRef.current = true;
 		setObjects(
 			objects.map((o) => (o.id === editingObject.id ? editingObject : o)),
 		);
@@ -1229,6 +1268,30 @@ function App() {
 			setTools(tools.filter((t) => t.id !== id));
 	};
 
+	const handleToggleToolSelection = (id) => {
+		setSelectedToolIds((prev) =>
+			prev.includes(id) ? prev.filter((tid) => tid !== id) : [...prev, id],
+		);
+	};
+
+	const handleSelectAllTools = () => {
+		if (selectedToolIds.length === tools.length) {
+			setSelectedToolIds([]);
+		} else {
+			setSelectedToolIds(tools.map((t) => t.id));
+		}
+	};
+
+	const handleBulkDeleteTools = () => {
+		if (selectedToolIds.length === 0) return;
+		if (
+			confirm(`Удалить выбранные инструменты (${selectedToolIds.length} шт.)?`)
+		) {
+			setTools(tools.filter((t) => !selectedToolIds.includes(t.id)));
+			setSelectedToolIds([]);
+		}
+	};
+
 	// === ЛОГИКА АКТИРОВАНИЯ ===
 	const handleAddActivation = (e) => {
 		e?.preventDefault();
@@ -1344,17 +1407,6 @@ function App() {
 	const handleContactChange = (field, value) => {
 		setEditingContact({ ...editingContact, [field]: value });
 	};
-
-	// Синхронизация контактов при изменении объектов
-	useEffect(() => {
-		const objectContacts = extractContactsFromObjects(objects);
-		const manualContacts = contacts.filter((c) => c.source === "manual");
-		setContacts([...manualContacts, ...objectContacts]);
-	}, [objects]);
-
-	useEffect(() => {
-		localStorage.setItem("demo_contacts", JSON.stringify(contacts));
-	}, [contacts]);
 
 	// === ЭКСПОРТ ===
 	const handleExport = () => {
@@ -2828,11 +2880,34 @@ function App() {
 			<>
 				<div className="content-header">
 					<h2>Инструмент</h2>
+					{selectedToolIds.length > 0 && (
+						<button
+							className="btn btn-danger"
+							onClick={handleBulkDeleteTools}
+						>
+							<Trash2 size={16} />
+							Удалить выбранные ({selectedToolIds.length})
+						</button>
+					)}
 				</div>
 				<div className="table-container">
 					<table className="data-table">
 						<thead>
 							<tr>
+								<th className="th-checkbox">
+									<input
+										type="checkbox"
+										checked={
+											tools.length > 0 && selectedToolIds.length === tools.length
+										}
+										indeterminate={
+											selectedToolIds.length > 0 &&
+											selectedToolIds.length < tools.length
+										}
+										onChange={handleSelectAllTools}
+										aria-label="Выбрать все"
+									/>
+								</th>
 								<th>ID</th>
 								<th>Инструмент</th>
 								<th>Инв. номер</th>
@@ -2846,23 +2921,36 @@ function App() {
 						<tbody>
 							{tools.length === 0 ? (
 								<tr>
-									<td colSpan="8" className="empty-state">
+									<td colSpan="9" className="empty-state">
 										Нет инструментов
 									</td>
 								</tr>
 							) : (
 								tools.map((t) => (
-									<tr key={t.id}>
+									<tr
+										key={t.id}
+										className={
+											selectedToolIds.includes(t.id) ? "tr-selected" : ""
+										}
+									>
+										<td className="td-checkbox">
+											<input
+												type="checkbox"
+												checked={selectedToolIds.includes(t.id)}
+												onChange={() => handleToggleToolSelection(t.id)}
+												aria-label={`Выбрать инструмент ${t.tool}`}
+											/>
+										</td>
 										<td>{t.id}</td>
 										<td>{t.tool}</td>
 										<td>{t.inventoryNumber}</td>
-										<td>{t.brand}</td>
+									<td>{t.brand}</td>
 										<td>{t.objectName}</td>
 										<td>{t.shortAddress}</td>
 										<td>{t.callStatus}</td>
 										<td>
 											<button
-												className="btn-icon btn-delete"
+											className="btn-icon btn-delete"
 												onClick={() => handleDeleteTool(t.id)}
 											>
 												<Trash2 size={16} />
@@ -2901,7 +2989,7 @@ function App() {
 											...newToolData,
 											inventoryNumber: e.target.value,
 										})
-									}
+										}
 								/>
 							</div>
 							<div className="form-group">
@@ -2910,7 +2998,7 @@ function App() {
 									type="text"
 									value={newToolData.brand}
 									onChange={(e) =>
-										setNewToolData({ ...newToolData, brand: e.target.value })
+									setNewToolData({ ...newToolData, brand: e.target.value })
 									}
 								/>
 							</div>
@@ -2920,10 +3008,10 @@ function App() {
 									type="text"
 									value={newToolData.objectName}
 									onChange={(e) =>
-										setNewToolData({
-											...newToolData,
-											objectName: e.target.value,
-										})
+									setNewToolData({
+										...newToolData,
+										objectName: e.target.value,
+									})
 									}
 								/>
 							</div>
@@ -2933,10 +3021,10 @@ function App() {
 									type="text"
 									value={newToolData.shortAddress}
 									onChange={(e) =>
-										setNewToolData({
-											...newToolData,
-											shortAddress: e.target.value,
-										})
+									setNewToolData({
+										...newToolData,
+										shortAddress: e.target.value,
+									})
 									}
 								/>
 							</div>
@@ -2946,10 +3034,10 @@ function App() {
 									type="text"
 									value={newToolData.arrivalDate}
 									onChange={(e) =>
-										setNewToolData({
-											...newToolData,
-											arrivalDate: e.target.value,
-										})
+									setNewToolData({
+										...newToolData,
+										arrivalDate: e.target.value,
+									})
 									}
 								/>
 							</div>
@@ -2959,10 +3047,10 @@ function App() {
 									type="text"
 									value={newToolData.callStatus}
 									onChange={(e) =>
-										setNewToolData({
-											...newToolData,
-											callStatus: e.target.value,
-										})
+									setNewToolData({
+										...newToolData,
+										callStatus: e.target.value,
+									})
 									}
 								/>
 							</div>
