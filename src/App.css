@@ -432,6 +432,14 @@
 	border-radius: 12px;
 	border: 1px solid var(--border);
 	padding: 24px;
+	max-height: 80vh;
+	overflow-y: auto;
+}
+
+.add-form-section .form-grid {
+	max-height: calc(80vh - 200px);
+	overflow-y: auto;
+	padding-right: 8px;
 }
 
 .add-form-section h3 {
