@@ -1351,3 +1351,98 @@
 		flex-wrap: wrap;
 	}
 }
+
+/* ================================
+   TASKS TABLE
+   ================================ */
+.table-container-horizontal {
+	overflow-x: auto;
+	max-height: 70vh;
+	overflow-y: auto;
+}
+
+.tasks-table {
+	min-width: 2000px;
+	font-size: 0.85rem;
+}
+
+.tasks-table th,
+.tasks-table td {
+	padding: 10px 12px;
+	white-space: nowrap;
+}
+
+.tasks-table .sticky-col {
+	position: sticky;
+	left: 0;
+	background: white;
+	z-index: 10;
+	min-width: 100px;
+	box-shadow: 2px 0 4px rgba(0, 0, 0, 0.1);
+}
+
+.tasks-table thead th.sticky-col {
+	background: var(--gray-50);
+	z-index: 11;
+}
+
+.tasks-table tbody tr:hover .sticky-col {
+	background: var(--gray-50);
+}
+
+.cell-date {
+	font-family: monospace;
+	font-size: 0.85rem;
+}
+
+.cell-executor {
+	font-weight: 500;
+}
+
+.cell-status-cell {
+	text-align: center;
+	min-width: 80px;
+}
+
+.cell-status-cell:empty,
+.cell-status-cell:has(/:not([а-яА-Яa-zA-Z0-9])) {
+	color: var(--gray-400);
+}
+
+.form-grid-tasks {
+	display: grid;
+	grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+	gap: 16px;
+}
+
+/* Модальное окно для задач */
+.modal-task {
+	max-width: 900px;
+	width: 95%;
+}
+
+.modal-task .form-grid {
+	display: grid;
+	grid-template-columns: repeat(3, 1fr);
+	gap: 16px;
+}
+
+.modal-task .form-group-full {
+	grid-column: 1 / -1;
+}
+
+@media (max-width: 768px) {
+	.modal-task .form-grid {
+		grid-template-columns: repeat(2, 1fr);
+	}
+}
+
+@media (max-width: 480px) {
+	.modal-task .form-grid {
+		grid-template-columns: 1fr;
+	}
+
+	.form-grid-tasks {
+		grid-template-columns: 1fr;
+	}
+}
