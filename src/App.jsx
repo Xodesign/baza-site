@@ -649,6 +649,8 @@ function App() {
 	const [newTransportData, setNewTransportData] = useState(
 		getEmptyTransportForm(),
 	);
+	const [editingTransport, setEditingTransport] = useState(null);
+	const [isTransportModalOpen, setIsTransportModalOpen] = useState(false);
 
 	// --- СТЕЙТЫ СЧЕТА ---
 	const [invoices, setInvoices] = useState(() => {
@@ -695,6 +697,15 @@ function App() {
 	useEffect(() => {
 		localStorage.setItem("demo_calls", JSON.stringify(calls));
 	}, [calls]);
+	useEffect(() => {
+		localStorage.setItem("demo_objects", JSON.stringify(objects));
+	}, [objects]);
+	useEffect(() => {
+		localStorage.setItem("demo_staff", JSON.stringify(staff));
+	}, [staff]);
+	useEffect(() => {
+		localStorage.setItem("demo_costs", JSON.stringify(costs));
+	}, [costs]);
 	useEffect(() => {
 		localStorage.setItem("demo_systems", JSON.stringify(systems));
 	}, [systems]);
@@ -904,8 +915,15 @@ function App() {
 			alert("Заполните: Наименование объекта и Заказчика!");
 			return;
 		}
-		const maxNumber = objects.reduce((max, obj) => Math.max(max, obj.objectNumber || 0), 0);
-		const newObj = { id: Date.now(), objectNumber: maxNumber + 1, ...newFormData };
+		const maxNumber = objects.reduce(
+			(max, obj) => Math.max(max, obj.objectNumber || 0),
+			0,
+		);
+		const newObj = {
+			id: Date.now(),
+			objectNumber: maxNumber + 1,
+			...newFormData,
+		};
 		setObjects([newObj, ...objects]);
 		setNewFormData(getEmptyObjectForm());
 	};
@@ -923,9 +941,44 @@ function App() {
 
 	const handleSaveEdit = (e) => {
 		e?.preventDefault();
-		setObjects(
-			objects.map((o) => (o.id === editingObject.id ? editingObject : o)),
-		);
+		const oldObject = objects.find((o) => o.id === editingObject.id);
+		const newObject = editingObject;
+		
+		// Синхронизация данных объекта во всех связанных разделах
+		const oldName = oldObject ? oldObject["Наименование объекта"] : "";
+		const newName = newObject["Наименование объекта"] || "";
+		const newAddress = newObject["Адрес сокращенный"] || "";
+		const newTenant = newObject["Арендатор"] || "";
+		
+		// Обновляем объекты
+		setObjects(objects.map((o) => (o.id === editingObject.id ? editingObject : o)));
+		
+		// Синхронизация в вызовах
+		if (oldName !== newName || oldObject?.["Адрес сокращенный"] !== newAddress) {
+			setCalls(calls.map((c) => {
+				if (c.objectName === oldName || c.objectId === editingObject.id) {
+					return { ...c, objectName: newName, shortAddress: newAddress, tenant: newTenant, objectId: editingObject.id };
+				}
+				return c;
+			}));
+		}
+		
+		// Синхронизация в транспорте
+		setTransportItems(transportItems.map((t) => {
+			if (t.objectName === oldName || t.objectId === editingObject.id) {
+				return { ...t, objectName: newName, shortAddress: newAddress, objectId: editingObject.id };
+			}
+			return t;
+		}));
+		
+		// Синхронизация в закупках
+		setBuyItems(buyItems.map((b) => {
+			if (b.objectName === oldName) {
+				return { ...b, objectName: newName, shortAddress: newAddress };
+			}
+			return b;
+		}));
+		
 		setIsEditModalOpen(false);
 		setEditingObject(null);
 	};
@@ -1045,6 +1098,18 @@ function App() {
 	const handleDeleteTransport = (id) => {
 		if (confirm("Удалить заявку?"))
 			setTransportItems(transportItems.filter((t) => t.id !== id));
+	};
+
+	const handleEditTransport = (item) => {
+		setEditingTransport({ ...item });
+		setIsTransportModalOpen(true);
+	};
+
+	const handleSaveTransport = (e) => {
+		e?.preventDefault();
+		setTransportItems(transportItems.map((t) => (t.id === editingTransport.id ? editingTransport : t)));
+		setIsTransportModalOpen(false);
+		setEditingTransport(null);
 	};
 
 	// === ЛОГИКА СЧЕТА ===
@@ -1890,7 +1955,9 @@ function App() {
 											{call.status !== "completed" && (
 												<button
 													className="btn btn-success btn-sm"
-													onClick={() => handleStatusChange(call.id, "completed")}
+													onClick={() =>
+														handleStatusChange(call.id, "completed")
+													}
 													title="Завершить"
 												>
 													<Check size={14} />
@@ -1931,7 +1998,10 @@ function App() {
 									type="text"
 									value={newCallData.createdAt || ""}
 									onChange={(e) =>
-										setNewCallData({ ...newCallData, createdAt: e.target.value })
+										setNewCallData({
+											...newCallData,
+											createdAt: e.target.value,
+										})
 									}
 									placeholder="ДД.ММ.ГГГГ"
 								/>
@@ -1939,7 +2009,7 @@ function App() {
 
 							{/* Дедлайн */}
 							<div className="form-group">
-							<label>Дедлайн</label>
+								<label>Дедлайн</label>
 								<input
 									type="text"
 									value={newCallData.deadline || ""}
@@ -1957,7 +2027,10 @@ function App() {
 									type="text"
 									value={newCallData.executionDate || ""}
 									onChange={(e) =>
-										setNewCallData({ ...newCallData, executionDate: e.target.value })
+										setNewCallData({
+											...newCallData,
+											executionDate: e.target.value,
+										})
 									}
 									placeholder="ДД.ММ.ГГГГ"
 								/>
@@ -1989,7 +2062,10 @@ function App() {
 									type="text"
 									value={newCallData.assistant || ""}
 									onChange={(e) =>
-										setNewCallData({ ...newCallData, assistant: e.target.value })
+										setNewCallData({
+											...newCallData,
+											assistant: e.target.value,
+										})
 									}
 									placeholder="ФИО"
 									list="calls-engineers-list"
@@ -2038,18 +2114,20 @@ function App() {
 											...newCallData,
 											objectId: selected ? selected.id : null,
 											objectName: e.target.value,
-											shortAddress: selected ? selected["Адрес сокращенный"] || "" : "",
+											shortAddress: selected
+												? selected["Адрес сокращенный"] || ""
+												: "",
 											tenant: selected ? selected["Арендатор"] || "" : "",
 										});
 									}}
-										list="calls-objects-list"
-										required
-									/>
-									<datalist id="calls-objects-list">
-										{objects.map((obj) => (
-											<option key={obj.id} value={obj["Наименование объекта"]} />
-										))}
-									</datalist>
+									list="calls-objects-list"
+									required
+								/>
+								<datalist id="calls-objects-list">
+									{objects.map((obj) => (
+										<option key={obj.id} value={obj["Наименование объекта"]} />
+									))}
+								</datalist>
 							</div>
 
 							{/* Сокращенный адрес */}
@@ -2059,7 +2137,10 @@ function App() {
 									type="text"
 									value={newCallData.shortAddress || ""}
 									onChange={(e) =>
-										setNewCallData({ ...newCallData, shortAddress: e.target.value })
+										setNewCallData({
+											...newCallData,
+											shortAddress: e.target.value,
+										})
 									}
 									placeholder="Адрес объекта"
 								/>
@@ -2123,7 +2204,10 @@ function App() {
 								<textarea
 									value={newCallData.toPurchase || ""}
 									onChange={(e) =>
-										setNewCallData({ ...newCallData, toPurchase: e.target.value })
+										setNewCallData({
+											...newCallData,
+											toPurchase: e.target.value,
+										})
 									}
 									rows={2}
 									placeholder="Что нужно приобрести..."
@@ -2145,12 +2229,15 @@ function App() {
 
 							{/* Актирование работ */}
 							<div className="form-group">
-							<label>Актирование работ</label>
+								<label>Актирование работ</label>
 								<input
 									type="text"
 									value={newCallData.activation || ""}
 									onChange={(e) =>
-										setNewCallData({ ...newCallData, activation: e.target.value })
+										setNewCallData({
+											...newCallData,
+											activation: e.target.value,
+										})
 									}
 									placeholder="Да / Нет / ..."
 								/>
@@ -2163,7 +2250,10 @@ function App() {
 									type="text"
 									value={newCallData.dataOwner || ""}
 									onChange={(e) =>
-										setNewCallData({ ...newCallData, dataOwner: e.target.value })
+										setNewCallData({
+											...newCallData,
+											dataOwner: e.target.value,
+										})
 									}
 									placeholder="У кого хранятся данные..."
 								/>
@@ -2176,7 +2266,10 @@ function App() {
 									type="text"
 									value={newCallData.customerContact || ""}
 									onChange={(e) =>
-										setNewCallData({ ...newCallData, customerContact: e.target.value })
+										setNewCallData({
+											...newCallData,
+											customerContact: e.target.value,
+										})
 									}
 									placeholder="ФИО контакта"
 								/>
@@ -2976,14 +3069,21 @@ function App() {
 										<td>{t.toolsList || "-"}</td>
 										<td>{t.creator || "-"}</td>
 										<td>
-											<button
-												className="btn-icon btn-delete"
-												onClick={() => handleDeleteTransport(t.id)}
-												title="Удалить"
-											>
-												<Trash2 size={16} />
-											</button>
-										</td>
+												<button
+													className="btn-icon btn-edit"
+													onClick={() => handleEditTransport(t)}
+													title="Редактировать"
+												>
+													<Edit2 size={16} />
+												</button>
+												<button
+													className="btn-icon btn-delete"
+													onClick={() => handleDeleteTransport(t.id)}
+													title="Удалить"
+												>
+													<Trash2 size={16} />
+												</button>
+											</td>
 									</tr>
 								))
 							)}
@@ -4447,11 +4547,171 @@ function App() {
 								</button>
 							</div>
 						</form>
-					</div>
-				</div>
-			)}
+								</div>
+							</div>
+						)}
 
-			{/* МОДАЛЬНОЕ ОКНО РЕДАКТИРОВАНИЯ КОНТАКТА */}
+					{/* МОДАЛЬНОЕ ОКНО РЕДАКТИРОВАНИЯ ТРАНСПОРТА */}
+					{isTransportModalOpen && editingTransport && (
+						<div
+							className="modal-overlay"
+							onClick={() => setIsTransportModalOpen(false)}
+						>
+						<div className="modal" onClick={(e) => e.stopPropagation()}>
+							<div className="modal-header">
+								<h2>Редактирование заявки на транспорт</h2>
+								<button
+									className="modal-close"
+									onClick={() => setIsTransportModalOpen(false)}
+								>
+									<X size={24} />
+								</button>
+							</div>
+							<form onSubmit={handleSaveTransport} className="modal-body">
+								<div className="form-grid">
+									<div className="form-group">
+										<label>Дата заявки</label>
+										<input
+											type="text"
+											value={editingTransport.requestDate || ""}
+											onChange={(e) =>
+												setEditingTransport({ ...editingTransport, requestDate: e.target.value })
+											}
+										/>
+									</div>
+									<div className="form-group">
+										<label>Дедлайн</label>
+										<input
+											type="text"
+											value={editingTransport.deadline || ""}
+											onChange={(e) =>
+												setEditingTransport({ ...editingTransport, deadline: e.target.value })
+											}
+										/>
+									</div>
+									<div className="form-group">
+										<label>Дата назначено</label>
+										<input
+											type="text"
+											value={editingTransport.assignedDate || ""}
+											onChange={(e) =>
+												setEditingTransport({ ...editingTransport, assignedDate: e.target.value })
+											}
+										/>
+									</div>
+									<div className="form-group">
+										<label>Кому</label>
+										<input
+											type="text"
+											value={editingTransport.assignedTo || ""}
+											onChange={(e) =>
+												setEditingTransport({ ...editingTransport, assignedTo: e.target.value })
+											}
+										/>
+									</div>
+									<div className="form-group">
+										<label>Статус заявки на закупку</label>
+										<input
+											type="text"
+											value={editingTransport.purchaseStatus || ""}
+											onChange={(e) =>
+												setEditingTransport({ ...editingTransport, purchaseStatus: e.target.value })
+											}
+										/>
+									</div>
+									<div className="form-group">
+										<label>Статус вызова</label>
+										<input
+											type="text"
+											value={editingTransport.callStatus || ""}
+											onChange={(e) =>
+												setEditingTransport({ ...editingTransport, callStatus: e.target.value })
+											}
+										/>
+									</div>
+									<div className="form-group">
+										<label>Статус заявки</label>
+										<select
+											value={editingTransport.thisStatus || "new"}
+											onChange={(e) =>
+												setEditingTransport({ ...editingTransport, thisStatus: e.target.value })
+											}
+										>
+											<option value="new">Новая</option>
+											<option value="in_progress">В работе</option>
+											<option value="completed">Выполнена</option>
+											<option value="cancelled">Отменена</option>
+										</select>
+									</div>
+									<div className="form-group">
+										<label>Объект</label>
+										<input
+											type="text"
+											value={editingTransport.objectName || ""}
+											onChange={(e) =>
+												setEditingTransport({ ...editingTransport, objectName: e.target.value })
+											}
+										/>
+									</div>
+									<div className="form-group">
+										<label>Адрес</label>
+										<input
+											type="text"
+											value={editingTransport.shortAddress || ""}
+											onChange={(e) =>
+												setEditingTransport({ ...editingTransport, shortAddress: e.target.value })
+											}
+										/>
+									</div>
+									<div className="form-group form-group-full">
+										<label>Что транспортировать</label>
+										<input
+											type="text"
+											value={editingTransport.whatToTransport || ""}
+											onChange={(e) =>
+												setEditingTransport({ ...editingTransport, whatToTransport: e.target.value })
+											}
+										/>
+								</div>
+									<div className="form-group form-group-full">
+										<label>Перечень инструмента</label>
+										<textarea
+											value={editingTransport.toolsList || ""}
+											onChange={(e) =>
+												setEditingTransport({ ...editingTransport, toolsList: e.target.value })
+											}
+											rows={3}
+										/>
+									</div>
+									<div className="form-group">
+										<label>Создатель</label>
+										<input
+											type="text"
+											value={editingTransport.creator || ""}
+											onChange={(e) =>
+												setEditingTransport({ ...editingTransport, creator: e.target.value })
+											}
+										/>
+									</div>
+								</div>
+								<div className="modal-footer">
+									<button
+										type="button"
+										className="btn btn-secondary"
+										onClick={() => setIsTransportModalOpen(false)}
+									>
+										Отмена
+									</button>
+									<button type="submit" className="btn btn-primary">
+										Сохранить
+									</button>
+								</div>
+							</form>
+						</div>
+					</div>
+					)}
+
+					{/* МОДАЛЬНОЕ ОКНО РЕДАКТИРОВАНИЯ КОНТАКТА */}
 			{isContactModalOpen && editingContact && (
 				<div
 					className="modal-overlay"
