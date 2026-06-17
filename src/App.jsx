@@ -454,7 +454,7 @@ const INITIAL_TRANSPORT =
 		assignedTo: row["Кому"] || "",
 		purchaseStatus: row["статус заявки на закупку"] || "",
 		callStatus: row["статус вызова"] || "",
-		thisStatus: row["статус этой заявки"] || "",
+		thisStatus: (row["статус этой заявки"] || "new").toString(),
 		objectName: row["Наименование\nобъекта"] || "",
 		shortAddress: row["сокращенный адрес"] || "",
 		whatToTransport: row["Что нужно транспортировать"] || "",
@@ -2646,8 +2646,10 @@ function App() {
 		// Статистика
 		const stats = {
 			new: transportItems.filter((t) => t.thisStatus === "new").length,
-			in_progress: transportItems.filter((t) => t.thisStatus === "in_progress").length,
-			completed: transportItems.filter((t) => t.thisStatus === "completed").length,
+			in_progress: transportItems.filter((t) => t.thisStatus === "in_progress")
+				.length,
+			completed: transportItems.filter((t) => t.thisStatus === "completed")
+				.length,
 		};
 
 		return (
@@ -2887,10 +2889,7 @@ function App() {
 								/>
 								<datalist id="transport-objects-list">
 									{objects.map((obj) => (
-										<option
-											key={obj.id}
-											value={obj["Наименование объекта"]}
-										/>
+										<option key={obj.id} value={obj["Наименование объекта"]} />
 									))}
 								</datalist>
 							</div>
