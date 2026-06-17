@@ -32,9 +32,11 @@ import {
 	Target,
 	UserCheck,
 	Zap,
+	PlusCircle,
 } from "lucide-react";
 import excelData from "./excel_data.js";
 import "./App.css";
+import EngineersCalendar from "./components/EngineersCalendar";
 
 // === ИКОНКИ ДЛЯ РАЗДЕЛОВ ===
 const SECTION_ICONS = {
@@ -252,12 +254,47 @@ const INITIAL_SUMMARY =
 		...row,
 	})) || [];
 
-// === ДАННЫЕ КАЛЕНДАРЬ ИНЖЕНЕР (из Excel) ===
-const INITIAL_CALENDAR_ENGINEER =
-	excelData["календарь инженер"]?.rows?.slice(0, 50).map((row, idx) => ({
-		id: idx + 1,
-		...row,
-	})) || [];
+// === ДАННЫЕ ИНЖЕНЕРОВ (для Календаря инженеров) ===
+const INITIAL_ENGINEERS = [
+	{
+		id: 1,
+		name: "Иванов Иван Иванович",
+		position: "Инженер",
+		phone: "+7 (999) 123-45-67",
+		salary: 80000,
+		workSchedule: { mon: true, tue: true, wed: true, thu: true, fri: true, sat: false, sun: false },
+		workHours: { start: "09:00", end: "18:00" },
+		vacations: [
+			{ id: 1, start: "2025-07-01", end: "2025-07-14", type: "Основной" },
+			{ id: 2, start: "2025-12-25", end: "2026-01-08", type: "Новогодний" }
+		],
+		status: "active"
+	},
+	{
+		id: 2,
+		name: "Петров Пётр Петрович",
+		position: "Старший инженер",
+		phone: "+7 (999) 234-56-78",
+		salary: 95000,
+		workSchedule: { mon: true, tue: true, wed: true, thu: true, fri: true, sat: false, sun: false },
+		workHours: { start: "08:00", end: "17:00" },
+		vacations: [
+			{ id: 1, start: "2025-08-15", end: "2025-08-28", type: "Основной" }
+		],
+		status: "active"
+	},
+	{
+		id: 3,
+		name: "Сидоров Алексей Сергеевич",
+		position: "Инженер",
+		phone: "+7 (999) 345-67-89",
+		salary: 75000,
+		workSchedule: { mon: false, tue: true, wed: true, thu: true, fri: true, sat: true, sun: false },
+		workHours: { start: "10:00", end: "19:00" },
+		vacations: [],
+		status: "active"
+	}
+];
 
 // === ДАННЫЕ КАЛЕНДАРЬ ОБЪЕКТ (из Excel) ===
 const INITIAL_CALENDAR_OBJECT =
@@ -283,6 +320,30 @@ const INITIAL_EXTRA =
 		id: idx + 1,
 		...row,
 	})) || [];
+
+// === ФУНКЦИЯ ИЗВЛЕЧЕНИЯ КОНТАКТОВ ИЗ ОБЪЕКТОВ ===
+function extractContactsFromObjects(objects) {
+	const contacts = [];
+	objects.forEach((obj) => {
+		const contactStr = obj["Контакты"] || "";
+		if (contactStr && contactStr.trim()) {
+			// Парсим строку контакта: "Иванов Иван +79991234567"
+			const match = contactStr.match(/^(.+?)\s*([+\d\s()]+)$/);
+			contacts.push({
+				id: `obj_${obj.id}`,
+				name: match ? match[1].trim() : contactStr,
+				phone: match ? match[2].trim() : "",
+				objectName: obj["Наименование объекта"] || "",
+				shortAddress: obj["Адрес сокращенный"] || obj["Адрес полный объекта"] || "",
+				source: "object",
+				objectId: obj.id,
+			});
+		}
+	});
+	return contacts;
+}
+
+const INITIAL_CONTACTS = extractContactsFromObjects(INITIAL_OBJECTS);
 
 function App() {
 	// --- СТЕЙТЫ АВТОРИЗАЦИИ ---
@@ -386,8 +447,6 @@ function App() {
 	// --- СТЕЙТЫ СВОДНАЯ ---
 	const [summary] = useState(INITIAL_SUMMARY);
 
-	// --- СТЕЙТЫ КАЛЕНДАРЬ ---
-	const [calendarEngineer] = useState(INITIAL_CALENDAR_ENGINEER);
 	const [calendarObject] = useState(INITIAL_CALENDAR_OBJECT);
 
 	// --- СТЕЙТЫ ПОЖЕЛАНИЯ ---
@@ -395,6 +454,16 @@ function App() {
 
 	// --- СТЕЙТЫ ДОПОЛНИТЕЛЬНЫЕ ---
 	const [extra] = useState(INITIAL_EXTRA);
+
+	// --- СТЕЙТЫ КОНТАКТОВ ---
+	const [contacts, setContacts] = useState(() => {
+		const saved = localStorage.getItem("demo_contacts");
+		return saved ? JSON.parse(saved) : INITIAL_CONTACTS;
+	});
+	const [newContactData, setNewContactData] = useState(getEmptyContactForm());
+	const [editingContact, setEditingContact] = useState(null);
+	const [isContactModalOpen, setIsContactModalOpen] = useState(false);
+	const [contactFilter, setContactFilter] = useState("all");
 
 	// --- СПИСОК РАЗДЕЛОВ ---
 	const MENU_ITEMS = Object.keys(SECTION_LABELS).map((id) => ({
@@ -434,6 +503,9 @@ function App() {
 	useEffect(() => {
 		localStorage.setItem("demo_time", JSON.stringify(timeEntries));
 	}, [timeEntries]);
+	useEffect(() => {
+		localStorage.setItem("demo_engineers", JSON.stringify(engineers));
+	}, [engineers]);
 
 	// === ФУНКЦИИ ДЛЯ ПУСТЫХ ФОРМ ===
 	function getEmptyObjectForm() {
@@ -579,6 +651,20 @@ function App() {
 			systems: "",
 			calculatedYearlyTime: "",
 			actualYearlyTime: "",
+		};
+	}
+
+	function getEmptyContactForm() {
+		return {
+			name: "",
+			phone: "",
+			objectName: "",
+			shortAddress: "",
+			position: "",
+			email: "",
+			notes: "",
+			source: "manual",
+			objectId: null,
 		};
 	}
 
@@ -760,6 +846,50 @@ function App() {
 			setTimeEntries(timeEntries.filter((t) => t.id !== id));
 	};
 
+	// === ЛОГИКА КОНТАКТОВ ===
+	const handleAddContact = (e) => {
+		e?.preventDefault();
+		if (!newContactData.name?.trim()) {
+			alert("Введите имя контакта!");
+			return;
+		}
+		const newContact = { id: Date.now(), ...newContactData };
+		setContacts([newContact, ...contacts]);
+		setNewContactData(getEmptyContactForm());
+	};
+
+	const handleDeleteContact = (id) => {
+		if (confirm("Удалить контакт?"))
+			setContacts(contacts.filter((c) => c.id !== id));
+	};
+
+	const handleEditContact = (contact) => {
+		setEditingContact({ ...contact });
+		setIsContactModalOpen(true);
+	};
+
+	const handleSaveContact = (e) => {
+		e?.preventDefault();
+		setContacts(contacts.map((c) => (c.id === editingContact.id ? editingContact : c)));
+		setIsContactModalOpen(false);
+		setEditingContact(null);
+	};
+
+	const handleContactChange = (field, value) => {
+		setEditingContact({ ...editingContact, [field]: value });
+	};
+
+	// Синхронизация контактов при изменении объектов
+	useEffect(() => {
+		const objectContacts = extractContactsFromObjects(objects);
+		const manualContacts = contacts.filter((c) => c.source === "manual");
+		setContacts([...manualContacts, ...objectContacts]);
+	}, [objects]);
+
+	useEffect(() => {
+		localStorage.setItem("demo_contacts", JSON.stringify(contacts));
+	}, [contacts]);
+
 	// === ЭКСПОРТ ===
 	const handleExport = () => {
 		setIsExporting(true);
@@ -918,8 +1048,9 @@ function App() {
 				return renderWishesSection();
 			case "extra":
 				return renderExtraSection();
-			case "tree":
 			case "contacts":
+				return renderContactsSection();
+			case "tree":
 			case "staff":
 			case "accounts":
 			default:
@@ -1022,26 +1153,15 @@ function App() {
 						Добавить объект
 					</h3>
 					<form onSubmit={handleAddObject} className="add-form">
-						{/* Секция: Основная информация */}
-						<div className="form-section-title">Основная информация</div>
 						<div className="form-grid">
 							<div className="form-group">
-								<label>Наименование объекта *</label>
-								<input
-									type="text"
-									value={newFormData["Наименование объекта"] || ""}
-									onChange={(e) =>
-										setNewFormData({ ...newFormData, "Наименование объекта": e.target.value })
-									}
-									placeholder="Название объекта"
-								/>
-							</div>
-							<div className="form-group">
-								<label>Заказчик *</label>
+								<label>Заказчик</label>
 								<input
 									type="text"
 									value={newFormData["Заказчик"] || ""}
-									onChange={(e) => setNewFormData({ ...newFormData, Заказчик: e.target.value })}
+									onChange={(e) =>
+										setNewFormData({ ...newFormData, Заказчик: e.target.value })
+									}
 									placeholder="Заказчик"
 								/>
 							</div>
@@ -1049,7 +1169,12 @@ function App() {
 								<label>Подрядчик</label>
 								<select
 									value={newFormData["Подрядчик"] || "СБ"}
-									onChange={(e) => setNewFormData({ ...newFormData, Подрядчик: e.target.value })}
+									onChange={(e) =>
+										setNewFormData({
+											...newFormData,
+											Подрядчик: e.target.value,
+										})
+									}
 								>
 									<option value="СБ">СБ</option>
 									<option value="СБ+">СБ+</option>
@@ -1058,27 +1183,16 @@ function App() {
 								</select>
 							</div>
 							<div className="form-group">
-								<label>Тип договора</label>
-								<select
-									value={newFormData["Тип договора"] || "ТО"}
-									onChange={(e) => setNewFormData({ ...newFormData, "Тип договора": e.target.value })}
-								>
-									<option value="ТО">ТО</option>
-									<option value="СМР">СМР</option>
-									<option value="ПИР">ПИР</option>
-								</select>
-							</div>
-						</div>
-
-						{/* Секция: Договор */}
-						<div className="form-section-title">Договор</div>
-						<div className="form-grid">
-							<div className="form-group">
 								<label>№ контр/дог</label>
 								<input
 									type="text"
 									value={newFormData["№ контр/дог"] || ""}
-									onChange={(e) => setNewFormData({ ...newFormData, "№ контр/дог": e.target.value })}
+									onChange={(e) =>
+										setNewFormData({
+											...newFormData,
+											"№ контр/дог": e.target.value,
+										})
+									}
 									placeholder="№ 1-2024-РБ"
 								/>
 							</div>
@@ -1087,7 +1201,12 @@ function App() {
 								<input
 									type="text"
 									value={newFormData["Начало действия договора"] || ""}
-									onChange={(e) => setNewFormData({ ...newFormData, "Начало действия договора": e.target.value })}
+									onChange={(e) =>
+										setNewFormData({
+											...newFormData,
+											"Начало действия договора": e.target.value,
+										})
+									}
 									placeholder="ДД.ММ.ГГГГ"
 								/>
 							</div>
@@ -1096,29 +1215,64 @@ function App() {
 								<input
 									type="text"
 									value={newFormData["Окончание действия договора"] || ""}
-									onChange={(e) => setNewFormData({ ...newFormData, "Окончание действия договора": e.target.value })}
+									onChange={(e) =>
+										setNewFormData({
+											...newFormData,
+											"Окончание действия договора": e.target.value,
+										})
+									}
 									placeholder="ДД.ММ.ГГГГ"
-							/>
+								/>
+							</div>
+							<div className="form-group">
+								<label>Тип договора</label>
+								<select
+									value={newFormData["Тип договора"] || "ТО"}
+									onChange={(e) =>
+										setNewFormData({
+											...newFormData,
+											"Тип договора": e.target.value,
+										})
+									}
+								>
+									<option value="ТО">ТО</option>
+									<option value="СМР">СМР</option>
+									<option value="ПИР">ПИР</option>
+								</select>
 							</div>
 							<div className="form-group">
 								<label>Продлеваемость</label>
 								<select
 									value={newFormData["Продлеваемость"] || ""}
-									onChange={(e) => setNewFormData({ ...newFormData, "Продлеваемость": e.target.value })}
+									onChange={(e) =>
+										setNewFormData({
+											...newFormData,
+											Продлеваемость: e.target.value,
+										})
+									}
 								>
 									<option value="">—</option>
-									<option value="Продлеваемый автоматически">Продлеваемый автоматически</option>
+									<option value="Продлеваемый автоматически">
+										Продлеваемый автоматически
+									</option>
 									<option value="Не продлеваемый">Не продлеваемый</option>
-									<option value="Продлеваемый доп соглашением">Продлеваемый доп соглашением</option>
+									<option value="Продлеваемый доп соглашением">
+										Продлеваемый доп соглашением
+									</option>
 									<option value="Конкурсный">Конкурсный</option>
 								</select>
 							</div>
 							<div className="form-group">
-								<label>Письмо о повышении стоимость ТО</label>
+								<label>Письмо о повышении стоимости ТО</label>
 								<input
 									type="text"
-									value={newFormData["Письмо о повышении стоимость ТО"] || ""}
-									onChange={(e) => setNewFormData({ ...newFormData, "Письмо о повышении стоимость ТО": e.target.value })}
+									value={newFormData["Письмо о повышении стоимости ТО"] || ""}
+									onChange={(e) =>
+										setNewFormData({
+											...newFormData,
+											"Письмо о повышении стоимости ТО": e.target.value,
+										})
+									}
 								/>
 							</div>
 							<div className="form-group">
@@ -1126,15 +1280,25 @@ function App() {
 								<input
 									type="text"
 									value={newFormData["Свершившееся повышение цены ТО"] || ""}
-									onChange={(e) => setNewFormData({ ...newFormData, "Свершившееся повышение цены ТО": e.target.value })}
+									onChange={(e) =>
+										setNewFormData({
+											...newFormData,
+											"Свершившееся повышение цены ТО": e.target.value,
+										})
+									}
 								/>
 							</div>
 							<div className="form-group">
 								<label>Доп соглашение</label>
 								<input
 									type="text"
-									value={newFormData["Доп соглашени"] || ""}
-									onChange={(e) => setNewFormData({ ...newFormData, "Доп соглашени": e.target.value })}
+									value={newFormData["Доп соглашение"] || ""}
+									onChange={(e) =>
+										setNewFormData({
+											...newFormData,
+											"Доп соглашение": e.target.value,
+										})
+									}
 								/>
 							</div>
 							<div className="form-group">
@@ -1142,20 +1306,22 @@ function App() {
 								<input
 									type="text"
 									value={newFormData["Письма"] || ""}
-									onChange={(e) => setNewFormData({ ...newFormData, Письма: e.target.value })}
+									onChange={(e) =>
+										setNewFormData({ ...newFormData, Письма: e.target.value })
+									}
 								/>
 							</div>
-						</div>
-
-						{/* Секция: Оплата */}
-						<div className="form-section-title">Оплата</div>
-						<div className="form-grid">
 							<div className="form-group">
 								<label>Кто оплачивает ремонт</label>
 								<input
 									type="text"
 									value={newFormData["Кто оплачивает ремонт"] || ""}
-									onChange={(e) => setNewFormData({ ...newFormData, "Кто оплачивает ремонт": e.target.value })}
+									onChange={(e) =>
+										setNewFormData({
+											...newFormData,
+											"Кто оплачивает ремонт": e.target.value,
+										})
+									}
 									placeholder="за наш счёт / заказчик"
 								/>
 							</div>
@@ -1164,7 +1330,12 @@ function App() {
 								<input
 									type="text"
 									value={newFormData["Как оплачиваются доп.работы"] || ""}
-									onChange={(e) => setNewFormData({ ...newFormData, "Как оплачиваются доп.работы": e.target.value })}
+									onChange={(e) =>
+										setNewFormData({
+											...newFormData,
+											"Как оплачиваются доп.работы": e.target.value,
+										})
+									}
 									placeholder="Сметы / КП / По договору"
 								/>
 							</div>
@@ -1172,24 +1343,29 @@ function App() {
 								<label>К доп работам есть ли аванс</label>
 								<select
 									value={newFormData["К доп работам есть ли аванс"] || ""}
-									onChange={(e) => setNewFormData({ ...newFormData, "К доп работам есть ли аванс": e.target.value })}
+									onChange={(e) =>
+										setNewFormData({
+											...newFormData,
+											"К доп работам есть ли аванс": e.target.value,
+										})
+									}
 								>
-								<option value="">—</option>
-								<option value="Аванс">Аванс</option>
-								<option value="Без аванса">Без аванса</option>
-							</select>
+									<option value="">—</option>
+									<option value="Аванс">Аванс</option>
+									<option value="Без аванса">Без аванса</option>
+								</select>
 							</div>
-						</div>
-
-						{/* Секция: Адрес */}
-						<div className="form-section-title">Адрес</div>
-						<div className="form-grid">
 							<div className="form-group form-group-full">
 								<label>Адрес полный объекта</label>
 								<input
 									type="text"
 									value={newFormData["Адрес полный объекта"] || ""}
-									onChange={(e) => setNewFormData({ ...newFormData, "Адрес полный объекта": e.target.value })}
+									onChange={(e) =>
+										setNewFormData({
+											...newFormData,
+											"Адрес полный объекта": e.target.value,
+										})
+									}
 									placeholder="г. Москва, ул. Примерная, д. 1"
 								/>
 							</div>
@@ -1198,8 +1374,27 @@ function App() {
 								<input
 									type="text"
 									value={newFormData["Адрес сокращенный"] || ""}
-									onChange={(e) => setNewFormData({ ...newFormData, "Адрес сокращенный": e.target.value })}
+									onChange={(e) =>
+										setNewFormData({
+											...newFormData,
+											"Адрес сокращенный": e.target.value,
+										})
+									}
 									placeholder="Примерная, 1"
+								/>
+							</div>
+							<div className="form-group">
+								<label>Наименование объекта</label>
+								<input
+									type="text"
+									value={newFormData["Наименование объекта"] || ""}
+									onChange={(e) =>
+										setNewFormData({
+											...newFormData,
+											"Наименование объекта": e.target.value,
+										})
+									}
+									placeholder="Название объекта"
 								/>
 							</div>
 							<div className="form-group">
@@ -1207,7 +1402,12 @@ function App() {
 								<input
 									type="text"
 									value={newFormData["РД ИД ПД"] || ""}
-									onChange={(e) => setNewFormData({ ...newFormData, "РД ИД ПД": e.target.value })}
+									onChange={(e) =>
+										setNewFormData({
+											...newFormData,
+											"РД ИД ПД": e.target.value,
+										})
+									}
 								/>
 							</div>
 							<div className="form-group">
@@ -1215,20 +1415,22 @@ function App() {
 								<input
 									type="text"
 									value={newFormData["Арендатор"] || ""}
-									onChange={(e) => setNewFormData({ ...newFormData, Арендатор: e.target.value })}
+									onChange={(e) =>
+										setNewFormData({
+											...newFormData,
+											Арендатор: e.target.value,
+										})
+									}
 								/>
 							</div>
-						</div>
-
-						{/* Секция: Системы и контакты */}
-						<div className="form-section-title">Системы и контакты</div>
-						<div className="form-grid">
 							<div className="form-group">
 								<label>Системы</label>
 								<input
 									type="text"
 									value={newFormData["Системы"] || ""}
-									onChange={(e) => setNewFormData({ ...newFormData, Системы: e.target.value })}
+									onChange={(e) =>
+										setNewFormData({ ...newFormData, Системы: e.target.value })
+									}
 									placeholder="АПС, СОУЭ, ВПВ"
 								/>
 							</div>
@@ -1237,16 +1439,23 @@ function App() {
 								<input
 									type="text"
 									value={newFormData["Расчетное время на обслуживание"] || ""}
-									onChange={(e) => setNewFormData({ ...newFormData, "Расчетное время на обслуживание": e.target.value })}
+									onChange={(e) =>
+										setNewFormData({
+											...newFormData,
+											"Расчетное время на обслуживание": e.target.value,
+										})
+									}
 									placeholder="2 часа"
-							/>
+								/>
 							</div>
 							<div className="form-group">
 								<label>Контакты</label>
 								<input
 									type="text"
 									value={newFormData["Контакты"] || ""}
-									onChange={(e) => setNewFormData({ ...newFormData, Контакты: e.target.value })}
+									onChange={(e) =>
+										setNewFormData({ ...newFormData, Контакты: e.target.value })
+									}
 									placeholder="Иванов Иван +79991234567"
 								/>
 							</div>
@@ -1254,7 +1463,12 @@ function App() {
 								<label>Инструмент на объекте</label>
 								<select
 									value={newFormData["Инструмент на объекте"] || "нет"}
-									onChange={(e) => setNewFormData({ ...newFormData, "Инструмент на объекте": e.target.value })}
+									onChange={(e) =>
+										setNewFormData({
+											...newFormData,
+											"Инструмент на объекте": e.target.value,
+										})
+									}
 								>
 									<option value="нет">Нет</option>
 									<option value="есть">Есть</option>
@@ -1264,13 +1478,14 @@ function App() {
 								<label>Заметки</label>
 								<textarea
 									value={newFormData["Заметки"] || ""}
-									onChange={(e) => setNewFormData({ ...newFormData, Заметки: e.target.value })}
+									onChange={(e) =>
+										setNewFormData({ ...newFormData, Заметки: e.target.value })
+									}
 									rows={3}
 									placeholder="Дополнительная информация..."
 								/>
 							</div>
 						</div>
-
 						<button type="submit" className="btn btn-primary">
 							<Plus size={18} />
 							Добавить объект
@@ -2775,43 +2990,8 @@ function App() {
 		);
 	}
 
-	function renderCalendarEngineerSection() {
-		const headers = calendarEngineer[0] ? Object.keys(calendarEngineer[0]) : [];
-		return (
-			<>
-				<div className="content-header">
-					<h2>Календарь инженер</h2>
-				</div>
-				<div className="table-container" style={{ overflowX: "auto" }}>
-					<table className="data-table">
-						<thead>
-							<tr>
-								{headers.map((h, i) => (
-									<th key={i}>{h}</th>
-								))}
-							</tr>
-						</thead>
-						<tbody>
-							{calendarEngineer.length === 0 ? (
-								<tr>
-									<td colSpan={headers.length} className="empty-state">
-										Нет данных
-									</td>
-								</tr>
-							) : (
-								calendarEngineer.map((row, i) => (
-									<tr key={i}>
-										{headers.map((h, j) => (
-											<td key={j}>{row[h]}</td>
-										))}
-									</tr>
-								))
-							)}
-						</tbody>
-					</table>
-				</div>
-			</>
-		);
+		function renderCalendarEngineerSection() {
+		return <EngineersCalendar />;
 	}
 
 	function renderCalendarObjectSection() {
@@ -2930,6 +3110,160 @@ function App() {
 		);
 	}
 
+	function renderContactsSection() {
+		const filteredContacts = contacts.filter((c) => {
+			if (contactFilter === "all") return true;
+			if (contactFilter === "object") return c.source === "object";
+			if (contactFilter === "manual") return c.source === "manual";
+			return true;
+		});
+
+		return (
+			<>
+				<div className="content-header">
+					<div className="search-box">
+						<Search size={20} />
+						<input
+							type="text"
+							placeholder="Поиск по имени, телефону, объекту..."
+							value={searchQuery}
+							onChange={(e) => setSearchQuery(e.target.value)}
+						/>
+						{searchQuery && (
+							<button className="clear-search" onClick={() => setSearchQuery("")}>
+								<X size={16} />
+							</button>
+						)}
+					</div>
+					<div className="filter-tabs">
+						<button className={`filter-tab ${contactFilter === "all" ? "active" : ""}`} onClick={() => setContactFilter("all")}>Все</button>
+						<button className={`filter-tab ${contactFilter === "object" ? "active" : ""}`} onClick={() => setContactFilter("object")}>Из объектов</button>
+						<button className={`filter-tab ${contactFilter === "manual" ? "active" : ""}`} onClick={() => setContactFilter("manual")}>Добавленные</button>
+					</div>
+				</div>
+				<div className="table-container">
+					<table className="data-table">
+						<thead>
+							<tr>
+								<th>ID</th>
+								<th>Имя</th>
+								<th>Телефон</th>
+								<th>Объект</th>
+								<th>Адрес</th>
+								<th>Источник</th>
+								<th>Действия</th>
+							</tr>
+						</thead>
+						<tbody>
+							{filteredContacts.length === 0 ? (
+								<tr><td colSpan="7" className="empty-state">Нет контактов</td></tr>
+							) : filteredContacts.map((contact) => (
+								<tr key={contact.id}>
+									<td>{contact.id}</td>
+									<td><strong>{contact.name}</strong></td>
+									<td><a href={`tel:${contact.phone}`}>{contact.phone}</a></td>
+									<td>{contact.objectName}</td>
+									<td>{contact.shortAddress}</td>
+									<td>
+										<span className={`badge ${contact.source === "object" ? "badge-type" : "badge-payment"}`}>
+											{contact.source === "object" ? "Из объекта" : "Добавлен"}
+										</span>
+									</td>
+									<td>
+										<button className="btn-icon btn-edit" onClick={() => handleEditContact(contact)} title="Редактировать">
+											<Edit2 size={16} />
+										</button>
+										{contact.source === "manual" && (
+										<button className="btn-icon btn-delete" onClick={() => handleDeleteContact(contact.id)} title="Удалить">
+												<Trash2 size={16} />
+											</button>
+										)}
+									</td>
+								</tr>
+							))}
+						</tbody>
+					</table>
+				</div>
+				<div className="add-form-section">
+					<h3><Plus size={20} />Добавить контакт</h3>
+					<form onSubmit={handleAddContact} className="add-form">
+						<div className="form-grid">
+							<div className="form-group">
+								<label>Имя контакта *</label>
+								<input
+									type="text"
+									value={newContactData.name}
+									onChange={(e) => setNewContactData({ ...newContactData, name: e.target.value })}
+									placeholder="Иванов Иван Иванович"
+								/>
+							</div>
+							<div className="form-group">
+								<label>Телефон</label>
+								<input
+									type="tel"
+									value={newContactData.phone}
+									onChange={(e) => setNewContactData({ ...newContactData, phone: e.target.value })}
+									placeholder="+7 (999) 123-45-67"
+								/>
+							</div>
+							<div className="form-group">
+								<label>Объект</label>
+								<input
+									type="text"
+									value={newContactData.objectName}
+									onChange={(e) => setNewContactData({ ...newContactData, objectName: e.target.value })}
+									placeholder="Выберите или введите объект"
+									list="objects-list"
+								/>
+								<datalist id="objects-list">
+									{objects.map((obj) => (
+										<option key={obj.id} value={obj["Наименование объекта"]} />
+									))}
+								</datalist>
+							</div>
+							<div className="form-group">
+								<label>Короткий адрес</label>
+								<input
+									type="text"
+									value={newContactData.shortAddress}
+									onChange={(e) => setNewContactData({ ...newContactData, shortAddress: e.target.value })}
+									placeholder="Примерная, 1"
+								/>
+							</div>
+							<div className="form-group">
+								<label>Email</label>
+								<input
+									type="email"
+									value={newContactData.email}
+									onChange={(e) => setNewContactData({ ...newContactData, email: e.target.value })}
+								/>
+							</div>
+							<div className="form-group">
+								<label>Должность</label>
+								<input
+									type="text"
+									value={newContactData.position}
+									onChange={(e) => setNewContactData({ ...newContactData, position: e.target.value })}
+								/>
+							</div>
+							<div className="form-group form-group-full">
+								<label>Заметки</label>
+								<textarea
+									value={newContactData.notes}
+									onChange={(e) => setNewContactData({ ...newContactData, notes: e.target.value })}
+									rows={2}
+								/>
+							</div>
+						</div>
+						<button type="submit" className="btn btn-primary">
+							<Plus size={18} />Добавить контакт
+						</button>
+					</form>
+				</div>
+			</>
+		);
+	}
+
 	function renderExtraSection() {
 		const headers = INITIAL_EXTRA[0] ? Object.keys(INITIAL_EXTRA[0]) : [];
 		return (
@@ -3013,6 +3347,14 @@ function App() {
 						<LogOut size={18} />
 						Выйти
 					</button>
+					<button className="btn btn-danger-outline" onClick={() => {
+						if (window.confirm('Вы уверены? Все данные будут удалены!')) {
+							localStorage.clear();
+							window.location.reload();
+						}
+					}}>
+						Сброс данных
+					</button>
 				</div>
 			</header>
 			<div className="main-layout">
@@ -3083,6 +3425,61 @@ function App() {
 								<button type="submit" className="btn btn-primary">
 									Сохранить
 								</button>
+							</div>
+						</form>
+					</div>
+				</div>
+			)}
+
+			{/* МОДАЛЬНОЕ ОКНО РЕДАКТИРОВАНИЯ КОНТАКТА */}
+			{isContactModalOpen && editingContact && (
+				<div className="modal-overlay" onClick={() => setIsContactModalOpen(false)}>
+					<div className="modal" onClick={(e) => e.stopPropagation()}>
+						<div className="modal-header">
+							<h2>Редактирование контакта</h2>
+							<button className="modal-close" onClick={() => setIsContactModalOpen(false)}>
+								<X size={24} />
+							</button>
+						</div>
+						<form onSubmit={handleSaveContact} className="modal-body">
+							<div className="form-grid">
+								<div className="form-group">
+									<label>Имя контакта *</label>
+									<input type="text" value={editingContact.name || ""} onChange={(e) => handleContactChange("name", e.target.value)} required />
+								</div>
+								<div className="form-group">
+									<label>Телефон</label>
+									<input type="tel" value={editingContact.phone || ""} onChange={(e) => handleContactChange("phone", e.target.value)} />
+								</div>
+								<div className="form-group">
+									<label>Объект</label>
+									<input type="text" value={editingContact.objectName || ""} onChange={(e) => handleContactChange("objectName", e.target.value)} list="objects-list-edit" />
+									<datalist id="objects-list-edit">
+										{objects.map((obj) => (
+											<option key={obj.id} value={obj["Наименование объекта"]} />
+										))}
+									</datalist>
+								</div>
+								<div className="form-group">
+									<label>Короткий адрес</label>
+									<input type="text" value={editingContact.shortAddress || ""} onChange={(e) => handleContactChange("shortAddress", e.target.value)} />
+								</div>
+								<div className="form-group">
+									<label>Email</label>
+									<input type="email" value={editingContact.email || ""} onChange={(e) => handleContactChange("email", e.target.value)} />
+								</div>
+								<div className="form-group">
+									<label>Должность</label>
+									<input type="text" value={editingContact.position || ""} onChange={(e) => handleContactChange("position", e.target.value)} />
+								</div>
+								<div className="form-group form-group-full">
+									<label>Заметки</label>
+									<textarea value={editingContact.notes || ""} onChange={(e) => handleContactChange("notes", e.target.value)} rows={3} />
+								</div>
+							</div>
+							<div className="modal-footer">
+								<button type="button" className="btn btn-secondary" onClick={() => setIsContactModalOpen(false)}>Отмена</button>
+								<button type="submit" className="btn btn-primary">Сохранить</button>
 							</div>
 						</form>
 					</div>
