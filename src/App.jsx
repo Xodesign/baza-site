@@ -613,7 +613,7 @@ function App() {
 
 	// --- СТЕЙТЫ ОБЪЕКТОВ ---
 	const [objects, setObjects] = useState(() => {
-		const saved = localStorage.getItem("demo_objects");
+		const saved = localStorage.getItem("demo_objects_v2");
 		return saved ? JSON.parse(saved) : INITIAL_OBJECTS;
 	});
 	const [newFormData, setNewFormData] = useState(getEmptyObjectForm());
@@ -739,7 +739,7 @@ function App() {
 		localStorage.setItem("demo_calls", JSON.stringify(calls));
 	}, [calls]);
 	useEffect(() => {
-		localStorage.setItem("demo_objects", JSON.stringify(objects));
+		localStorage.setItem("demo_objects_v2", JSON.stringify(objects));
 	}, [objects]);
 	useEffect(() => {
 		localStorage.setItem("demo_staff", JSON.stringify(staff));
