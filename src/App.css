@@ -1295,11 +1295,11 @@
 	.calls-stats {
 		grid-template-columns: repeat(2, 1fr);
 	}
-	
+
 	.call-details-grid {
 		grid-template-columns: 1fr;
 	}
-	
+
 	.form-row {
 		grid-template-columns: repeat(2, 1fr);
 	}
@@ -1309,44 +1309,44 @@
 	.calls-stats {
 		grid-template-columns: 1fr;
 	}
-	
+
 	.call-header {
 		flex-direction: column;
 		align-items: flex-start;
 	}
-	
+
 	.call-quick-info {
 		width: 100%;
 		flex-direction: row;
 		flex-wrap: wrap;
 		gap: 12px 20px;
 	}
-	
+
 	.call-expand-icon {
 		position: absolute;
 		right: 20px;
 		top: 18px;
 	}
-	
+
 	.call-card {
 		position: relative;
 	}
-	
+
 	.form-row {
 		grid-template-columns: 1fr;
 	}
-	
+
 	.action-group {
 		flex-direction: column;
 		align-items: flex-start;
 		width: 100%;
 		margin-bottom: 12px;
 	}
-	
+
 	.action-group select {
 		width: 100%;
 	}
-	
+
 	.call-actions {
 		flex-wrap: wrap;
 	}
