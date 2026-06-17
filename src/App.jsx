@@ -21,11 +21,8 @@ import {
 	Phone,
 	MapPin,
 	Clock,
-	User,
 	AlertCircle,
 	Check,
-	ChevronDown,
-	ChevronUp,
 	ShoppingCart,
 	CreditCard,
 	Briefcase,
@@ -87,6 +84,7 @@ const SECTION_LABELS = {
 const INITIAL_OBJECTS = [
 	{
 		id: 1,
+		objectNumber: 1,
 		Заказчик: "ООО Торговый центр",
 		Подрядчик: "СБ",
 		"№ контр/дог": "ТЦ-001/2024",
@@ -114,6 +112,7 @@ const INITIAL_OBJECTS = [
 	},
 	{
 		id: 2,
+		objectNumber: 2,
 		Заказчик: "ЗАО СтройИнвест",
 		Подрядчик: "СБ+",
 		"№ контр/дог": "СИ-002/2024",
@@ -141,6 +140,7 @@ const INITIAL_OBJECTS = [
 	},
 	{
 		id: 3,
+		objectNumber: 3,
 		Заказчик: "ИП Сидоров",
 		Подрядчик: "ВСТ",
 		"№ контр/дог": "ИП-003/2024",
@@ -168,6 +168,7 @@ const INITIAL_OBJECTS = [
 	},
 	{
 		id: 4,
+		objectNumber: 4,
 		Заказчик: "ООО Ромашка",
 		Подрядчик: "ИП",
 		"№ контр/дог": "РМ-004/2024",
@@ -195,6 +196,7 @@ const INITIAL_OBJECTS = [
 	},
 	{
 		id: 5,
+		objectNumber: 5,
 		Заказчик: "ПАО Газпром",
 		Подрядчик: "СБ",
 		"№ контр/дог": "ГЗ-005/2024",
@@ -233,6 +235,7 @@ const INITIAL_CALLS =
 		assistant: row["Помощник"] || "",
 		status: row["статус вызова"] || "new",
 		type: row["тип заявка"] || "",
+		objectId: row["objectId"] || null,
 		objectName: row["Наименование объекта"] || "",
 		shortAddress: row["сокращенный адрес"] || "",
 		tenant: row["Арендатор"] || "",
@@ -245,8 +248,6 @@ const INITIAL_CALLS =
 		dataOwner: row["У кого данные"] || "",
 		customerContact: row["Кто обратился с заявкой от заказчика"] || "",
 		creator: row["создатель заявки"] || "",
-		description: "",
-		extraData: {},
 	})) || [];
 
 // === ДАННЫЕ СИСТЕМ (из Excel) ===
@@ -570,7 +571,10 @@ function App() {
 	const [isExporting, setIsExporting] = useState(false);
 
 	// --- СТЕЙТЫ ОБЪЕКТОВ ---
-	const [objects, setObjects] = useState(INITIAL_OBJECTS);
+	const [objects, setObjects] = useState(() => {
+		const saved = localStorage.getItem("demo_objects");
+		return saved ? JSON.parse(saved) : INITIAL_OBJECTS;
+	});
 	const [newFormData, setNewFormData] = useState(getEmptyObjectForm());
 	const [editingObject, setEditingObject] = useState(null);
 	const [isEditModalOpen, setIsEditModalOpen] = useState(false);
@@ -583,7 +587,6 @@ function App() {
 	const [newCallData, setNewCallData] = useState(getEmptyCallForm());
 	const [editingCall, setEditingCall] = useState(null);
 	const [isCallModalOpen, setIsCallModalOpen] = useState(false);
-	const [expandedCallId, setExpandedCallId] = useState(null);
 	const [callFilter, setCallFilter] = useState("all");
 
 	// --- СТЕЙТЫ СИСТЕМ ---
@@ -594,7 +597,10 @@ function App() {
 	const [newSystemData, setNewSystemData] = useState(getEmptySystemForm());
 
 	// --- СТЕЙТЫ ПЕРСОНАЛА ---
-	const [staff, setStaff] = useState(INITIAL_STAFF);
+	const [staff, setStaff] = useState(() => {
+		const saved = localStorage.getItem("demo_staff");
+		return saved ? JSON.parse(saved) : INITIAL_STAFF;
+	});
 	const [newStaffData, setNewStaffData] = useState({
 		fullName: "",
 		position: "",
@@ -606,7 +612,10 @@ function App() {
 	});
 
 	// --- СТЕЙТЫ ЗАТРАТ ---
-	const [costs, setCosts] = useState(INITIAL_COSTS);
+	const [costs, setCosts] = useState(() => {
+		const saved = localStorage.getItem("demo_costs");
+		return saved ? JSON.parse(saved) : INITIAL_COSTS;
+	});
 	const [newCostData, setNewCostData] = useState(getEmptyCostForm());
 
 	// --- СТЕЙТЫ ИНСТРУМЕНТА ---
@@ -741,17 +750,26 @@ function App() {
 
 	function getEmptyCallForm() {
 		return {
-			customerName: "",
-			contactPerson: "",
-			phone: "",
-			address: "",
-			reason: "",
-			system: "АПС",
-			priority: "normal",
-			description: "",
-			objectName: "",
+			createdAt: new Date().toISOString().split("T")[0],
+			deadline: "",
+			executionDate: "",
 			engineer: "",
+			assistant: "",
 			status: "new",
+			type: "",
+			objectId: null,
+			objectName: "",
+			shortAddress: "",
+			tenant: "",
+			system: "",
+			request: "",
+			ourTool: "",
+			toPurchase: "",
+			toRepair: "",
+			activation: "",
+			dataOwner: "",
+			customerContact: "",
+			creator: "",
 		};
 	}
 
@@ -886,7 +904,8 @@ function App() {
 			alert("Заполните: Наименование объекта и Заказчика!");
 			return;
 		}
-		const newObj = { id: Date.now(), ...newFormData };
+		const maxNumber = objects.reduce((max, obj) => Math.max(max, obj.objectNumber || 0), 0);
+		const newObj = { id: Date.now(), objectNumber: maxNumber + 1, ...newFormData };
 		setObjects([newObj, ...objects]);
 		setNewFormData(getEmptyObjectForm());
 	};
@@ -914,13 +933,12 @@ function App() {
 	// === ЛОГИКА ВЫЗОВОВ ===
 	const handleAddCall = (e) => {
 		e?.preventDefault();
-		if (!newCallData.customerName?.trim()) {
-			alert("Заполните Заказчика!");
+		if (!newCallData.objectName?.trim()) {
+			alert("Выберите объект!");
 			return;
 		}
 		const newCall = {
 			id: Date.now(),
-			createdAt: new Date().toISOString(),
 			...newCallData,
 		};
 		setCalls([newCall, ...calls]);
@@ -1741,220 +1759,445 @@ function App() {
 	}
 
 	function renderCallsSection() {
+		const getStatusBadge = (status) => {
+			const statusMap = {
+				new: { label: "Новый", class: "stat-new" },
+				in_progress: { label: "В работе", class: "stat-progress" },
+				completed: { label: "Завершён", class: "stat-completed" },
+			};
+			const info = statusMap[status] || { label: status, class: "" };
+			return <span className={`badge ${info.class}`}>{info.label}</span>;
+		};
+
 		return (
 			<>
-				<div className="calls-header">
-					<div className="calls-stats">
-						<div className="stat-card stat-new">
-							<div className="stat-icon">
-								<AlertCircle size={20} />
-							</div>
-							<div className="stat-info">
-								<span className="stat-count">
-									{calls.filter((c) => c.status === "new").length}
-								</span>
-								<span className="stat-label">Новых</span>
-							</div>
+				<div className="content-header">
+					<h2>Вызовы (заявки)</h2>
+				</div>
+
+				<div className="calls-stats">
+					<div className="stat-card stat-new">
+						<div className="stat-icon">
+							<AlertCircle size={20} />
 						</div>
-						<div className="stat-card stat-progress">
-							<div className="stat-icon">
-								<Clock size={20} />
-							</div>
-							<div className="stat-info">
-								<span className="stat-count">
-									{calls.filter((c) => c.status === "in_progress").length}
-								</span>
-								<span className="stat-label">В работе</span>
-							</div>
-						</div>
-						<div className="stat-card stat-completed">
-							<div className="stat-icon">
-								<Check size={20} />
-							</div>
-							<div className="stat-info">
-								<span className="stat-count">
-									{calls.filter((c) => c.status === "completed").length}
-								</span>
-								<span className="stat-label">Завершено</span>
-							</div>
+						<div className="stat-info">
+							<span className="stat-count">
+								{calls.filter((c) => c.status === "new").length}
+							</span>
+							<span className="stat-label">Новых</span>
 						</div>
 					</div>
-					<div className="filter-tabs">
-						{["all", "new", "in_progress", "completed"].map((f) => (
-							<button
-								key={f}
-								className={`filter-tab ${callFilter === f ? "active" : ""}`}
-								onClick={() => setCallFilter(f)}
-							>
-								{f === "all"
-									? "Все"
-									: f === "new"
-										? "Новые"
-										: f === "in_progress"
-											? "В работе"
-											: "Завершённые"}
-							</button>
-						))}
+					<div className="stat-card stat-progress">
+						<div className="stat-icon">
+							<Clock size={20} />
+						</div>
+						<div className="stat-info">
+							<span className="stat-count">
+								{calls.filter((c) => c.status === "in_progress").length}
+							</span>
+							<span className="stat-label">В работе</span>
+						</div>
+					</div>
+					<div className="stat-card stat-completed">
+						<div className="stat-icon">
+							<Check size={20} />
+						</div>
+						<div className="stat-info">
+							<span className="stat-count">
+								{calls.filter((c) => c.status === "completed").length}
+							</span>
+							<span className="stat-label">Завершено</span>
+						</div>
 					</div>
 				</div>
-				<div className="calls-list">
-					{filteredCalls.length === 0 ? (
-						<div className="empty-calls">
-							<Phone size={48} />
-							<h3>Вызовов нет</h3>
-						</div>
-					) : (
-						filteredCalls.map((call) => (
-							<div key={call.id} className="call-card">
-								<div
-									className="call-header"
-									onClick={() =>
-										setExpandedCallId(
-											expandedCallId === call.id ? null : call.id,
-										)
-									}
-								>
-									<div className="call-main-info">
-										<h3>{call.objectName || call.customerName}</h3>
-										<p>{call.request || call.reason}</p>
-									</div>
-									<div className="call-expand-icon">
-										{expandedCallId === call.id ? (
-											<ChevronUp size={20} />
-										) : (
-											<ChevronDown size={20} />
-										)}
-									</div>
-								</div>
-								{expandedCallId === call.id && (
-									<div className="call-details">
-										<div className="call-details-grid">
-											<div className="detail-section">
-												<h4>
-													<User size={16} /> Заказчик
-												</h4>
-												<p>{call.customerContact || call.contactPerson}</p>
-											</div>
-											<div className="detail-section">
-												<h4>
-													<MapPin size={16} /> Адрес
-												</h4>
-												<p>{call.shortAddress || call.address}</p>
-											</div>
-											<div className="detail-section">
-												<h4>
-													<Settings size={16} /> Система
-												</h4>
-												<p>{call.system}</p>
-											</div>
-											<div className="detail-section">
-												<h4>
-													<Calendar size={16} /> Дата
-												</h4>
-												<p>
-													{call.executionDate || call.createdAt?.split("T")[0]}
-												</p>
-											</div>
-										</div>
-										<div className="call-actions">
+
+				<div className="filter-tabs">
+					{["all", "new", "in_progress", "completed"].map((f) => (
+						<button
+							key={f}
+							className={`filter-tab ${callFilter === f ? "active" : ""}`}
+							onClick={() => setCallFilter(f)}
+						>
+							{f === "all"
+								? "Все"
+								: f === "new"
+									? "Новые"
+									: f === "in_progress"
+										? "В работе"
+										: "Завершённые"}
+						</button>
+					))}
+				</div>
+
+				<div className="table-container table-horizontal">
+					<table className="data-table">
+						<thead>
+							<tr>
+								<th>ID</th>
+								<th>Дата заявки</th>
+								<th>Дедлайн</th>
+								<th>Дата пров.</th>
+								<th>Исполнитель</th>
+								<th>Помощник</th>
+								<th>Статус</th>
+								<th>Тип</th>
+								<th>Объект</th>
+								<th>Адрес</th>
+								<th>Арендатор</th>
+								<th>Система</th>
+								<th>Заявка</th>
+								<th>Инструмент</th>
+								<th>Приобрести</th>
+								<th>В ремонт</th>
+								<th>Актирование</th>
+								<th>Данные у</th>
+								<th>Контакт</th>
+								<th>Создатель</th>
+								<th>Действия</th>
+							</tr>
+						</thead>
+						<tbody>
+							{filteredCalls.length === 0 ? (
+								<tr>
+									<td colSpan="21" className="empty-state">
+										Нет заявок
+									</td>
+								</tr>
+							) : (
+								filteredCalls.map((call) => (
+									<tr key={call.id}>
+										<td>{call.id}</td>
+										<td>{call.createdAt || "-"}</td>
+										<td>{call.deadline || "-"}</td>
+										<td>{call.executionDate || "-"}</td>
+										<td>{call.engineer || "-"}</td>
+										<td>{call.assistant || "-"}</td>
+										<td>{getStatusBadge(call.status)}</td>
+										<td>{call.type || "-"}</td>
+										<td>{call.objectName || "-"}</td>
+										<td>{call.shortAddress || "-"}</td>
+										<td>{call.tenant || "-"}</td>
+										<td>{call.system || "-"}</td>
+										<td className="cell-notes">{call.request || "-"}</td>
+										<td className="cell-notes">{call.ourTool || "-"}</td>
+										<td className="cell-notes">{call.toPurchase || "-"}</td>
+										<td className="cell-notes">{call.toRepair || "-"}</td>
+										<td>{call.activation || "-"}</td>
+										<td>{call.dataOwner || "-"}</td>
+										<td>{call.customerContact || "-"}</td>
+										<td>{call.creator || "-"}</td>
+										<td>
 											{call.status !== "completed" && (
 												<button
 													className="btn btn-success btn-sm"
-													onClick={() =>
-														handleStatusChange(call.id, "completed")
-													}
+													onClick={() => handleStatusChange(call.id, "completed")}
+													title="Завершить"
 												>
-													<Check size={16} /> Завершить
+													<Check size={14} />
 												</button>
 											)}
 											<button
 												className="btn btn-icon btn-edit"
 												onClick={() => handleEditCall(call)}
+												title="Редактировать"
 											>
-												<Edit2 size={16} />
+												<Edit2 size={14} />
 											</button>
 											<button
 												className="btn btn-icon btn-delete"
 												onClick={() => handleDeleteCall(call.id)}
+												title="Удалить"
 											>
-												<Trash2 size={16} />
+												<Trash2 size={14} />
 											</button>
-										</div>
-									</div>
-								)}
-							</div>
-						))
-					)}
+										</td>
+									</tr>
+								))
+							)}
+						</tbody>
+					</table>
 				</div>
-				<div className="add-form-section">
+				<div className="add-form-section add-form-full">
 					<h3>
 						<Plus size={20} />
-						Новый вызов
+						Новая заявка (вызов)
 					</h3>
 					<form onSubmit={handleAddCall} className="add-form">
 						<div className="form-grid">
+							{/* Дата заявки */}
 							<div className="form-group">
-								<label>Объект / Заказчик *</label>
+								<label>Дата заявки</label>
 								<input
 									type="text"
-									value={newCallData.customerName}
+									value={newCallData.createdAt || ""}
 									onChange={(e) =>
-										setNewCallData({
-											...newCallData,
-											customerName: e.target.value,
-										})
+										setNewCallData({ ...newCallData, createdAt: e.target.value })
 									}
+									placeholder="ДД.ММ.ГГГГ"
 								/>
 							</div>
+
+							{/* Дедлайн */}
 							<div className="form-group">
-								<label>Адрес</label>
+							<label>Дедлайн</label>
 								<input
 									type="text"
-									value={newCallData.address}
+									value={newCallData.deadline || ""}
 									onChange={(e) =>
-										setNewCallData({ ...newCallData, address: e.target.value })
+										setNewCallData({ ...newCallData, deadline: e.target.value })
 									}
+									placeholder="ДД.ММ.ГГГГ"
 								/>
 							</div>
+
+							{/* Дата проведения */}
 							<div className="form-group">
-								<label>Система</label>
-								<select
-									value={newCallData.system}
-									onChange={(e) =>
-										setNewCallData({ ...newCallData, system: e.target.value })
-									}
-								>
-									<option value="АПС">АПС</option>
-									<option value="СОУЭ">СОУЭ</option>
-									<option value="ВПВ">ВПВ</option>
-									<option value="АПТ">АПТ</option>
-								</select>
-							</div>
-							<div className="form-group">
-								<label>Заявка</label>
+								<label>Дата проведения</label>
 								<input
 									type="text"
-									value={newCallData.reason}
+									value={newCallData.executionDate || ""}
 									onChange={(e) =>
-										setNewCallData({ ...newCallData, reason: e.target.value })
+										setNewCallData({ ...newCallData, executionDate: e.target.value })
 									}
-									placeholder="Опишите заявку"
+									placeholder="ДД.ММ.ГГГГ"
 								/>
 							</div>
+
+							{/* Исполнитель */}
 							<div className="form-group">
 								<label>Исполнитель</label>
 								<input
 									type="text"
-									value={newCallData.engineer}
+									value={newCallData.engineer || ""}
 									onChange={(e) =>
 										setNewCallData({ ...newCallData, engineer: e.target.value })
 									}
+									placeholder="ФИО"
+									list="calls-engineers-list"
+								/>
+								<datalist id="calls-engineers-list">
+									{staff.map((s) => (
+										<option key={s.id} value={s.fullName} />
+									))}
+								</datalist>
+							</div>
+
+							{/* Помощник */}
+							<div className="form-group">
+								<label>Помощник</label>
+								<input
+									type="text"
+									value={newCallData.assistant || ""}
+									onChange={(e) =>
+										setNewCallData({ ...newCallData, assistant: e.target.value })
+									}
+									placeholder="ФИО"
+									list="calls-engineers-list"
+								/>
+							</div>
+
+							{/* Статус вызова */}
+							<div className="form-group">
+								<label>Статус вызова</label>
+								<select
+									value={newCallData.status || "new"}
+									onChange={(e) =>
+										setNewCallData({ ...newCallData, status: e.target.value })
+									}
+								>
+									<option value="new">Новый</option>
+									<option value="in_progress">В работе</option>
+									<option value="completed">Завершён</option>
+								</select>
+							</div>
+
+							{/* Тип заявки */}
+							<div className="form-group">
+								<label>Тип заявки</label>
+								<input
+									type="text"
+									value={newCallData.type || ""}
+									onChange={(e) =>
+										setNewCallData({ ...newCallData, type: e.target.value })
+									}
+									placeholder="ТО / СМР / Аварийная"
+								/>
+							</div>
+
+							{/* Объект */}
+							<div className="form-group">
+								<label>Наименование объекта *</label>
+								<input
+									type="text"
+									value={newCallData.objectName || ""}
+									onChange={(e) => {
+										const selected = objects.find(
+											(o) => o["Наименование объекта"] === e.target.value,
+										);
+										setNewCallData({
+											...newCallData,
+											objectId: selected ? selected.id : null,
+											objectName: e.target.value,
+											shortAddress: selected ? selected["Адрес сокращенный"] || "" : "",
+											tenant: selected ? selected["Арендатор"] || "" : "",
+										});
+									}}
+										list="calls-objects-list"
+										required
+									/>
+									<datalist id="calls-objects-list">
+										{objects.map((obj) => (
+											<option key={obj.id} value={obj["Наименование объекта"]} />
+										))}
+									</datalist>
+							</div>
+
+							{/* Сокращенный адрес */}
+							<div className="form-group">
+								<label>Сокращенный адрес</label>
+								<input
+									type="text"
+									value={newCallData.shortAddress || ""}
+									onChange={(e) =>
+										setNewCallData({ ...newCallData, shortAddress: e.target.value })
+									}
+									placeholder="Адрес объекта"
+								/>
+							</div>
+
+							{/* Арендатор */}
+							<div className="form-group">
+								<label>Арендатор</label>
+								<input
+									type="text"
+									value={newCallData.tenant || ""}
+									onChange={(e) =>
+										setNewCallData({ ...newCallData, tenant: e.target.value })
+									}
+									placeholder="Арендатор"
+								/>
+							</div>
+
+							{/* Система */}
+							<div className="form-group">
+								<label>Система</label>
+								<input
+									type="text"
+									value={newCallData.system || ""}
+									onChange={(e) =>
+										setNewCallData({ ...newCallData, system: e.target.value })
+									}
+									placeholder="АПС, СОУЭ, ВПВ"
+								/>
+							</div>
+
+							{/* Заявка */}
+							<div className="form-group form-group-full">
+								<label>Заявка (описание)</label>
+								<textarea
+									value={newCallData.request || ""}
+									onChange={(e) =>
+										setNewCallData({ ...newCallData, request: e.target.value })
+									}
+									rows={3}
+									placeholder="Опишите заявку подробно..."
+								/>
+							</div>
+
+							{/* Наш инструмент */}
+							<div className="form-group form-group-full">
+								<label>Наш инструмент для выполнения (не обязательно)</label>
+								<textarea
+									value={newCallData.ourTool || ""}
+									onChange={(e) =>
+										setNewCallData({ ...newCallData, ourTool: e.target.value })
+									}
+									rows={4}
+									placeholder={`Укажите необходимый инструмент:\n• Перфоратор\n• Безаккумуляторные устройства\n• Стремянка (высота___) / тура\n• Удлинители\n• Болгарка (тип диска___)\n• Буры (диаметр___ х длина___)\n• Средства защиты`}
+								/>
+							</div>
+
+							{/* Приобрести для выполнения */}
+							<div className="form-group form-group-full">
+								<label>Приобрести для выполнения</label>
+								<textarea
+									value={newCallData.toPurchase || ""}
+									onChange={(e) =>
+										setNewCallData({ ...newCallData, toPurchase: e.target.value })
+									}
+									rows={2}
+									placeholder="Что нужно приобрести..."
+								/>
+							</div>
+
+							{/* Отвезти в ремонт */}
+							<div className="form-group form-group-full">
+								<label>Отвезти в ремонт</label>
+								<textarea
+									value={newCallData.toRepair || ""}
+									onChange={(e) =>
+										setNewCallData({ ...newCallData, toRepair: e.target.value })
+									}
+									rows={2}
+									placeholder="Что требует ремонта..."
+								/>
+							</div>
+
+							{/* Актирование работ */}
+							<div className="form-group">
+							<label>Актирование работ</label>
+								<input
+									type="text"
+									value={newCallData.activation || ""}
+									onChange={(e) =>
+										setNewCallData({ ...newCallData, activation: e.target.value })
+									}
+									placeholder="Да / Нет / ..."
+								/>
+							</div>
+
+							{/* У кого данные */}
+							<div className="form-group">
+								<label>У кого данные</label>
+								<input
+									type="text"
+									value={newCallData.dataOwner || ""}
+									onChange={(e) =>
+										setNewCallData({ ...newCallData, dataOwner: e.target.value })
+									}
+									placeholder="У кого хранятся данные..."
+								/>
+							</div>
+
+							{/* Кто обратился */}
+							<div className="form-group">
+								<label>Кто обратился с заявкой от заказчика</label>
+								<input
+									type="text"
+									value={newCallData.customerContact || ""}
+									onChange={(e) =>
+										setNewCallData({ ...newCallData, customerContact: e.target.value })
+									}
+									placeholder="ФИО контакта"
+								/>
+							</div>
+
+							{/* Создатель заявки */}
+							<div className="form-group">
+								<label>Создатель заявки</label>
+								<input
+									type="text"
+									value={newCallData.creator || ""}
+									onChange={(e) =>
+										setNewCallData({ ...newCallData, creator: e.target.value })
+									}
+									placeholder="Ваше имя"
 								/>
 							</div>
 						</div>
 						<button type="submit" className="btn btn-primary">
 							<Plus size={18} />
-							Создать вызов
+							Создать заявку
 						</button>
 					</form>
 				</div>
