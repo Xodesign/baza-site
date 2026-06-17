@@ -1085,6 +1085,164 @@ function App() {
 												placeholder="Например: Аванс, Без аванса, КП"
 											/>
 										</div>
+										<div className="form-group">
+											<label>Продлеваемость</label>
+											<select
+												value={newFormData.prolongationType}
+												onChange={(e) =>
+													setNewFormData({
+														...newFormData,
+														prolongationType: e.target.value,
+													})
+												}
+											>
+												<option value="">—</option>
+												<option value="Продлеваемый автоматически">Продлеваемый автоматически</option>
+												<option value="Не продлеваемый">Не продлеваемый</option>
+											</select>
+										</div>
+										<div className="form-group">
+											<label>Письмо о повышении стоимости ТО</label>
+											<input
+												type="text"
+												value={newFormData.maintenancePriceLetter}
+												onChange={(e) =>
+													setNewFormData({
+														...newFormData,
+														maintenancePriceLetter: e.target.value,
+													})
+												}
+												placeholder="Дата/номер письма"
+											/>
+										</div>
+										<div className="form-group">
+											<label>Свершившееся повышение цены ТО</label>
+											<input
+												type="text"
+												value={newFormData.priceIncreaseDate}
+												onChange={(e) =>
+													setNewFormData({
+														...newFormData,
+														priceIncreaseDate: e.target.value,
+													})
+												}
+												placeholder="Дата повышения"
+											/>
+										</div>
+										<div className="form-group">
+											<label>Доп. соглашение</label>
+											<input
+												type="text"
+												value={newFormData.addAgreement}
+												onChange={(e) =>
+													setNewFormData({
+														...newFormData,
+														addAgreement: e.target.value,
+													})
+												}
+												placeholder="Номер доп. соглашения"
+											/>
+										</div>
+										<div className="form-group">
+											<label>Письма к доп. работам</label>
+											<input
+												type="text"
+												value={newFormData.lettersToExtraWork}
+												onChange={(e) =>
+													setNewFormData({
+														...newFormData,
+														lettersToExtraWork: e.target.value,
+													})
+												}
+												placeholder="Реквизиты писем"
+											/>
+										</div>
+										<div className="form-group">
+											<label>Есть ли аванс</label>
+											<select
+												value={newFormData.extraWorkAdvance}
+												onChange={(e) =>
+													setNewFormData({
+														...newFormData,
+														extraWorkAdvance: e.target.value,
+													})
+												}
+											>
+												<option value="">—</option>
+												<option value="Есть">Есть</option>
+												<option value="Нет">Нет</option>
+											</select>
+										</div>
+										<div className="form-group">
+											<label>Кто оплачивает доп. работы</label>
+											<input
+												type="text"
+												value={newFormData.repairPayer}
+												onChange={(e) =>
+													setNewFormData({
+														...newFormData,
+														repairPayer: e.target.value,
+													})
+												}
+												placeholder="Все за наш счёт / Заказчик"
+											/>
+										</div>
+										<div className="form-group">
+											<label>Оплачиваются доп. работы</label>
+											<input
+												type="text"
+												value={newFormData.extraWorkPayment}
+												onChange={(e) =>
+													setNewFormData({
+														...newFormData,
+														extraWorkPayment: e.target.value,
+													})
+												}
+												placeholder="Сметы / По договору"
+											/>
+										</div>
+										<div className="form-group">
+											<label>РД ИД ПД</label>
+											<input
+												type="text"
+												value={newFormData.documentsType}
+												onChange={(e) =>
+													setNewFormData({
+														...newFormData,
+														documentsType: e.target.value,
+													})
+												}
+												placeholder="Коды проектной документации"
+											/>
+										</div>
+										<div className="form-group">
+											<label>Арендатор</label>
+											<input
+												type="text"
+												value={newFormData.tenant}
+												onChange={(e) =>
+													setNewFormData({
+														...newFormData,
+														tenant: e.target.value,
+													})
+												}
+												placeholder="Название арендатора"
+											/>
+										</div>
+										<div className="form-group">
+											<label>Расчетное время на обслуживание</label>
+											<input
+												type="text"
+												value={newFormData.estimatedTime}
+												onChange={(e) =>
+													setNewFormData({
+														...newFormData,
+														estimatedTime: e.target.value,
+													})
+												}
+												placeholder="2 часа"
+											/>
+										</div>
 										<div className="form-group form-group-full">
 											<label>Примечания</label>
 											<textarea
