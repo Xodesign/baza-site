@@ -252,14 +252,20 @@ const INITIAL_CALLS =
 
 // === ДАННЫЕ СИСТЕМ (из Excel) ===
 const INITIAL_SYSTEMS =
-	excelData["(Д) системы"]?.rows?.map((row, idx) => ({
-		id: idx + 1,
-		parentObject: row["Наименование объекта"] || "",
-		systemType: row["дочерняя вкладка к объекту"] || "",
-		brand: row["бренд"] || "",
-		systemKind: row["тип"] || "",
-		quantity: row["кол во"] || "",
-	})) || [];
+	excelData["(Д) системы"]?.rows?.map((row, idx) => {
+		const matchedObj = INITIAL_OBJECTS.find(
+			(o) => o["Наименование объекта"] === row["Наименование объекта"],
+		);
+		return {
+			id: idx + 1,
+			objectId: matchedObj?.id || null,
+			parentObject: row["Наименование объекта"] || "",
+			systemType: row["дочерняя вкладка к объекту"] || "",
+			brand: row["бренд"] || "",
+			systemKind: row["тип"] || "",
+			quantity: row["кол во"] || "",
+		};
+	}) || [];
 
 // === ДАННЫЕ ПЕРСОНАЛА ===
 const INITIAL_STAFF = [
@@ -326,18 +332,26 @@ const INITIAL_STAFF = [
 ];
 
 // === ДАННЫЕ ЗАТРАТ (из Excel) ===
-const INITIAL_COSTS = excelData["Затраты"]?.rows?.map((row, idx) => ({
-	id: idx + 1,
-	objectName: row["Наименование объекта"] || "",
-	shortAddress: row["сокращенный адрес"] || "",
-	system: row["Система"] || "",
-	employee: row["Сотрудник"] || "",
-	amount: row["Сумма"] || "",
-	comment: row["Коментарий (что и зачем)"] || "",
-	receiptPhoto: row["Фото чека"] || "",
-})) || [
+const INITIAL_COSTS = excelData["Затраты"]?.rows?.map((row, idx) => {
+	const matchedObj = INITIAL_OBJECTS.find(
+		(o) => o["Наименование объекта"] === row["Наименование объекта"],
+	);
+	return {
+		id: idx + 1,
+		objectId: matchedObj?.id || null,
+		objectName: row["Наименование объекта"] || "",
+		shortAddress:
+			row["сокращенный адрес"] || matchedObj?.["Адрес сокращенный"] || "",
+		system: row["Система"] || "",
+		employee: row["Сотрудник"] || "",
+		amount: row["Сумма"] || "",
+		comment: row["Коментарий (что и зачем)"] || "",
+		receiptPhoto: row["Фото чека"] || "",
+	};
+}) || [
 	{
 		id: 1,
+		objectId: 1,
 		objectName: "ТЦ Мега",
 		shortAddress: "Тверская, 15",
 		system: "АПС",
@@ -350,6 +364,7 @@ const INITIAL_COSTS = excelData["Затраты"]?.rows?.map((row, idx) => ({
 	},
 	{
 		id: 2,
+		objectId: 2,
 		objectName: "БЦ Невский",
 		shortAddress: "Невский, 100",
 		system: "ВИДЕОНАБЛЮДЕНИЕ",
@@ -362,6 +377,7 @@ const INITIAL_COSTS = excelData["Затраты"]?.rows?.map((row, idx) => ({
 	},
 	{
 		id: 3,
+		objectId: 3,
 		objectName: "ТРЦ Галерея",
 		shortAddress: "Ленина, 50",
 		system: "СОУЭ",
@@ -374,6 +390,7 @@ const INITIAL_COSTS = excelData["Затраты"]?.rows?.map((row, idx) => ({
 	},
 	{
 		id: 4,
+		objectId: 4,
 		objectName: "Супермаркет Ромашка",
 		shortAddress: "Красная, 25",
 		system: "ОПС",
@@ -386,6 +403,7 @@ const INITIAL_COSTS = excelData["Затраты"]?.rows?.map((row, idx) => ({
 	},
 	{
 		id: 5,
+		objectId: 5,
 		objectName: "Штаб-квартира Газпром",
 		shortAddress: "Пресненская, 12",
 		system: "СКУД",
@@ -400,50 +418,73 @@ const INITIAL_COSTS = excelData["Затраты"]?.rows?.map((row, idx) => ({
 
 // === ДАННЫЕ ИНСТРУМЕНТА (из Excel) ===
 const INITIAL_TOOLS =
-	excelData["Инструмент"]?.rows?.map((row, idx) => ({
-		id: idx + 1,
-		tool: row["Инструмент"] || "",
-		inventoryNumber: row["инв. номер"] || "",
-		brand: row["марка"] || "",
-		objectName: row["Фактический"] || row["Наименование объекта"] || "",
-		shortAddress: row["сокращенный адрес"] || "",
-		arrivalDate: row["дата прибытия"] || "",
-		callStatus: row["Статус вызова"] || "",
-		transportRequest: row["подтвердить выбор "] || "",
-		targetAddress: row["Целевой"] || "",
-	})) || [];
+	excelData["Инструмент"]?.rows?.map((row, idx) => {
+		const objName = row["Фактический"] || row["Наименование объекта"] || "";
+		const matchedObj = INITIAL_OBJECTS.find(
+			(o) => o["Наименование объекта"] === objName,
+		);
+		return {
+			id: idx + 1,
+			objectId: matchedObj?.id || null,
+			tool: row["Инструмент"] || "",
+			inventoryNumber: row["инв. номер"] || "",
+			brand: row["марка"] || "",
+			objectName: objName,
+			shortAddress:
+				row["сокращенный адрес"] || matchedObj?.["Адрес сокращенный"] || "",
+			arrivalDate: row["дата прибытия"] || "",
+			callStatus: row["Статус вызова"] || "",
+			transportRequest: row["подтвердить выбор "] || "",
+			targetAddress: row["Целевой"] || "",
+		};
+	}) || [];
 
 // === ДАННЫЕ АКТИРОВАНИЯ (из Excel) ===
 const INITIAL_ACTIVATIONS =
-	excelData["Актирование"]?.rows?.map((row, idx) => ({
-		id: idx + 1,
-		requestDate: row["дата заявки"] || "",
-		executionDate: row["Дата проведения"] || "",
-		engineer: row["Исполнитель"] || "",
-		requestType: row["тип заявки"] || "",
-		objectName: row["Наименование объекта"] || "",
-		shortAddress: row["сокращенный адрес"] || "",
-		system: row["Система"] || "",
-		request: row["Заявка"] || "",
-		toPurchase: row["Приобрести для выполнения"] || "",
-		customerContact: row["Кто обратился с заявкой от заказчика"] || "",
-		creator: row["создатель заявки"] || "",
-	})) || [];
+	excelData["Актирование"]?.rows?.map((row, idx) => {
+		const matchedObj = INITIAL_OBJECTS.find(
+			(o) => o["Наименование объекта"] === row["Наименование объекта"],
+		);
+		return {
+			id: idx + 1,
+			objectId: matchedObj?.id || null,
+			requestDate: row["дата заявки"] || "",
+			executionDate: row["Дата проведения"] || "",
+			engineer: row["Исполнитель"] || "",
+			requestType: row["тип заявки"] || "",
+			objectName: row["Наименование объекта"] || "",
+			shortAddress:
+				row["сокращенный адрес"] || matchedObj?.["Адрес сокращенный"] || "",
+			system: row["Система"] || "",
+			request: row["Заявка"] || "",
+			toPurchase: row["Приобрести для выполнения"] || "",
+			customerContact: row["Кто обратился с заявкой от заказчика"] || "",
+			creator: row["создатель заявки"] || "",
+		};
+	}) || [];
 
 // === ДАННЫЕ КУПИТЬ (из Excel) ===
 const INITIAL_BUY =
-	excelData["Купить"]?.rows?.map((row, idx) => ({
-		id: idx + 1,
-		requestDate: row["дата заявки"] || "",
-		deadline: row["Дедлайн"] || "",
-		status: row["статус заявки"] || "",
-		contractNumber: row["№ контр/дог"] || "",
-		objectName: row["Наименование\nобъекта"] || "",
-		shortAddress: row["сокращенный адрес"] || "",
-		payer: row["Кто оплачивает"] || "",
-		whatToBuy: row["Что нужно приобрести"] || "",
-		creator: row["создатель заявки"] || "",
-	})) || [];
+	excelData["Купить"]?.rows?.map((row, idx) => {
+		const objName = row["Наименование\nобъекта"] || "";
+		const matchedObj = INITIAL_OBJECTS.find(
+			(o) => o["Наименование объекта"] === objName,
+		);
+		return {
+			id: idx + 1,
+			objectId: matchedObj?.id || null,
+			requestDate: row["дата заявки"] || "",
+			deadline: row["Дедлайн"] || "",
+			status: row["статус заявки"] || "",
+			contractNumber: row["№ контр/дог"] || "",
+			objectName: objName,
+			shortAddress:
+				row["сокращенный адрес"] || matchedObj?.["Адрес сокращенный"] || "",
+			payer: row["Кто оплачивает"] || "",
+			whatToBuy: row["Что нужно приобрести"] || "",
+			creator: row["создатель заявки"] || "",
+		};
+	}) || [];
 
 // === ДАННЫЕ ТРАНСПОРТ (из Excel) ===
 const INITIAL_TRANSPORT =
@@ -994,10 +1035,115 @@ function App() {
 		// Синхронизация в закупках
 		setBuyItems(
 			buyItems.map((b) => {
-				if (b.objectName === oldName) {
-					return { ...b, objectName: newName, shortAddress: newAddress };
+				if (b.objectName === oldName || b.objectId === editingObject.id) {
+					return {
+						...b,
+						objectName: newName,
+						shortAddress: newAddress,
+						objectId: editingObject.id,
+					};
 				}
 				return b;
+			}),
+		);
+
+		// Синхронизация в затратах
+		setCosts(
+			costs.map((c) => {
+				if (c.objectName === oldName || c.objectId === editingObject.id) {
+					return {
+						...c,
+						objectName: newName,
+						shortAddress: newAddress,
+						objectId: editingObject.id,
+					};
+				}
+				return c;
+			}),
+		);
+
+		// Синхронизация в инструментах
+		setTools(
+			tools.map((t) => {
+				if (t.objectName === oldName || t.objectId === editingObject.id) {
+					return {
+						...t,
+						objectName: newName,
+						shortAddress: newAddress,
+						objectId: editingObject.id,
+					};
+				}
+				return t;
+			}),
+		);
+
+		// Синхронизация в актировании
+		setActivations(
+			activations.map((a) => {
+				if (a.objectName === oldName || a.objectId === editingObject.id) {
+					return {
+						...a,
+						objectName: newName,
+						shortAddress: newAddress,
+						objectId: editingObject.id,
+					};
+				}
+				return a;
+			}),
+		);
+
+		// Синхронизация в счетах
+		setInvoices(
+			invoices.map((i) => {
+				if (i.objectName === oldName || i.objectId === editingObject.id) {
+					return {
+						...i,
+						objectName: newName,
+						shortAddress: newAddress,
+						objectId: editingObject.id,
+					};
+				}
+				return i;
+			}),
+		);
+
+		// Синхронизация в учете времени
+		setTimeEntries(
+			timeEntries.map((t) => {
+				if (t.objectName === oldName || t.objectId === editingObject.id) {
+					return {
+						...t,
+						objectName: newName,
+						shortAddress: newAddress,
+						objectId: editingObject.id,
+					};
+				}
+				return t;
+			}),
+		);
+
+		// Синхронизация в системах
+		setSystems(
+			systems.map((s) => {
+				if (s.parentObject === oldName || s.objectId === editingObject.id) {
+					return { ...s, parentObject: newName, objectId: editingObject.id };
+				}
+				return s;
+			}),
+		);
+
+		// Синхронизация в контактах
+		setContacts(
+			contacts.map((c) => {
+				if (c.objectName === oldName || c.objectId === editingObject.id) {
+					return {
+						...c,
+						objectName: newName,
+						shortAddress: newAddress,
+						objectId: editingObject.id,
+					};
+				}
+				return c;
 			}),
 		);
 
@@ -2126,47 +2272,58 @@ function App() {
 								/>
 							</div>
 
-								{/* Объект */}
-								<div className="form-group">
-									<label>Объект (выберите или введите) *</label>
-									<input
-										type="text"
-										value={newCallData.objectName || ""}
-										onChange={(e) => {
-											const inputVal = e.target.value;
-											// Ищем объект по номеру или названию
-											const selectedByNum = objects.find((o) => `${o.objectNumber || o.id}.` === inputVal.split(".")[0] + ".");
-											const selectedByName = objects.find((o) => o["Наименование объекта"] === inputVal);
-											const selected = selectedByNum || selectedByName;
-											
-											if (selected) {
-												setNewCallData({
-													...newCallData,
-													objectId: selected.id,
-													objectNumber: selected.objectNumber,
-													objectName: selected["Наименование объекта"],
-													shortAddress: selected["Адрес сокращенный"] || "",
-													tenant: selected["Арендатор"] || "",
-													// Подтягиваем дополнительные данные из объекта
-												});
-											} else {
-												setNewCallData({
-													...newCallData,
-													objectId: null,
-													objectNumber: null,
-													objectName: inputVal,
-												});
-											}
-										}}
-										list="calls-objects-list"
-											required
+							{/* Объект */}
+							<div className="form-group">
+								<label>Объект (выберите или введите) *</label>
+								<input
+									type="text"
+									value={newCallData.objectName || ""}
+									onChange={(e) => {
+										const inputVal = e.target.value;
+										// Ищем объект по номеру или названию
+										const selectedByNum = objects.find(
+											(o) =>
+												`${o.objectNumber || o.id}.` ===
+												inputVal.split(".")[0] + ".",
+										);
+										const selectedByName = objects.find(
+											(o) => o["Наименование объекта"] === inputVal,
+										);
+										const selected = selectedByNum || selectedByName;
+
+										if (selected) {
+											setNewCallData({
+												...newCallData,
+												objectId: selected.id,
+												objectNumber: selected.objectNumber,
+												objectName: selected["Наименование объекта"],
+												shortAddress: selected["Адрес сокращенный"] || "",
+												tenant: selected["Арендатор"] || "",
+												// Подтягиваем дополнительные данные из объекта
+											});
+										} else {
+											setNewCallData({
+												...newCallData,
+												objectId: null,
+												objectNumber: null,
+												objectName: inputVal,
+											});
+										}
+									}}
+									list="calls-objects-list"
+									required
+								/>
+								<div className="form-hint">
+									Введите номер объекта (1, 2...) или название
+								</div>
+								<datalist id="calls-objects-list">
+									{objects.map((obj) => (
+										<option
+											key={obj.id}
+											value={`${obj.objectNumber || obj.id}. ${obj["Наименование объекта"]}`}
 										/>
-									<div className="form-hint">Введите номер объекта (1, 2...) или название</div>
-									<datalist id="calls-objects-list">
-										{objects.map((obj) => (
-											<option key={obj.id} value={`${obj.objectNumber || obj.id}. ${obj["Наименование объекта"]}`} />
-										))}
-									</datalist>
+									))}
+								</datalist>
 							</div>
 
 							{/* Сокращенный адрес */}
@@ -3272,10 +3429,15 @@ function App() {
 									list="transport-objects-list"
 									required
 								/>
-								<div className="form-hint">Введите номер объекта (1, 2...) или название</div>
+								<div className="form-hint">
+									Введите номер объекта (1, 2...) или название
+								</div>
 								<datalist id="transport-objects-list">
 									{objects.map((obj) => (
-										<option key={obj.id} value={`${obj.objectNumber || obj.id}. ${obj["Наименование объекта"]}`} />
+										<option
+											key={obj.id}
+											value={`${obj.objectNumber || obj.id}. ${obj["Наименование объекта"]}`}
+										/>
 									))}
 								</datalist>
 							</div>
