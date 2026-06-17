@@ -731,6 +731,15 @@ function App() {
 	// --- СТЕЙТЫ ВЫБОРА ИНСТРУМЕНТА ---
 	const [selectedToolIds, setSelectedToolIds] = useState([]);
 
+	// --- СТЕЙТЫ МОДАЛЬНОГО ОКНА ВЫБОРА СИСТЕМ ---
+	const [isSystemPickerOpen, setIsSystemPickerOpen] = useState(false);
+	const [systemPickerObject, setSystemPickerObject] = useState(null);
+	const [systemPickerSearch, setSystemPickerSearch] = useState("");
+	const [selectedSystemsForObject, setSelectedSystemsForObject] = useState([]);
+
+	// Все доступные типы систем
+	const ALL_SYSTEM_TYPES = ["АПС", "СОУЭ", "ВПВ", "АПТ", "ОПС", "ВИДЕОНАБЛЮДЕНИЕ", "СКУД", "Охрана периметра", "Дымоудаление", "Пожарная автоматика"];
+
 	// --- СПИСОК РАЗДЕЛОВ ---
 	const MENU_ITEMS = Object.keys(SECTION_LABELS).map((id) => ({
 		id,
@@ -1450,7 +1459,11 @@ function App() {
 		return (
 			(o["Наименование объекта"] || "").toLowerCase().includes(q) ||
 			(o["Заказчик"] || "").toLowerCase().includes(q) ||
-			(o["№ контр/дог"] || "").toLowerCase().includes(q)
+			(o["№ контр/дог"] || "").toLowerCase().includes(q) ||
+			(o["Адрес полный объекта"] || "").toLowerCase().includes(q) ||
+			(o["Адрес сокращенный"] || "").toLowerCase().includes(q) ||
+			(o["Арендатор"] || "").toLowerCase().includes(q) ||
+			(o["Системы"] || "").toLowerCase().includes(q)
 		);
 	});
 
@@ -1578,6 +1591,52 @@ function App() {
 	};
 
 	function renderObjectsSection() {
+		// Функция открытия окна выбора систем
+		const openSystemPicker = (obj, e) => {
+			e?.stopPropagation();
+			setSystemPickerObject(obj);
+			// Парсим текущие системы объекта
+			const currentSystems = obj["Системы"] || "";
+			const systemsArray = currentSystems
+				.split(",")
+				.map((s) => s.trim())
+				.filter((s) => s);
+			setSelectedSystemsForObject(systemsArray);
+			setSystemPickerSearch("");
+			setIsSystemPickerOpen(true);
+		};
+
+		// Функция сохранения выбранных систем
+		const saveObjectSystems = () => {
+			if (!systemPickerObject) return;
+
+			const newSystemsString = selectedSystemsForObject.join(", ");
+			objectContactsSyncRef.current = true;
+			setObjects(
+				objects.map((o) =>
+					o.id === systemPickerObject.id
+						? { ...o, Системы: newSystemsString }
+						: o
+				)
+			);
+			setIsSystemPickerOpen(false);
+			setSystemPickerObject(null);
+		};
+
+		// Переключение системы в выборе
+		const toggleSystem = (system) => {
+			setSelectedSystemsForObject((prev) =>
+				prev.includes(system)
+					? prev.filter((s) => s !== system)
+					: [...prev, system]
+			);
+		};
+
+		// Фильтрованные типы систем для пикера
+		const filteredSystemTypes = ALL_SYSTEM_TYPES.filter((s) =>
+			s.toLowerCase().includes(systemPickerSearch.toLowerCase())
+		);
+
 		return (
 			<>
 				<div className="content-header">
@@ -1585,7 +1644,7 @@ function App() {
 						<Search size={20} />
 						<input
 							type="text"
-							placeholder="Поиск по названию, заказчику, договору..."
+							placeholder="Поиск: название, заказчик, договор, адрес, арендатор, системы..."
 							value={searchQuery}
 							onChange={(e) => setSearchQuery(e.target.value)}
 						/>
@@ -1598,106 +1657,10 @@ function App() {
 							</button>
 						)}
 					</div>
+					<span className="badge-count">{filteredObjects.length} из {objects.length}</span>
 				</div>
-				<div className="table-container table-horizontal">
-					<table className="data-table">
-						<thead>
-							<tr>
-								<th className="sticky-col">Действия</th>
-								<th>Заказчик</th>
-								<th>Подрядчик</th>
-								<th>№ контр/дог</th>
-								<th>Начало</th>
-								<th>Окончание</th>
-								<th>Тип</th>
-								<th>Продлеваемость</th>
-								<th>Письмо ТО</th>
-								<th>Повышение ТО</th>
-								<th>Доп.согл</th>
-								<th>Письма</th>
-								<th>Оплата ремонта</th>
-								<th>Доп.работы</th>
-								<th>Аванс</th>
-								<th>Адрес полный</th>
-								<th>Адрес сокр.</th>
-								<th>Наименование</th>
-								<th>РД ИД ПД</th>
-								<th>Арендатор</th>
-								<th>Системы</th>
-								<th>Время</th>
-								<th>Контакты</th>
-								<th>Инструмент</th>
-								<th>Заметки</th>
-							</tr>
-						</thead>
-						<tbody>
-							{filteredObjects.length === 0 ? (
-								<tr>
-									<td colSpan="24" className="empty-state">
-										Нет объектов
-									</td>
-								</tr>
-							) : (
-								filteredObjects.map((obj) => (
-									<tr key={obj.id}>
-										<td className="sticky-col cell-actions">
-											<button
-												className="btn-icon btn-edit"
-												onClick={() => handleEditObject(obj)}
-												title="Редактировать"
-											>
-												<Edit2 size={16} />
-											</button>
-											<button
-												className="btn-icon btn-delete"
-												onClick={() => handleDeleteObject(obj.id)}
-												title="Удалить"
-											>
-												<Trash2 size={16} />
-											</button>
-										</td>
-										<td>{obj["Заказчик"]}</td>
-										<td>{obj["Подрядчик"]}</td>
-										<td>{obj["№ контр/дог"]}</td>
-										<td>{obj["Начало действия договора"]}</td>
-										<td>
-											{obj["Окончание действия договора"] ||
-												obj["окончание действия договора"]}
-										</td>
-										<td>
-											<span
-												className={`badge badge-type badge-${(obj["Тип договора"] || "").toLowerCase()}`}
-											>
-												{obj["Тип договора"]}
-											</span>
-										</td>
-										<td>{obj["Продлеваемость"] || obj["Продлеваемость "]}</td>
-										<td>
-											{obj["Письмо о повышении стоимости ТО"] ||
-												obj["Письмо о повышении стоимость ТО"]}
-										</td>
-										<td>{obj["Свершившееся повышение цены ТО"]}</td>
-										<td>{obj["Доп соглашение"] || obj["Доп соглашени"]}</td>
-										<td>{obj["Письма"]}</td>
-										<td>{obj["Кто оплачивает ремонт"]}</td>
-										<td>{obj["Как оплачиваются доп.работы"]}</td>
-										<td>{obj["К доп работам есть ли аванс"]}</td>
-										<td>{obj["Адрес полный объекта"]}</td>
-										<td>{obj["Адрес сокращенный"]}</td>
-										<td>{obj["Наименование объекта"]}</td>
-										<td>{obj["РД ИД ПД"]}</td>
-										<td>{obj["Арендатор"]}</td>
-										<td>{obj["Системы"]}</td>
-										<td>{obj["Расчетное время на обслуживание"]}</td>
-										<td>{obj["Контакты"]}</td>
-										<td>{obj["Инструмент на объекте"]}</td>
-										<td className="cell-notes">{obj["Заметки"]}</td>
-									</tr>
-								))
-							)}
-						</tbody>
-					</table>
-				</div>
+
+				{/* ФОРМА ДОБАВЛЕНИЯ ОБЪЕКТА - НАВЕРХУ */}
 				<div className="add-form-section add-form-full">
 					<h3>
 						<Plus size={20} />
@@ -1873,7 +1836,7 @@ function App() {
 											"Кто оплачивает ремонт": e.target.value,
 										})
 									}
-									placeholder="за наш счёт / заказчик"
+								placeholder="за наш счёт / заказчик"
 								/>
 							</div>
 							<div className="form-group">
@@ -1887,7 +1850,7 @@ function App() {
 											"Как оплачиваются доп.работы": e.target.value,
 										})
 									}
-									placeholder="Сметы / КП / По договору"
+								placeholder="Сметы / КП / По договору"
 								/>
 							</div>
 							<div className="form-group">
@@ -1996,7 +1959,7 @@ function App() {
 											"Расчетное время на обслуживание": e.target.value,
 										})
 									}
-									placeholder="2 часа"
+								placeholder="2 часа"
 								/>
 							</div>
 							<div className="form-group">
@@ -2007,7 +1970,7 @@ function App() {
 									onChange={(e) =>
 										setNewFormData({ ...newFormData, Контакты: e.target.value })
 									}
-									placeholder="Иванов Иван +79991234567"
+								placeholder="Иванов Иван +79991234567"
 								/>
 							</div>
 							<div className="form-group">
@@ -2032,10 +1995,10 @@ function App() {
 									onChange={(e) =>
 										setNewFormData({ ...newFormData, Заметки: e.target.value })
 									}
-									rows={3}
-									placeholder="Дополнительная информация..."
-								/>
-							</div>
+								rows={3}
+								placeholder="Дополнительная информация..."
+							/>
+						</div>
 						</div>
 						<button type="submit" className="btn btn-primary">
 							<Plus size={18} />
@@ -2043,6 +2006,198 @@ function App() {
 						</button>
 					</form>
 				</div>
+
+				{/* ТАБЛИЦА ОБЪЕКТОВ */}
+				<div className="table-container table-horizontal">
+					<table className="data-table">
+						<thead>
+							<tr>
+								<th className="sticky-col">Действия</th>
+								<th>Заказчик</th>
+								<th>Подрядчик</th>
+								<th>№ контр/дог</th>
+								<th>Начало</th>
+								<th>Окончание</th>
+								<th>Тип</th>
+								<th>Продлеваемость</th>
+								<th>Письмо ТО</th>
+								<th>Повышение ТО</th>
+								<th>Доп.согл</th>
+								<th>Письма</th>
+								<th>Оплата ремонта</th>
+								<th>Доп.работы</th>
+								<th>Аванс</th>
+								<th>Адрес полный</th>
+								<th>Адрес сокр.</th>
+								<th>Наименование</th>
+								<th>РД ИД ПД</th>
+								<th>Арендатор</th>
+								<th>Системы</th>
+								<th>Время</th>
+								<th>Контакты</th>
+								<th>Инструмент</th>
+								<th>Заметки</th>
+							</tr>
+						</thead>
+						<tbody>
+							{filteredObjects.length === 0 ? (
+								<tr>
+									<td colSpan="24" className="empty-state">
+										Нет объектов
+									</td>
+								</tr>
+							) : (
+								filteredObjects.map((obj) => (
+									<tr key={obj.id}>
+										<td className="sticky-col cell-actions">
+											<button
+												className="btn-icon btn-edit"
+												onClick={() => handleEditObject(obj)}
+												title="Редактировать"
+											>
+												<Edit2 size={16} />
+											</button>
+											<button
+												className="btn-icon btn-delete"
+												onClick={() => handleDeleteObject(obj.id)}
+												title="Удалить"
+											>
+												<Trash2 size={16} />
+											</button>
+										</td>
+										<td>{obj["Заказчик"]}</td>
+										<td>{obj["Подрядчик"]}</td>
+										<td>{obj["№ контр/дог"]}</td>
+										<td>{obj["Начало действия договора"]}</td>
+										<td>
+											{obj["Окончание действия договора"] ||
+												obj["окончание действия договора"]}
+										</td>
+										<td>
+											<span
+												className={`badge badge-type badge-${(obj["Тип договора"] || "").toLowerCase()}`}
+											>
+												{obj["Тип договора"]}
+											</span>
+										</td>
+										<td>{obj["Продлеваемость"] || obj["Продлеваемость "]}</td>
+										<td>
+											{obj["Письмо о повышении стоимости ТО"] ||
+												obj["Письмо о повышении стоимость ТО"]}
+										</td>
+										<td>{obj["Свершившееся повышение цены ТО"]}</td>
+										<td>{obj["Доп соглашение"] || obj["Доп соглашени"]}</td>
+										<td>{obj["Письма"]}</td>
+										<td>{obj["Кто оплачивает ремонт"]}</td>
+										<td>{obj["Как оплачиваются доп.работы"]}</td>
+										<td>{obj["К доп работам есть ли аванс"]}</td>
+										<td>{obj["Адрес полный объекта"]}</td>
+										<td>{obj["Адрес сокращенный"]}</td>
+										<td>{obj["Наименование объекта"]}</td>
+										<td>{obj["РД ИД ПД"]}</td>
+										<td>{obj["Арендатор"]}</td>
+										<td
+											className="cell-systems"
+											onClick={(e) => openSystemPicker(obj, e)}
+											title="Нажмите для выбора систем"
+										>
+											<span className="systems-link">{obj["Системы"] || <em>Нажмите для выбора</em>}</span>
+										</td>
+										<td>{obj["Расчетное время на обслуживание"]}</td>
+										<td>{obj["Контакты"]}</td>
+										<td>{obj["Инструмент на объекте"]}</td>
+										<td className="cell-notes">{obj["Заметки"]}</td>
+									</tr>
+								))
+							)}
+						</tbody>
+					</table>
+				</div>
+
+				{/* МОДАЛЬНОЕ ОКНО ВЫБОРА СИСТЕМ */}
+				{isSystemPickerOpen && systemPickerObject && (
+					<div className="modal-overlay" onClick={() => setIsSystemPickerOpen(false)}>
+						<div className="modal modal-systems" onClick={(e) => e.stopPropagation()}>
+							<div className="modal-header">
+								<h2>
+									<Settings size={20} />
+									Выбор систем для объекта
+								</h2>
+								<button
+									className="modal-close"
+									onClick={() => setIsSystemPickerOpen(false)}
+								>
+									<X size={24} />
+								</button>
+							</div>
+							<div className="modal-body">
+								<div className="system-picker-info">
+									<strong>{systemPickerObject["Наименование объекта"]}</strong>
+									<span className="system-picker-address">
+										{systemPickerObject["Адрес сокращенный"] || systemPickerObject["Адрес полный объекта"]}
+									</span>
+								</div>
+
+								<div className="search-box system-search">
+									<Search size={18} />
+									<input
+										type="text"
+										placeholder="Поиск системы..."
+										value={systemPickerSearch}
+										onChange={(e) => setSystemPickerSearch(e.target.value)}
+									/>
+								</div>
+
+								<div className="systems-list">
+									{filteredSystemTypes.map((system) => (
+										<div
+											key={system}
+											className={`system-item ${selectedSystemsForObject.includes(system) ? "selected" : ""}`}
+											onClick={() => toggleSystem(system)}
+										>
+											<div className="system-checkbox">
+												{selectedSystemsForObject.includes(system) && <Check size={16} />}
+											</div>
+											<span className="system-name">{system}</span>
+										</div>
+								))}
+									{filteredSystemTypes.length === 0 && (
+										<div className="systems-empty">
+											Системы не найдены. Попробуйте другой запрос.
+										</div>
+									)}
+								</div>
+
+								<div className="system-picker-selected">
+									<strong>Выбрано:</strong>
+									<span className="selected-tags">
+										{selectedSystemsForObject.length > 0
+											? selectedSystemsForObject.join(", ")
+											: <em>Ничего не выбрано</em>
+										}
+									</span>
+								</div>
+							</div>
+							<div className="modal-footer">
+								<button
+									type="button"
+									className="btn btn-secondary"
+									onClick={() => setIsSystemPickerOpen(false)}
+								>
+									Отмена
+								</button>
+								<button
+									type="button"
+									className="btn btn-primary"
+									onClick={saveObjectSystems}
+								>
+									<Check size={18} />
+									Сохранить
+								</button>
+							</div>
+						</div>
+					</div>
+				)}
 			</>
 		);
 	}
@@ -2881,10 +3036,7 @@ function App() {
 				<div className="content-header">
 					<h2>Инструмент</h2>
 					{selectedToolIds.length > 0 && (
-						<button
-							className="btn btn-danger"
-							onClick={handleBulkDeleteTools}
-						>
+						<button className="btn btn-danger" onClick={handleBulkDeleteTools}>
 							<Trash2 size={16} />
 							Удалить выбранные ({selectedToolIds.length})
 						</button>
@@ -2898,7 +3050,8 @@ function App() {
 									<input
 										type="checkbox"
 										checked={
-											tools.length > 0 && selectedToolIds.length === tools.length
+											tools.length > 0 &&
+											selectedToolIds.length === tools.length
 										}
 										indeterminate={
 											selectedToolIds.length > 0 &&
@@ -2944,13 +3097,13 @@ function App() {
 										<td>{t.id}</td>
 										<td>{t.tool}</td>
 										<td>{t.inventoryNumber}</td>
-									<td>{t.brand}</td>
+										<td>{t.brand}</td>
 										<td>{t.objectName}</td>
 										<td>{t.shortAddress}</td>
 										<td>{t.callStatus}</td>
 										<td>
 											<button
-											className="btn-icon btn-delete"
+												className="btn-icon btn-delete"
 												onClick={() => handleDeleteTool(t.id)}
 											>
 												<Trash2 size={16} />
@@ -2989,7 +3142,7 @@ function App() {
 											...newToolData,
 											inventoryNumber: e.target.value,
 										})
-										}
+									}
 								/>
 							</div>
 							<div className="form-group">
@@ -2998,7 +3151,7 @@ function App() {
 									type="text"
 									value={newToolData.brand}
 									onChange={(e) =>
-									setNewToolData({ ...newToolData, brand: e.target.value })
+										setNewToolData({ ...newToolData, brand: e.target.value })
 									}
 								/>
 							</div>
@@ -3008,10 +3161,10 @@ function App() {
 									type="text"
 									value={newToolData.objectName}
 									onChange={(e) =>
-									setNewToolData({
-										...newToolData,
-										objectName: e.target.value,
-									})
+										setNewToolData({
+											...newToolData,
+											objectName: e.target.value,
+										})
 									}
 								/>
 							</div>
@@ -3021,10 +3174,10 @@ function App() {
 									type="text"
 									value={newToolData.shortAddress}
 									onChange={(e) =>
-									setNewToolData({
-										...newToolData,
-										shortAddress: e.target.value,
-									})
+										setNewToolData({
+											...newToolData,
+											shortAddress: e.target.value,
+										})
 									}
 								/>
 							</div>
@@ -3034,10 +3187,10 @@ function App() {
 									type="text"
 									value={newToolData.arrivalDate}
 									onChange={(e) =>
-									setNewToolData({
-										...newToolData,
-										arrivalDate: e.target.value,
-									})
+										setNewToolData({
+											...newToolData,
+											arrivalDate: e.target.value,
+										})
 									}
 								/>
 							</div>
@@ -3047,10 +3200,10 @@ function App() {
 									type="text"
 									value={newToolData.callStatus}
 									onChange={(e) =>
-									setNewToolData({
-										...newToolData,
-										callStatus: e.target.value,
-									})
+										setNewToolData({
+											...newToolData,
+											callStatus: e.target.value,
+										})
 									}
 								/>
 							</div>

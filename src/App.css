@@ -1996,3 +1996,185 @@
 	top: 10px;
 	right: 10px;
 }
+
+/* ================================
+   SYSTEMS PICKER (clickable field)
+   ================================ */
+.cell-systems {
+	cursor: pointer;
+	transition: background-color 0.15s;
+}
+
+.cell-systems:hover {
+	background-color: var(--primary-light);
+}
+
+.systems-link {
+	color: var(--primary);
+	text-decoration: none;
+	border-bottom: 1px dashed var(--primary);
+	transition: all 0.15s;
+}
+
+.cell-systems:hover .systems-link {
+	border-bottom-style: solid;
+	background-color: var(--primary-light);
+	padding: 2px 4px;
+	border-radius: 4px;
+}
+
+.systems-link em {
+	color: var(--gray-400);
+	font-style: italic;
+}
+
+/* ================================
+   SYSTEM PICKER MODAL
+   ================================ */
+.modal-systems {
+	max-width: 500px;
+	width: 90%;
+}
+
+.modal-systems .modal-header {
+	background: var(--primary);
+	color: white;
+}
+
+.modal-systems .modal-header h2 {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	color: white;
+}
+
+.modal-systems .modal-close {
+	color: white;
+	opacity: 0.8;
+}
+
+.modal-systems .modal-close:hover {
+	opacity: 1;
+}
+
+.system-picker-info {
+	padding: 12px 16px;
+	background: var(--gray-50);
+	border-radius: 8px;
+	margin-bottom: 16px;
+}
+
+.system-picker-info strong {
+	display: block;
+	color: var(--gray-900);
+	font-size: 1rem;
+	margin-bottom: 4px;
+}
+
+.system-picker-address {
+	color: var(--gray-600);
+	font-size: 0.875rem;
+}
+
+.system-search {
+	margin-bottom: 16px;
+}
+
+.system-search input {
+	width: 100%;
+}
+
+.systems-list {
+	max-height: 300px;
+	overflow-y: auto;
+	border: 1px solid var(--border);
+	border-radius: 8px;
+	margin-bottom: 16px;
+}
+
+.system-item {
+	display: flex;
+	align-items: center;
+	gap: 12px;
+	padding: 12px 16px;
+	cursor: pointer;
+	transition: background-color 0.15s;
+	border-bottom: 1px solid var(--border);
+}
+
+.system-item:last-child {
+	border-bottom: none;
+}
+
+.system-item:hover {
+	background-color: var(--gray-50);
+}
+
+.system-item.selected {
+	background-color: var(--primary-light);
+}
+
+.system-checkbox {
+	width: 22px;
+	height: 22px;
+	border: 2px solid var(--border);
+	border-radius: 4px;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	flex-shrink: 0;
+	transition: all 0.15s;
+}
+
+.system-item.selected .system-checkbox {
+	background: var(--primary);
+	border-color: var(--primary);
+	color: white;
+}
+
+.system-name {
+	color: var(--gray-800);
+	font-size: 0.95rem;
+}
+
+.systems-empty {
+	padding: 24px;
+	text-align: center;
+	color: var(--gray-500);
+}
+
+.system-picker-selected {
+	padding: 12px 16px;
+	background: var(--gray-100);
+	border-radius: 8px;
+	margin-bottom: 16px;
+}
+
+.system-picker-selected strong {
+	display: block;
+	color: var(--gray-700);
+	font-size: 0.875rem;
+	margin-bottom: 4px;
+}
+
+.selected-tags {
+	color: var(--primary);
+	font-size: 0.95rem;
+}
+
+.selected-tags em {
+	color: var(--gray-400);
+	font-style: italic;
+}
+
+/* ================================
+   BADGE COUNT (for search results)
+   ================================ */
+.badge-count {
+	padding: 6px 12px;
+	background: var(--gray-100);
+	border-radius: 20px;
+	font-size: 0.8rem;
+	color: var(--gray-600);
+	font-weight: 500;
+}
