@@ -32,7 +32,6 @@ import {
 	Target,
 	UserCheck,
 	Zap,
-	PlusCircle,
 } from "lucide-react";
 import excelData from "./excel_data.js";
 import "./App.css";
@@ -64,7 +63,7 @@ const SECTION_ICONS = {
 // === МАППИНГ НАЗВАНИЙ ===
 const SECTION_LABELS = {
 	objects: "Объекты",
-	costs: "Затраты и Договоры",
+	costs: "Затраты",
 	systems: "Системы",
 	contacts: "Контакты",
 	tools: "Инструмент",
@@ -84,19 +83,142 @@ const SECTION_LABELS = {
 	extra: "Доп. системы",
 };
 
-// === НАЧАЛЬНЫЕ ДАННЫЕ ОБЪЕКТОВ (из Excel) ===
-const INITIAL_OBJECTS = excelData["Объекты"]?.rows?.map((row, idx) => ({
-	id: idx + 1,
-	...row,
-})) || [
+// === ДАННЫЕ ОБЪЕКТОВ ===
+const INITIAL_OBJECTS = [
 	{
 		id: 1,
-		"Наименование объекта": "Кубинка АВАНГАРД",
-		Заказчик: "Полное наименование",
+		Заказчик: "ООО Торговый центр",
 		Подрядчик: "СБ",
-		"№ контр/дог": "№ 1-281224-РБ",
+		"№ контр/дог": "ТЦ-001/2024",
+		"Начало действия договора": "01.01.2024",
+		"Окончание действия договора": "31.12.2024",
 		"Тип договора": "ТО",
-		"Продлеваемость ": "Продлеваемый автоматически",
+		Продлеваемость: "Продлеваемый автоматически",
+		"Письмо о повышении стоимости ТО": "15.03.2024",
+		"Свершившееся повышение цены ТО": "10%",
+		"Доп соглашение": "№2",
+		Письма: "Исх.№45",
+		"Кто оплачивает ремонт": "Заказчик",
+		"Как оплачиваются доп.работы": "Сметы",
+		"К доп работам есть ли аванс": "Аванс",
+		"Адрес полный объекта": "г. Москва, ул. Тверская, д. 15",
+		"Адрес сокращенный": "Тверская, 15",
+		"Наименование объекта": "ТЦ Мега",
+		"РД ИД ПД": "РД-001",
+		Арендатор: "Арендатор1",
+		Системы: "АПС, СОУЭ",
+		"Расчетное время на обслуживание": "4 часа",
+		Контакты: "Иванов +79991234567",
+		"Инструмент на объекте": "есть",
+		Заметки: "VIP клиент",
+	},
+	{
+		id: 2,
+		Заказчик: "ЗАО СтройИнвест",
+		Подрядчик: "СБ+",
+		"№ контр/дог": "СИ-002/2024",
+		"Начало действия договора": "15.02.2024",
+		"Окончание действия договора": "14.02.2025",
+		"Тип договора": "СМР",
+		Продлеваемость: "Конкурсный",
+		"Письмо о повышении стоимости ТО": "",
+		"Свершившееся повышение цены ТО": "",
+		"Доп соглашение": "",
+		Письма: "",
+		"Кто оплачивает ремонт": "Наш счёт",
+		"Как оплачиваются доп.работы": "КП",
+		"К доп работам есть ли аванс": "Без аванса",
+		"Адрес полный объекта": "г. СПб, Невский пр., д. 100",
+		"Адрес сокращенный": "Невский, 100",
+		"Наименование объекта": "БЦ Невский",
+		"РД ИД ПД": "РД-002",
+		Арендатор: "Арендатор2",
+		Системы: "ВИДЕОНАБЛЮДЕНИЕ",
+		"Расчетное время на обслуживание": "2 часа",
+		Контакты: "Петров +79992345678",
+		"Инструмент на объекте": "нет",
+		Заметки: "",
+	},
+	{
+		id: 3,
+		Заказчик: "ИП Сидоров",
+		Подрядчик: "ВСТ",
+		"№ контр/дог": "ИП-003/2024",
+		"Начало действия договора": "01.03.2024",
+		"Окончание действия договора": "28.02.2025",
+		"Тип договора": "ПИР",
+		Продлеваемость: "Не продлеваемый",
+		"Письмо о повышении стоимости ТО": "10.05.2024",
+		"Свершившееся повышение цены ТО": "5%",
+		"Доп соглашение": "№1",
+		Письма: "Вх.№78",
+		"Кто оплачивает ремонт": "Заказчик",
+		"Как оплачиваются доп.работы": "По договору",
+		"К доп работам есть ли аванс": "Аванс",
+		"Адрес полный объекта": "г. Екатеринбург, ул. Ленина, д. 50",
+		"Адрес сокращенный": "Ленина, 50",
+		"Наименование объекта": "ТРЦ Галерея",
+		"РД ИД ПД": "РД-003",
+		Арендатор: "Арендатор3",
+		Системы: "АПС, СОУЭ, ВПВ",
+		"Расчетное время на обслуживание": "6 часов",
+		Контакты: "Сидоров +79993456789",
+		"Инструмент на объекте": "есть",
+		Заметки: "Срочные заявки",
+	},
+	{
+		id: 4,
+		Заказчик: "ООО Ромашка",
+		Подрядчик: "ИП",
+		"№ контр/дог": "РМ-004/2024",
+		"Начало действия договора": "20.04.2024",
+		"Окончание действия договора": "19.04.2025",
+		"Тип договора": "ТО",
+		Продлеваемость: "Продлеваемый доп соглашением",
+		"Письмо о повышении стоимости ТО": "",
+		"Свершившееся повышение цены ТО": "",
+		"Доп соглашение": "",
+		Письма: "",
+		"Кто оплачивает ремонт": "Наш счёт",
+		"Как оплачиваются доп.работы": "Сметы",
+		"К доп работам есть ли аванс": "Без аванса",
+		"Адрес полный объекта": "г. Новосибирск, ул. Красная, д. 25",
+		"Адрес сокращенный": "Красная, 25",
+		"Наименование объекта": "Супермаркет Ромашка",
+		"РД ИД ПД": "РД-004",
+		Арендатор: "Арендатор4",
+		Системы: "ОПС",
+		"Расчетное время на обслуживание": "1 час",
+		Контакты: "Козлов +79994567890",
+		"Инструмент на объекте": "нет",
+		Заметки: "",
+	},
+	{
+		id: 5,
+		Заказчик: "ПАО Газпром",
+		Подрядчик: "СБ",
+		"№ контр/дог": "ГЗ-005/2024",
+		"Начало действия договора": "01.05.2024",
+		"Окончание действия договора": "31.12.2025",
+		"Тип договора": "ТО",
+		Продлеваемость: "Продлеваемый автоматически",
+		"Письмо о повышении стоимости ТО": "20.06.2024",
+		"Свершившееся повышение цены ТО": "15%",
+		"Доп соглашение": "№3",
+		Письма: "Исх.№156",
+		"Кто оплачивает ремонт": "Заказчик",
+		"Как оплачиваются доп.работы": "КП",
+		"К доп работам есть ли аванс": "Аванс",
+		"Адрес полный объекта": "г. Москва, Пресненская наб., д. 12",
+		"Адрес сокращенный": "Пресненская, 12",
+		"Наименование объекта": "Штаб-квартира Газпром",
+		"РД ИД ПД": "РД-005",
+		Арендатор: "",
+		Системы: "АПС, СОУЭ, ВПВ, ВИДЕОНАБЛЮДЕНИЕ",
+		"Расчетное время на обслуживание": "8 часов",
+		Контакты: "Смирнов +79995678901",
+		"Инструмент на объекте": "есть",
+		Заметки: "Высший приоритет",
 	},
 ];
 
@@ -138,18 +260,142 @@ const INITIAL_SYSTEMS =
 		quantity: row["кол во"] || "",
 	})) || [];
 
+// === ДАННЫЕ ПЕРСОНАЛА ===
+const INITIAL_STAFF = [
+	{
+		id: 1,
+		fullName: "Иванов Иван Иванович",
+		position: "Главный инженер",
+		location: "Офис Москва",
+		phone: "+7 (999) 123-45-67",
+		email: "ivanov@company.ru",
+		description: "Опыт работы 10 лет, сертификаты по АПС и СОУЭ",
+		photo: "",
+	},
+	{
+		id: 2,
+		fullName: "Петров Пётр Петрович",
+		position: "Инженер",
+		location: "Офис СПб",
+		phone: "+7 (999) 234-56-78",
+		email: "petrov@company.ru",
+		description: "Специалист по видеонаблюдению",
+		photo: "",
+	},
+	{
+		id: 3,
+		fullName: "Сидоров Алексей Сергеевич",
+		position: "Старший инженер",
+		location: "Офис Екатеринбург",
+		phone: "+7 (999) 345-67-89",
+		email: "sidorov@company.ru",
+		description: "Монтаж и наладка систем безопасности",
+		photo: "",
+	},
+	{
+		id: 4,
+		fullName: "Козлова Мария Олеговна",
+		position: "Инженер",
+		location: "Офис Новосибирск",
+		phone: "+7 (999) 456-78-90",
+		email: "kozlova@company.ru",
+		description: "Обслуживание СКУД",
+		photo: "",
+	},
+	{
+		id: 5,
+		fullName: "Смирнов Дмитрий Андреевич",
+		position: "Техник",
+		location: "Офис Москва",
+		phone: "+7 (999) 567-89-01",
+		email: "smirnov@company.ru",
+		description: "Выездной специалист",
+		photo: "",
+	},
+	{
+		id: 6,
+		fullName: "Новикова Елена Викторовна",
+		position: "Менеджер проектов",
+		location: "Офис Москва",
+		phone: "+7 (999) 678-90-12",
+		email: "novikova@company.ru",
+		description: "Координация работ",
+		photo: "",
+	},
+];
+
 // === ДАННЫЕ ЗАТРАТ (из Excel) ===
-const INITIAL_COSTS =
-	excelData["Затраты"]?.rows?.map((row, idx) => ({
-		id: idx + 1,
-		objectName: row["Наименование объекта"] || "",
-		shortAddress: row["сокращенный адрес"] || "",
-		system: row["Система"] || "",
-		employee: row["Сотрудник"] || "",
-		amount: row["Сумма"] || "",
-		comment: row["Коментарий (что и зачем)"] || "",
-		receiptPhoto: row["Фото чека"] || "",
-	})) || [];
+const INITIAL_COSTS = excelData["Затраты"]?.rows?.map((row, idx) => ({
+	id: idx + 1,
+	objectName: row["Наименование объекта"] || "",
+	shortAddress: row["сокращенный адрес"] || "",
+	system: row["Система"] || "",
+	employee: row["Сотрудник"] || "",
+	amount: row["Сумма"] || "",
+	comment: row["Коментарий (что и зачем)"] || "",
+	receiptPhoto: row["Фото чека"] || "",
+})) || [
+	{
+		id: 1,
+		objectName: "ТЦ Мега",
+		shortAddress: "Тверская, 15",
+		system: "АПС",
+		employee: "Иванов Иван Иванович",
+		amount: "15 000",
+		reason: "Замена датчика",
+		description: "Вышел из строя дымовой датчик",
+		photo: "",
+		comment: "",
+	},
+	{
+		id: 2,
+		objectName: "БЦ Невский",
+		shortAddress: "Невский, 100",
+		system: "ВИДЕОНАБЛЮДЕНИЕ",
+		employee: "Петров Пётр Петрович",
+		amount: "8 500",
+		reason: "Ремонт камеры",
+		description: "Замена блока питания камеры видеонаблюдения",
+		photo: "",
+		comment: "",
+	},
+	{
+		id: 3,
+		objectName: "ТРЦ Галерея",
+		shortAddress: "Ленина, 50",
+		system: "СОУЭ",
+		employee: "Сидоров Алексей Сергеевич",
+		amount: "25 000",
+		reason: "Модернизация",
+		description: "Установка дополнительных оповещателей",
+		photo: "",
+		comment: "Срочный заказ",
+	},
+	{
+		id: 4,
+		objectName: "Супермаркет Ромашка",
+		shortAddress: "Красная, 25",
+		system: "ОПС",
+		employee: "Козлова Мария Олеговна",
+		amount: "5 000",
+		reason: "Обслуживание",
+		description: "Плановое ТО охранной сигнализации",
+		photo: "",
+		comment: "",
+	},
+	{
+		id: 5,
+		objectName: "Штаб-квартира Газпром",
+		shortAddress: "Пресненская, 12",
+		system: "СКУД",
+		employee: "Смирнов Дмитрий Андреевич",
+		amount: "45 000",
+		reason: "Замена замка",
+		description: "Вы自强不息自强不息 replacement of magnetic lock",
+		photo: "",
+		comment: "VIP клиент",
+	},
+];
 
 // === ДАННЫЕ ИНСТРУМЕНТА (из Excel) ===
 const INITIAL_TOOLS =
@@ -254,72 +500,6 @@ const INITIAL_SUMMARY =
 		...row,
 	})) || [];
 
-// === ДАННЫЕ ИНЖЕНЕРОВ (для Календаря инженеров) ===
-const INITIAL_ENGINEERS = [
-	{
-		id: 1,
-		name: "Иванов Иван Иванович",
-		position: "Инженер",
-		phone: "+7 (999) 123-45-67",
-		salary: 80000,
-		workSchedule: {
-			mon: true,
-			tue: true,
-			wed: true,
-			thu: true,
-			fri: true,
-			sat: false,
-			sun: false,
-		},
-		workHours: { start: "09:00", end: "18:00" },
-		vacations: [
-			{ id: 1, start: "2025-07-01", end: "2025-07-14", type: "Основной" },
-			{ id: 2, start: "2025-12-25", end: "2026-01-08", type: "Новогодний" },
-		],
-		status: "active",
-	},
-	{
-		id: 2,
-		name: "Петров Пётр Петрович",
-		position: "Старший инженер",
-		phone: "+7 (999) 234-56-78",
-		salary: 95000,
-		workSchedule: {
-			mon: true,
-			tue: true,
-			wed: true,
-			thu: true,
-			fri: true,
-			sat: false,
-			sun: false,
-		},
-		workHours: { start: "08:00", end: "17:00" },
-		vacations: [
-			{ id: 1, start: "2025-08-15", end: "2025-08-28", type: "Основной" },
-		],
-		status: "active",
-	},
-	{
-		id: 3,
-		name: "Сидоров Алексей Сергеевич",
-		position: "Инженер",
-		phone: "+7 (999) 345-67-89",
-		salary: 75000,
-		workSchedule: {
-			mon: false,
-			tue: true,
-			wed: true,
-			thu: true,
-			fri: true,
-			sat: true,
-			sun: false,
-		},
-		workHours: { start: "10:00", end: "19:00" },
-		vacations: [],
-		status: "active",
-	},
-];
-
 // === ДАННЫЕ КАЛЕНДАРЬ ОБЪЕКТ (из Excel) ===
 const INITIAL_CALENDAR_OBJECT =
 	excelData["Календарь объект"]?.rows?.slice(0, 50).map((row, idx) => ({
@@ -390,10 +570,7 @@ function App() {
 	const [isExporting, setIsExporting] = useState(false);
 
 	// --- СТЕЙТЫ ОБЪЕКТОВ ---
-	const [objects, setObjects] = useState(() => {
-		const saved = localStorage.getItem("demo_objects");
-		return saved ? JSON.parse(saved) : INITIAL_OBJECTS;
-	});
+	const [objects, setObjects] = useState(INITIAL_OBJECTS);
 	const [newFormData, setNewFormData] = useState(getEmptyObjectForm());
 	const [editingObject, setEditingObject] = useState(null);
 	const [isEditModalOpen, setIsEditModalOpen] = useState(false);
@@ -416,11 +593,20 @@ function App() {
 	});
 	const [newSystemData, setNewSystemData] = useState(getEmptySystemForm());
 
-	// --- СТЕЙТЫ ЗАТРАТ ---
-	const [costs, setCosts] = useState(() => {
-		const saved = localStorage.getItem("demo_costs");
-		return saved ? JSON.parse(saved) : INITIAL_COSTS;
+	// --- СТЕЙТЫ ПЕРСОНАЛА ---
+	const [staff, setStaff] = useState(INITIAL_STAFF);
+	const [newStaffData, setNewStaffData] = useState({
+		fullName: "",
+		position: "",
+		location: "",
+		phone: "",
+		email: "",
+		description: "",
+		photo: "",
 	});
+
+	// --- СТЕЙТЫ ЗАТРАТ ---
+	const [costs, setCosts] = useState(INITIAL_COSTS);
 	const [newCostData, setNewCostData] = useState(getEmptyCostForm());
 
 	// --- СТЕЙТЫ ИНСТРУМЕНТА ---
@@ -497,19 +683,13 @@ function App() {
 		icon: SECTION_ICONS[id] || FileText,
 	}));
 
-	// --- ЭФФЕКТЫ СОХРАНЕНИЯ ---
-	useEffect(() => {
-		localStorage.setItem("demo_objects", JSON.stringify(objects));
-	}, [objects]);
 	useEffect(() => {
 		localStorage.setItem("demo_calls", JSON.stringify(calls));
 	}, [calls]);
 	useEffect(() => {
 		localStorage.setItem("demo_systems", JSON.stringify(systems));
 	}, [systems]);
-	useEffect(() => {
-		localStorage.setItem("demo_costs", JSON.stringify(costs));
-	}, [costs]);
+
 	useEffect(() => {
 		localStorage.setItem("demo_tools", JSON.stringify(tools));
 	}, [tools]);
@@ -592,6 +772,9 @@ function App() {
 			system: "",
 			employee: "",
 			amount: "",
+			reason: "",
+			description: "",
+			photo: "",
 			comment: "",
 		};
 	}
@@ -1076,6 +1259,7 @@ function App() {
 				return renderContactsSection();
 			case "tree":
 			case "staff":
+				return renderStaffSection();
 			case "accounts":
 			default:
 				return renderPlaceholderSection();
@@ -2025,6 +2209,62 @@ function App() {
 									}
 									placeholder="10000"
 								/>
+							</div>
+							<div className="form-group">
+								<label>Причина</label>
+								<input
+									type="text"
+									value={newCostData.reason}
+									onChange={(e) =>
+										setNewCostData({ ...newCostData, reason: e.target.value })
+									}
+									placeholder="Причина затраты"
+								/>
+							</div>
+							<div className="form-group form-group-full">
+								<label>Описание</label>
+								<textarea
+									value={newCostData.description}
+									onChange={(e) =>
+										setNewCostData({
+											...newCostData,
+											description: e.target.value,
+										})
+									}
+									rows={2}
+									placeholder="Описание затраты..."
+								/>
+							</div>
+							<div className="form-group form-group-full">
+								<label>Фото</label>
+								<input
+									type="file"
+									accept="image/*"
+									onChange={async (e) => {
+										const file = e.target.files[0];
+										if (file) {
+											const reader = new FileReader();
+											reader.onload = (ev) => {
+												setNewCostData({
+													...newCostData,
+													photo: ev.target.result,
+												});
+											};
+											reader.readAsDataURL(file);
+										}
+									}}
+								/>
+								{newCostData.photo && (
+									<img
+										src={newCostData.photo}
+										alt="Preview"
+										style={{
+											maxWidth: "100px",
+											marginTop: "8px",
+											borderRadius: "8px",
+										}}
+									/>
+								)}
 							</div>
 							<div className="form-group form-group-full">
 								<label>Комментарий</label>
@@ -3425,6 +3665,198 @@ function App() {
 							))}
 						</tbody>
 					</table>
+				</div>
+			</>
+		);
+	}
+
+	function renderStaffSection() {
+		const handleAddStaff = (e) => {
+			e?.preventDefault();
+			const newStaff = { id: Date.now(), ...newStaffData };
+			setStaff([...staff, newStaff]);
+			setNewStaffData({
+				fullName: "",
+				position: "",
+				location: "",
+				phone: "",
+				email: "",
+				description: "",
+				photo: "",
+			});
+		};
+
+		const handleDeleteStaff = (id) => {
+			if (confirm("Удалить сотрудника?"))
+				setStaff(staff.filter((s) => s.id !== id));
+		};
+
+		return (
+			<>
+				<div className="content-header">
+					<h2>Персонал</h2>
+					<span className="badge-count">{staff.length} сотрудников</span>
+				</div>
+				<div className="staff-grid">
+					{staff.map((person) => (
+						<div key={person.id} className="staff-card">
+							<div className="staff-photo">
+								{person.photo ? (
+									<img src={person.photo} alt={person.fullName} />
+								) : (
+									<div className="staff-avatar">
+										{person.fullName
+											.split(" ")
+											.map((n) => n[0])
+											.join("")
+											.slice(0, 2)}
+									</div>
+								)}
+							</div>
+							<div className="staff-info">
+								<h3>{person.fullName}</h3>
+								<p className="staff-position">{person.position}</p>
+								<p className="staff-location">
+									<MapPin size={14} /> {person.location}
+								</p>
+								<p className="staff-contact">{person.phone}</p>
+								<p className="staff-contact">{person.email}</p>
+								<p className="staff-description">{person.description}</p>
+							</div>
+							<div className="staff-actions">
+								<button
+									className="btn-icon btn-delete"
+									onClick={() => handleDeleteStaff(person.id)}
+								>
+									<Trash2 size={16} />
+								</button>
+							</div>
+						</div>
+					))}
+				</div>
+				<div className="add-form-section">
+					<h3>
+						<Plus size={20} />
+						Добавить сотрудника
+					</h3>
+					<form onSubmit={handleAddStaff} className="add-form">
+						<div className="form-grid">
+							<div className="form-group">
+								<label>ФИО</label>
+								<input
+									type="text"
+									value={newStaffData.fullName}
+									onChange={(e) =>
+										setNewStaffData({
+											...newStaffData,
+											fullName: e.target.value,
+										})
+									}
+									placeholder="Иванов Иван Иванович"
+									required
+								/>
+							</div>
+							<div className="form-group">
+								<label>Должность</label>
+								<input
+									type="text"
+									value={newStaffData.position}
+									onChange={(e) =>
+										setNewStaffData({
+											...newStaffData,
+											position: e.target.value,
+										})
+									}
+									placeholder="Инженер"
+								/>
+							</div>
+							<div className="form-group">
+								<label>Место работы</label>
+								<input
+									type="text"
+									value={newStaffData.location}
+									onChange={(e) =>
+										setNewStaffData({
+											...newStaffData,
+											location: e.target.value,
+										})
+									}
+									placeholder="Офис Москва"
+								/>
+							</div>
+							<div className="form-group">
+								<label>Телефон</label>
+								<input
+									type="text"
+									value={newStaffData.phone}
+									onChange={(e) =>
+										setNewStaffData({ ...newStaffData, phone: e.target.value })
+									}
+									placeholder="+7 (999) 123-45-67"
+								/>
+							</div>
+							<div className="form-group">
+								<label>Email</label>
+								<input
+									type="email"
+									value={newStaffData.email}
+									onChange={(e) =>
+										setNewStaffData({ ...newStaffData, email: e.target.value })
+									}
+									placeholder="email@company.ru"
+								/>
+							</div>
+							<div className="form-group form-group-full">
+								<label>Описание</label>
+								<textarea
+									value={newStaffData.description}
+									onChange={(e) =>
+										setNewStaffData({
+											...newStaffData,
+											description: e.target.value,
+										})
+									}
+									rows={2}
+									placeholder="Опыт работы, навыки..."
+								/>
+							</div>
+							<div className="form-group form-group-full">
+								<label>Фото</label>
+								<input
+									type="file"
+									accept="image/*"
+									onChange={async (e) => {
+										const file = e.target.files[0];
+										if (file) {
+											const reader = new FileReader();
+											reader.onload = (ev) => {
+												setNewStaffData({
+													...newStaffData,
+													photo: ev.target.result,
+												});
+											};
+											reader.readAsDataURL(file);
+										}
+									}}
+								/>
+								{newStaffData.photo && (
+									<img
+										src={newStaffData.photo}
+										alt="Preview"
+										style={{
+											maxWidth: "100px",
+											marginTop: "8px",
+											borderRadius: "8px",
+										}}
+									/>
+								)}
+							</div>
+						</div>
+						<button type="submit" className="btn btn-primary">
+							<Plus size={18} />
+							Добавить
+						</button>
+					</form>
 				</div>
 			</>
 		);
