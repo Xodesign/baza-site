@@ -262,13 +262,21 @@ const INITIAL_ENGINEERS = [
 		position: "Инженер",
 		phone: "+7 (999) 123-45-67",
 		salary: 80000,
-		workSchedule: { mon: true, tue: true, wed: true, thu: true, fri: true, sat: false, sun: false },
+		workSchedule: {
+			mon: true,
+			tue: true,
+			wed: true,
+			thu: true,
+			fri: true,
+			sat: false,
+			sun: false,
+		},
 		workHours: { start: "09:00", end: "18:00" },
 		vacations: [
 			{ id: 1, start: "2025-07-01", end: "2025-07-14", type: "Основной" },
-			{ id: 2, start: "2025-12-25", end: "2026-01-08", type: "Новогодний" }
+			{ id: 2, start: "2025-12-25", end: "2026-01-08", type: "Новогодний" },
 		],
-		status: "active"
+		status: "active",
 	},
 	{
 		id: 2,
@@ -276,12 +284,20 @@ const INITIAL_ENGINEERS = [
 		position: "Старший инженер",
 		phone: "+7 (999) 234-56-78",
 		salary: 95000,
-		workSchedule: { mon: true, tue: true, wed: true, thu: true, fri: true, sat: false, sun: false },
+		workSchedule: {
+			mon: true,
+			tue: true,
+			wed: true,
+			thu: true,
+			fri: true,
+			sat: false,
+			sun: false,
+		},
 		workHours: { start: "08:00", end: "17:00" },
 		vacations: [
-			{ id: 1, start: "2025-08-15", end: "2025-08-28", type: "Основной" }
+			{ id: 1, start: "2025-08-15", end: "2025-08-28", type: "Основной" },
 		],
-		status: "active"
+		status: "active",
 	},
 	{
 		id: 3,
@@ -289,11 +305,19 @@ const INITIAL_ENGINEERS = [
 		position: "Инженер",
 		phone: "+7 (999) 345-67-89",
 		salary: 75000,
-		workSchedule: { mon: false, tue: true, wed: true, thu: true, fri: true, sat: true, sun: false },
+		workSchedule: {
+			mon: false,
+			tue: true,
+			wed: true,
+			thu: true,
+			fri: true,
+			sat: true,
+			sun: false,
+		},
 		workHours: { start: "10:00", end: "19:00" },
 		vacations: [],
-		status: "active"
-	}
+		status: "active",
+	},
 ];
 
 // === ДАННЫЕ КАЛЕНДАРЬ ОБЪЕКТ (из Excel) ===
@@ -334,7 +358,8 @@ function extractContactsFromObjects(objects) {
 				name: match ? match[1].trim() : contactStr,
 				phone: match ? match[2].trim() : "",
 				objectName: obj["Наименование объекта"] || "",
-				shortAddress: obj["Адрес сокращенный"] || obj["Адрес полный объекта"] || "",
+				shortAddress:
+					obj["Адрес сокращенный"] || obj["Адрес полный объекта"] || "",
 				source: "object",
 				objectId: obj.id,
 			});
@@ -870,7 +895,9 @@ function App() {
 
 	const handleSaveContact = (e) => {
 		e?.preventDefault();
-		setContacts(contacts.map((c) => (c.id === editingContact.id ? editingContact : c)));
+		setContacts(
+			contacts.map((c) => (c.id === editingContact.id ? editingContact : c)),
+		);
 		setIsContactModalOpen(false);
 		setEditingContact(null);
 	};
@@ -2990,7 +3017,7 @@ function App() {
 		);
 	}
 
-		function renderCalendarEngineerSection() {
+	function renderCalendarEngineerSection() {
 		return <EngineersCalendar />;
 	}
 
@@ -3130,15 +3157,33 @@ function App() {
 							onChange={(e) => setSearchQuery(e.target.value)}
 						/>
 						{searchQuery && (
-							<button className="clear-search" onClick={() => setSearchQuery("")}>
+							<button
+								className="clear-search"
+								onClick={() => setSearchQuery("")}
+							>
 								<X size={16} />
 							</button>
 						)}
 					</div>
 					<div className="filter-tabs">
-						<button className={`filter-tab ${contactFilter === "all" ? "active" : ""}`} onClick={() => setContactFilter("all")}>Все</button>
-						<button className={`filter-tab ${contactFilter === "object" ? "active" : ""}`} onClick={() => setContactFilter("object")}>Из объектов</button>
-						<button className={`filter-tab ${contactFilter === "manual" ? "active" : ""}`} onClick={() => setContactFilter("manual")}>Добавленные</button>
+						<button
+							className={`filter-tab ${contactFilter === "all" ? "active" : ""}`}
+							onClick={() => setContactFilter("all")}
+						>
+							Все
+						</button>
+						<button
+							className={`filter-tab ${contactFilter === "object" ? "active" : ""}`}
+							onClick={() => setContactFilter("object")}
+						>
+							Из объектов
+						</button>
+						<button
+							className={`filter-tab ${contactFilter === "manual" ? "active" : ""}`}
+							onClick={() => setContactFilter("manual")}
+						>
+							Добавленные
+						</button>
 					</div>
 				</div>
 				<div className="table-container">
@@ -3156,36 +3201,61 @@ function App() {
 						</thead>
 						<tbody>
 							{filteredContacts.length === 0 ? (
-								<tr><td colSpan="7" className="empty-state">Нет контактов</td></tr>
-							) : filteredContacts.map((contact) => (
-								<tr key={contact.id}>
-									<td>{contact.id}</td>
-									<td><strong>{contact.name}</strong></td>
-									<td><a href={`tel:${contact.phone}`}>{contact.phone}</a></td>
-									<td>{contact.objectName}</td>
-									<td>{contact.shortAddress}</td>
-									<td>
-										<span className={`badge ${contact.source === "object" ? "badge-type" : "badge-payment"}`}>
-											{contact.source === "object" ? "Из объекта" : "Добавлен"}
-										</span>
-									</td>
-									<td>
-										<button className="btn-icon btn-edit" onClick={() => handleEditContact(contact)} title="Редактировать">
-											<Edit2 size={16} />
-										</button>
-										{contact.source === "manual" && (
-										<button className="btn-icon btn-delete" onClick={() => handleDeleteContact(contact.id)} title="Удалить">
-												<Trash2 size={16} />
-											</button>
-										)}
+								<tr>
+									<td colSpan="7" className="empty-state">
+										Нет контактов
 									</td>
 								</tr>
-							))}
+							) : (
+								filteredContacts.map((contact) => (
+									<tr key={contact.id}>
+										<td>{contact.id}</td>
+										<td>
+											<strong>{contact.name}</strong>
+										</td>
+										<td>
+											<a href={`tel:${contact.phone}`}>{contact.phone}</a>
+										</td>
+										<td>{contact.objectName}</td>
+										<td>{contact.shortAddress}</td>
+										<td>
+											<span
+												className={`badge ${contact.source === "object" ? "badge-type" : "badge-payment"}`}
+											>
+												{contact.source === "object"
+													? "Из объекта"
+													: "Добавлен"}
+											</span>
+										</td>
+										<td>
+											<button
+												className="btn-icon btn-edit"
+												onClick={() => handleEditContact(contact)}
+												title="Редактировать"
+											>
+												<Edit2 size={16} />
+											</button>
+											{contact.source === "manual" && (
+												<button
+													className="btn-icon btn-delete"
+													onClick={() => handleDeleteContact(contact.id)}
+													title="Удалить"
+												>
+													<Trash2 size={16} />
+												</button>
+											)}
+										</td>
+									</tr>
+								))
+							)}
 						</tbody>
 					</table>
 				</div>
 				<div className="add-form-section">
-					<h3><Plus size={20} />Добавить контакт</h3>
+					<h3>
+						<Plus size={20} />
+						Добавить контакт
+					</h3>
 					<form onSubmit={handleAddContact} className="add-form">
 						<div className="form-grid">
 							<div className="form-group">
@@ -3193,7 +3263,12 @@ function App() {
 								<input
 									type="text"
 									value={newContactData.name}
-									onChange={(e) => setNewContactData({ ...newContactData, name: e.target.value })}
+									onChange={(e) =>
+										setNewContactData({
+											...newContactData,
+											name: e.target.value,
+										})
+									}
 									placeholder="Иванов Иван Иванович"
 								/>
 							</div>
@@ -3202,7 +3277,12 @@ function App() {
 								<input
 									type="tel"
 									value={newContactData.phone}
-									onChange={(e) => setNewContactData({ ...newContactData, phone: e.target.value })}
+									onChange={(e) =>
+										setNewContactData({
+											...newContactData,
+											phone: e.target.value,
+										})
+									}
 									placeholder="+7 (999) 123-45-67"
 								/>
 							</div>
@@ -3211,7 +3291,12 @@ function App() {
 								<input
 									type="text"
 									value={newContactData.objectName}
-									onChange={(e) => setNewContactData({ ...newContactData, objectName: e.target.value })}
+									onChange={(e) =>
+										setNewContactData({
+											...newContactData,
+											objectName: e.target.value,
+										})
+									}
 									placeholder="Выберите или введите объект"
 									list="objects-list"
 								/>
@@ -3226,7 +3311,12 @@ function App() {
 								<input
 									type="text"
 									value={newContactData.shortAddress}
-									onChange={(e) => setNewContactData({ ...newContactData, shortAddress: e.target.value })}
+									onChange={(e) =>
+										setNewContactData({
+											...newContactData,
+											shortAddress: e.target.value,
+										})
+									}
 									placeholder="Примерная, 1"
 								/>
 							</div>
@@ -3235,7 +3325,12 @@ function App() {
 								<input
 									type="email"
 									value={newContactData.email}
-									onChange={(e) => setNewContactData({ ...newContactData, email: e.target.value })}
+									onChange={(e) =>
+										setNewContactData({
+											...newContactData,
+											email: e.target.value,
+										})
+									}
 								/>
 							</div>
 							<div className="form-group">
@@ -3243,20 +3338,31 @@ function App() {
 								<input
 									type="text"
 									value={newContactData.position}
-									onChange={(e) => setNewContactData({ ...newContactData, position: e.target.value })}
+									onChange={(e) =>
+										setNewContactData({
+											...newContactData,
+											position: e.target.value,
+										})
+									}
 								/>
 							</div>
 							<div className="form-group form-group-full">
 								<label>Заметки</label>
 								<textarea
 									value={newContactData.notes}
-									onChange={(e) => setNewContactData({ ...newContactData, notes: e.target.value })}
+									onChange={(e) =>
+										setNewContactData({
+											...newContactData,
+											notes: e.target.value,
+										})
+									}
 									rows={2}
 								/>
 							</div>
 						</div>
 						<button type="submit" className="btn btn-primary">
-							<Plus size={18} />Добавить контакт
+							<Plus size={18} />
+							Добавить контакт
 						</button>
 					</form>
 				</div>
@@ -3347,12 +3453,15 @@ function App() {
 						<LogOut size={18} />
 						Выйти
 					</button>
-					<button className="btn btn-danger-outline" onClick={() => {
-						if (window.confirm('Вы уверены? Все данные будут удалены!')) {
-							localStorage.clear();
-							window.location.reload();
-						}
-					}}>
+					<button
+						className="btn btn-danger-outline"
+						onClick={() => {
+							if (window.confirm("Вы уверены? Все данные будут удалены!")) {
+								localStorage.clear();
+								window.location.reload();
+							}
+						}}
+					>
 						Сброс данных
 					</button>
 				</div>
@@ -3433,11 +3542,17 @@ function App() {
 
 			{/* МОДАЛЬНОЕ ОКНО РЕДАКТИРОВАНИЯ КОНТАКТА */}
 			{isContactModalOpen && editingContact && (
-				<div className="modal-overlay" onClick={() => setIsContactModalOpen(false)}>
+				<div
+					className="modal-overlay"
+					onClick={() => setIsContactModalOpen(false)}
+				>
 					<div className="modal" onClick={(e) => e.stopPropagation()}>
 						<div className="modal-header">
 							<h2>Редактирование контакта</h2>
-							<button className="modal-close" onClick={() => setIsContactModalOpen(false)}>
+							<button
+								className="modal-close"
+								onClick={() => setIsContactModalOpen(false)}
+							>
 								<X size={24} />
 							</button>
 						</div>
@@ -3445,41 +3560,96 @@ function App() {
 							<div className="form-grid">
 								<div className="form-group">
 									<label>Имя контакта *</label>
-									<input type="text" value={editingContact.name || ""} onChange={(e) => handleContactChange("name", e.target.value)} required />
+									<input
+										type="text"
+										value={editingContact.name || ""}
+										onChange={(e) =>
+											handleContactChange("name", e.target.value)
+										}
+										required
+									/>
 								</div>
 								<div className="form-group">
 									<label>Телефон</label>
-									<input type="tel" value={editingContact.phone || ""} onChange={(e) => handleContactChange("phone", e.target.value)} />
+									<input
+										type="tel"
+										value={editingContact.phone || ""}
+										onChange={(e) =>
+											handleContactChange("phone", e.target.value)
+										}
+									/>
 								</div>
 								<div className="form-group">
 									<label>Объект</label>
-									<input type="text" value={editingContact.objectName || ""} onChange={(e) => handleContactChange("objectName", e.target.value)} list="objects-list-edit" />
+									<input
+										type="text"
+										value={editingContact.objectName || ""}
+										onChange={(e) =>
+											handleContactChange("objectName", e.target.value)
+										}
+										list="objects-list-edit"
+									/>
 									<datalist id="objects-list-edit">
 										{objects.map((obj) => (
-											<option key={obj.id} value={obj["Наименование объекта"]} />
+											<option
+												key={obj.id}
+												value={obj["Наименование объекта"]}
+											/>
 										))}
 									</datalist>
 								</div>
 								<div className="form-group">
 									<label>Короткий адрес</label>
-									<input type="text" value={editingContact.shortAddress || ""} onChange={(e) => handleContactChange("shortAddress", e.target.value)} />
+									<input
+										type="text"
+										value={editingContact.shortAddress || ""}
+										onChange={(e) =>
+											handleContactChange("shortAddress", e.target.value)
+										}
+									/>
 								</div>
 								<div className="form-group">
 									<label>Email</label>
-									<input type="email" value={editingContact.email || ""} onChange={(e) => handleContactChange("email", e.target.value)} />
+									<input
+										type="email"
+										value={editingContact.email || ""}
+										onChange={(e) =>
+											handleContactChange("email", e.target.value)
+										}
+									/>
 								</div>
 								<div className="form-group">
 									<label>Должность</label>
-									<input type="text" value={editingContact.position || ""} onChange={(e) => handleContactChange("position", e.target.value)} />
+									<input
+										type="text"
+										value={editingContact.position || ""}
+										onChange={(e) =>
+											handleContactChange("position", e.target.value)
+										}
+									/>
 								</div>
 								<div className="form-group form-group-full">
 									<label>Заметки</label>
-									<textarea value={editingContact.notes || ""} onChange={(e) => handleContactChange("notes", e.target.value)} rows={3} />
+									<textarea
+										value={editingContact.notes || ""}
+										onChange={(e) =>
+											handleContactChange("notes", e.target.value)
+										}
+										rows={3}
+									/>
 								</div>
 							</div>
 							<div className="modal-footer">
-								<button type="button" className="btn btn-secondary" onClick={() => setIsContactModalOpen(false)}>Отмена</button>
-								<button type="submit" className="btn btn-primary">Сохранить</button>
+								<button
+									type="button"
+									className="btn btn-secondary"
+									onClick={() => setIsContactModalOpen(false)}
+								>
+									Отмена
+								</button>
+								<button type="submit" className="btn btn-primary">
+									Сохранить
+								</button>
 							</div>
 						</form>
 					</div>

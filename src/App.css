@@ -1485,3 +1485,353 @@
 		grid-template-columns: 1fr;
 	}
 }
+
+/* ================================
+   ENGINEERS CALENDAR
+   ================================ */
+.header-actions {
+	display: flex;
+	gap: 8px;
+}
+
+.engineers-grid {
+	display: grid;
+	grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+	gap: 20px;
+	margin-bottom: 24px;
+}
+
+.engineer-card {
+	background: white;
+	border-radius: 12px;
+	padding: 20px;
+	box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+	border: 1px solid var(--border);
+}
+
+.engineer-header {
+	display: flex;
+	align-items: flex-start;
+	gap: 16px;
+	margin-bottom: 16px;
+	padding-bottom: 16px;
+	border-bottom: 1px solid var(--border);
+}
+
+.engineer-avatar {
+	width: 60px;
+	height: 60px;
+	border-radius: 50%;
+	background: var(--primary-light);
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	color: var(--primary);
+	flex-shrink: 0;
+}
+
+.engineer-info {
+	flex: 1;
+}
+
+.engineer-info h3 {
+	margin: 0 0 4px 0;
+	font-size: 1.1rem;
+	color: var(--gray-900);
+}
+
+.engineer-position {
+	margin: 0 0 4px 0;
+	color: var(--gray-500);
+	font-size: 0.875rem;
+}
+
+.engineer-phone {
+	margin: 0;
+	color: var(--gray-600);
+	font-size: 0.875rem;
+}
+
+.engineer-stats {
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+	margin-bottom: 16px;
+}
+
+.stat-item {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+}
+
+.stat-label {
+	color: var(--gray-500);
+	font-size: 0.875rem;
+}
+
+.stat-value {
+	font-weight: 500;
+	color: var(--gray-800);
+}
+
+.stat-value.salary {
+	color: var(--success);
+	font-weight: 600;
+}
+
+.workday-badge {
+	display: inline-block;
+	padding: 2px 8px;
+	background: var(--primary-light);
+	color: var(--primary);
+	border-radius: 4px;
+	font-size: 0.75rem;
+	margin-right: 4px;
+}
+
+.engineer-vacations h4 {
+	margin: 0 0 12px 0;
+	font-size: 0.9rem;
+	color: var(--gray-700);
+}
+
+.no-vacations {
+	color: var(--gray-400);
+	font-size: 0.875rem;
+	font-style: italic;
+	margin-bottom: 12px;
+}
+
+.vacations-list {
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+	margin-bottom: 12px;
+}
+
+.vacation-item {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	padding: 8px 12px;
+	background: var(--gray-50);
+	border-radius: 6px;
+	font-size: 0.875rem;
+}
+
+.vacation-dates {
+	color: var(--gray-700);
+}
+
+.vacation-type {
+	color: var(--primary);
+	font-weight: 500;
+	margin-left: auto;
+}
+
+.add-vacation-form {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 8px;
+}
+
+.add-vacation-form input,
+.add-vacation-form select {
+	flex: 1;
+	min-width: 100px;
+	padding: 6px 10px;
+	border: 1px solid var(--border);
+	border-radius: 6px;
+	font-size: 0.875rem;
+}
+
+.btn-sm {
+	padding: 6px 12px;
+	font-size: 0.8rem;
+}
+
+/* Календарный вид */
+.calendar-header {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	gap: 20px;
+	margin-bottom: 20px;
+}
+
+.calendar-header h3 {
+	margin: 0;
+	min-width: 200px;
+	text-align: center;
+}
+
+.calendar-grid {
+	background: white;
+	border-radius: 12px;
+	padding: 20px;
+	box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+	border: 1px solid var(--border);
+	margin-bottom: 20px;
+}
+
+.calendar-days-header {
+	display: grid;
+	grid-template-columns: repeat(7, 1fr);
+	gap: 4px;
+	margin-bottom: 8px;
+}
+
+.day-name {
+	text-align: center;
+	font-weight: 600;
+	color: var(--gray-500);
+	padding: 8px;
+	font-size: 0.875rem;
+}
+
+.calendar-days {
+	display: grid;
+	grid-template-columns: repeat(7, 1fr);
+	gap: 4px;
+}
+
+.calendar-cell {
+	aspect-ratio: 1;
+	min-height: 60px;
+	padding: 4px;
+	background: var(--gray-50);
+	border-radius: 6px;
+	display: flex;
+	flex-direction: column;
+}
+
+.calendar-cell.empty {
+	background: transparent;
+}
+
+.calendar-cell .day-number {
+	font-weight: 600;
+	font-size: 0.875rem;
+	color: var(--gray-700);
+}
+
+.engineers-status {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 2px;
+	margin-top: auto;
+}
+
+.engineer-status {
+	width: 20px;
+	height: 20px;
+	border-radius: 4px;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	font-size: 0.7rem;
+	font-weight: 600;
+}
+
+.engineer-status.working {
+	background: var(--success-light);
+	color: var(--success);
+}
+
+.engineer-status.day-off {
+	background: var(--gray-200);
+	color: var(--gray-500);
+}
+
+.engineer-status.vacation {
+	background: var(--warning-light);
+	color: var(--warning);
+}
+
+.calendar-legend {
+	display: flex;
+	justify-content: center;
+	gap: 24px;
+	margin-bottom: 24px;
+	padding: 12px;
+	background: var(--gray-50);
+	border-radius: 8px;
+}
+
+.legend-item {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	font-size: 0.875rem;
+	color: var(--gray-600);
+}
+
+.legend-dot {
+	width: 16px;
+	height: 16px;
+	border-radius: 4px;
+}
+
+.legend-dot.working {
+	background: var(--success-light);
+	border: 1px solid var(--success);
+}
+
+.legend-dot.day-off {
+	background: var(--gray-200);
+	border: 1px solid var(--gray-400);
+}
+
+.legend-dot.vacation {
+	background: var(--warning-light);
+	border: 1px solid var(--warning);
+}
+
+.engineers-list-compact {
+	background: white;
+	border-radius: 12px;
+	padding: 20px;
+	box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+	border: 1px solid var(--border);
+}
+
+.engineers-list-compact h4 {
+	margin: 0 0 16px 0;
+	color: var(--gray-800);
+}
+
+.salary-cell {
+	color: var(--success);
+	font-weight: 600;
+}
+
+.workdays-checkboxes {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 12px;
+}
+
+.workdays-checkboxes label {
+	display: flex;
+	align-items: center;
+	gap: 4px;
+	cursor: pointer;
+	font-size: 0.9rem;
+}
+
+.workdays-checkboxes input[type="checkbox"] {
+	width: 16px;
+	height: 16px;
+	cursor: pointer;
+}
+
+@media (max-width: 768px) {
+	.engineers-grid {
+		grid-template-columns: 1fr;
+	}
+
+	.calendar-cell {
+		min-height: 50px;
+	}
+}
