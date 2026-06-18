@@ -613,19 +613,23 @@ function App() {
 	const [isExporting, setIsExporting] = useState(false);
 
 	// --- СТЕЙТЫ ОБЪЕКТОВ ---
+	// Загружаем из localStorage или используем начальные данные
 	const [objects, setObjects] = useState(() => {
-		const saved = localStorage.getItem("demo_objects_v2");
-		if (saved) {
-			try {
+		console.log("Loading objects, INITIAL_OBJECTS:", INITIAL_OBJECTS?.length);
+		try {
+			const saved = localStorage.getItem("demo_objects_v2");
+			console.log("Saved objects:", saved?.substring(0, 100));
+			if (saved && saved !== "undefined" && saved !== "null" && saved !== "[]") {
 				const parsed = JSON.parse(saved);
-				// Если сохранённые данные валидны и не пустые, используем их
+				console.log("Parsed objects count:", parsed?.length);
 				if (Array.isArray(parsed) && parsed.length > 0) {
 					return parsed;
 				}
-			} catch (e) {
-				console.error("Error parsing saved objects:", e);
 			}
+		} catch (e) {
+			console.error("Error loading objects:", e);
 		}
+		console.log("Using INITIAL_OBJECTS, count:", INITIAL_OBJECTS?.length);
 		return INITIAL_OBJECTS;
 	});
 	const [newFormData, setNewFormData] = useState(getEmptyObjectForm());
