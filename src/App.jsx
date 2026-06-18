@@ -1058,6 +1058,65 @@ function App() {
 		setNewFormData(getEmptyObjectForm());
 	};
 
+	// Генерация рандомного объекта
+	const generateRandomObject = () => {
+		const customers = ["ООО СтройМир", "ЗАО Энерго", "ИП Кленов", "ПАО Связь", "ООО ТехноСервис", "АО МегаСтрой", "ИП Сидоров", "ООО Инфраструктура"];
+		const contractors = ["СБ", "СБ+", "ВСТ", "ИП"];
+		const contractTypes = ["ТО", "СМР", "ПИР"];
+		const extendables = ["Продлеваемый автоматически", "Не продлеваемый", "Продлеваемый доп соглашением", "Конкурсный"];
+		const systems = ["АПС", "СОУЭ", "ВПВ", "ОПС", "ВИДЕОНАБЛЮДЕНИЕ", "СКУД"];
+		const streets = ["Ленина", "Пушкина", "Гагарина", "Кирова", "Советская", "Октябрьская", "Мира", "Победы"];
+		const cities = ["Москва", "СПб", "Екатеринбург", "Новосибирск", "Казань", "Воронеж"];
+		const payOptions = ["Заказчик", "Наш счёт"];
+		const toolOptions = ["есть", "нет"];
+		const rdOptions = [["РД"], ["ИД"], ["ПД"], ["РД", "ИД"], ["РД", "ПД"], ["ИД", "ПД"], ["РД", "ИД", "ПД"]];
+
+		const customer = customers[Math.floor(Math.random() * customers.length)];
+		const city = cities[Math.floor(Math.random() * cities.length)];
+		const street = streets[Math.floor(Math.random() * streets.length)];
+		const num = Math.floor(Math.random() * 100) + 1;
+		const objectName = `${customer} - Объект ${num}`;
+		const address = `${city}, ул. ${street}, д. ${num}`;
+		const shortAddress = `${street}, ${num}`;
+		const rd = rdOptions[Math.floor(Math.random() * rdOptions.length)].join(", ");
+
+		const randomObj = {
+			id: Date.now() + Math.random(),
+			objectNumber: objects.length + 1,
+			Заказчик: customer,
+			Подрядчик: contractors[Math.floor(Math.random() * contractors.length)],
+			"№ контр/дог": `${customer.slice(0, 2)}-${num}/2024`,
+			"Начало действия договора": "2024-01-01",
+			"Окончание действия договора": "2025-12-31",
+			"Тип договора": contractTypes[Math.floor(Math.random() * contractTypes.length)],
+			Продлеваемость: extendables[Math.floor(Math.random() * extendables.length)],
+			"Письмо о повышении стоимости ТО": Math.random() > 0.5 ? "15.03.2024" : "",
+			"Свершившееся повышение цены ТО": Math.random() > 0.5 ? `${Math.floor(Math.random() * 15) + 5}%` : "",
+			"Доп соглашение": Math.random() > 0.5 ? `№${Math.floor(Math.random() * 5) + 1}` : "",
+			Письма: Math.random() > 0.7 ? `Исх.№${Math.floor(Math.random() * 200)}` : "",
+			"Кто оплачивает ремонт": payOptions[Math.floor(Math.random() * payOptions.length)],
+			"Как оплачиваются доп.работы": ["Сметы", "КП", "По договору"][Math.floor(Math.random() * 3)],
+			"К доп работам есть ли аванс": ["Аванс", "Без аванса"][Math.floor(Math.random() * 2)],
+			"Адрес полный объекта": address,
+			"Адрес сокращенный": shortAddress,
+			"Наименование объекта": objectName,
+			"РД ИД ПД": rd,
+			Арендатор: `Арендатор${num}`,
+			Системы: [0, 1, 2, 3].map(() => systems[Math.floor(Math.random() * systems.length)]).filter((v, i, a) => a.indexOf(v) === i).join(", "),
+			"Расчетное время на обслуживание": `${Math.floor(Math.random() * 8) + 1} часов`,
+			Контакты: `Контактное лицо +7999${Math.floor(Math.random() * 90000000) + 10000000}`,
+			"Инструмент на объекте": toolOptions[Math.floor(Math.random() * toolOptions.length)],
+			Заметки: Math.random() > 0.7 ? "Дополнительная информация" : "",
+		};
+		return randomObj;
+	};
+
+	const handleAddRandomObjects = (count = 5) => {
+		objectContactsSyncRef.current = true;
+		const newObjects = Array.from({ length: count }, () => generateRandomObject());
+		setObjects([...newObjects, ...objects]);
+	};
+
 	const handleDeleteObject = (id) => {
 		if (confirm("Удалить объект?")) {
 			objectContactsSyncRef.current = true;
@@ -1884,13 +1943,29 @@ function App() {
 				</div>
 
 				{/* ФОРМА ДОБАВЛЕНИЯ ОБЪЕКТА - НАВЕРХУ */}
-				<div className="add-form-section add-form-full">
-					<h3>
-						<Plus size={20} />
-						Добавить объект
-					</h3>
-					<form onSubmit={handleAddObject} className="add-form">
-						<div className="form-grid">
+						<div className="add-form-section add-form-full">
+							<h3>
+								<Plus size={20} />
+								Добавить объект
+							</h3>
+							<div className="form-actions-row">
+								<form onSubmit={handleAddObject} className="add-form-inline">
+									<button type="submit" className="btn btn-primary">
+										<Plus size={18} />
+										Добавить объект
+									</button>
+								</form>
+								<button
+									type="button"
+									className="btn btn-secondary"
+									onClick={() => handleAddRandomObjects(5)}
+								>
+									<Zap size={18} />
+									Добавить 5 рандомных
+								</button>
+							</div>
+							<form onSubmit={handleAddObject} className="add-form">
+								<div className="form-grid">
 							<div className="form-group">
 								<label>Заказчик</label>
 								<input
@@ -2134,65 +2209,65 @@ function App() {
 									placeholder="Название объекта"
 								/>
 							</div>
-									<div className="form-group">
-										<label>РД ИД ПД</label>
-										<div className="checkbox-group">
-											<label className="checkbox-label">
-												<input
-													type="checkbox"
-													checked={(newFormData["РД ИД ПД"] || "").includes("РД")}
-													onChange={(e) => {
-														const current = newFormData["РД ИД ПД"] || "";
-														const values = current.split(", ").filter(Boolean);
-														const newValues = e.target.checked
-															? [...values, "РД"]
-															: values.filter((v) => v !== "РД");
-														setNewFormData({
-														...newFormData,
-														"РД ИД ПД": newValues.join(", "),
-													});
-												}}
-												/>
-												<span>РД</span>
-											</label>
-											<label className="checkbox-label">
-												<input
-													type="checkbox"
-													checked={(newFormData["РД ИД ПД"] || "").includes("ИД")}
-													onChange={(e) => {
-														const current = newFormData["РД ИД ПД"] || "";
-														const values = current.split(", ").filter(Boolean);
-														const newValues = e.target.checked
-														? [...values, "ИД"]
-														: values.filter((v) => v !== "ИД");
-														setNewFormData({
-														...newFormData,
-														"РД ИД ПД": newValues.join(", "),
-													});
-												}}
-												/>
-												<span>ИД</span>
-											</label>
-											<label className="checkbox-label">
-												<input
-													type="checkbox"
-													checked={(newFormData["РД ИД ПД"] || "").includes("ПД")}
-													onChange={(e) => {
-														const current = newFormData["РД ИД ПД"] || "";
-														const values = current.split(", ").filter(Boolean);
-														const newValues = e.target.checked
-														? [...values, "ПД"]
-														: values.filter((v) => v !== "ПД");
-														setNewFormData({
-														...newFormData,
-														"РД ИД ПД": newValues.join(", "),
-													});
-												}}
-												/>
-												<span>ПД</span>
-											</label>
-										</div>
-									</div>
+							<div className="form-group">
+								<label>РД ИД ПД</label>
+								<div className="checkbox-group">
+									<label className="checkbox-label">
+										<input
+											type="checkbox"
+											checked={(newFormData["РД ИД ПД"] || "").includes("РД")}
+											onChange={(e) => {
+												const current = newFormData["РД ИД ПД"] || "";
+												const values = current.split(", ").filter(Boolean);
+												const newValues = e.target.checked
+													? [...values, "РД"]
+													: values.filter((v) => v !== "РД");
+												setNewFormData({
+													...newFormData,
+													"РД ИД ПД": newValues.join(", "),
+												});
+											}}
+										/>
+										<span>РД</span>
+									</label>
+									<label className="checkbox-label">
+										<input
+											type="checkbox"
+											checked={(newFormData["РД ИД ПД"] || "").includes("ИД")}
+											onChange={(e) => {
+												const current = newFormData["РД ИД ПД"] || "";
+												const values = current.split(", ").filter(Boolean);
+												const newValues = e.target.checked
+													? [...values, "ИД"]
+													: values.filter((v) => v !== "ИД");
+												setNewFormData({
+													...newFormData,
+													"РД ИД ПД": newValues.join(", "),
+												});
+											}}
+										/>
+										<span>ИД</span>
+									</label>
+									<label className="checkbox-label">
+										<input
+											type="checkbox"
+											checked={(newFormData["РД ИД ПД"] || "").includes("ПД")}
+											onChange={(e) => {
+												const current = newFormData["РД ИД ПД"] || "";
+												const values = current.split(", ").filter(Boolean);
+												const newValues = e.target.checked
+													? [...values, "ПД"]
+													: values.filter((v) => v !== "ПД");
+												setNewFormData({
+													...newFormData,
+													"РД ИД ПД": newValues.join(", "),
+												});
+											}}
+										/>
+										<span>ПД</span>
+									</label>
+								</div>
+							</div>
 							<div className="form-group">
 								<label>Арендатор</label>
 								<input

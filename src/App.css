@@ -2465,3 +2465,42 @@ input[type="date"]:focus {
 .checkbox-label:hover {
 	color: var(--primary);
 }
+
+/* ================================
+   FORM ACTIONS ROW
+   ================================ */
+.form-actions-row {
+	display: flex;
+	gap: 12px;
+	margin-bottom: 20px;
+	padding-bottom: 16px;
+	border-bottom: 1px solid var(--border);
+}
+
+.add-form-inline {
+	display: inline-flex;
+}
+
+.btn-secondary {
+	background: var(--gray-100);
+	color: var(--gray-700);
+	border: 1px solid var(--border);
+	padding: 10px 16px;
+	border-radius: 8px;
+	font-size: 0.875rem;
+	font-weight: 500;
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	cursor: pointer;
+	transition: all 0.2s;
+}
+
+.btn-secondary:hover {
+	background: var(--gray-200);
+	border-color: var(--gray-300);
+}
+
+.btn-secondary:active {
+	transform: scale(0.98);
+}
