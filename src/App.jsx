@@ -2046,22 +2046,22 @@ function App() {
 									}
 								/>
 							</div>
-									<div className="form-group">
-										<label>Кто оплачивает ремонт</label>
-											<select
-												value={newFormData["Кто оплачивает ремонт"] || ""}
-												onChange={(e) =>
-													setNewFormData({
-													...newFormData,
-													"Кто оплачивает ремонт": e.target.value,
-												})
-											}
-											>
-												<option value="">—</option>
-												<option value="Заказчик">Заказчик</option>
-												<option value="Наш счёт">За наш счёт</option>
-											</select>
-										</div>
+							<div className="form-group">
+								<label>Кто оплачивает ремонт</label>
+								<select
+									value={newFormData["Кто оплачивает ремонт"] || ""}
+									onChange={(e) =>
+										setNewFormData({
+											...newFormData,
+											"Кто оплачивает ремонт": e.target.value,
+										})
+									}
+								>
+									<option value="">—</option>
+									<option value="Заказчик">Заказчик</option>
+									<option value="Наш счёт">За наш счёт</option>
+								</select>
+							</div>
 							<div className="form-group">
 								<label>Как оплачиваются доп.работы</label>
 								<input
@@ -2134,19 +2134,65 @@ function App() {
 									placeholder="Название объекта"
 								/>
 							</div>
-							<div className="form-group">
-								<label>РД ИД ПД</label>
-								<input
-									type="text"
-									value={newFormData["РД ИД ПД"] || ""}
-									onChange={(e) =>
-										setNewFormData({
-											...newFormData,
-											"РД ИД ПД": e.target.value,
-										})
-									}
-								/>
-							</div>
+									<div className="form-group">
+										<label>РД ИД ПД</label>
+										<div className="checkbox-group">
+											<label className="checkbox-label">
+												<input
+													type="checkbox"
+													checked={(newFormData["РД ИД ПД"] || "").includes("РД")}
+													onChange={(e) => {
+														const current = newFormData["РД ИД ПД"] || "";
+														const values = current.split(", ").filter(Boolean);
+														const newValues = e.target.checked
+															? [...values, "РД"]
+															: values.filter((v) => v !== "РД");
+														setNewFormData({
+														...newFormData,
+														"РД ИД ПД": newValues.join(", "),
+													});
+												}}
+												/>
+												<span>РД</span>
+											</label>
+											<label className="checkbox-label">
+												<input
+													type="checkbox"
+													checked={(newFormData["РД ИД ПД"] || "").includes("ИД")}
+													onChange={(e) => {
+														const current = newFormData["РД ИД ПД"] || "";
+														const values = current.split(", ").filter(Boolean);
+														const newValues = e.target.checked
+														? [...values, "ИД"]
+														: values.filter((v) => v !== "ИД");
+														setNewFormData({
+														...newFormData,
+														"РД ИД ПД": newValues.join(", "),
+													});
+												}}
+												/>
+												<span>ИД</span>
+											</label>
+											<label className="checkbox-label">
+												<input
+													type="checkbox"
+													checked={(newFormData["РД ИД ПД"] || "").includes("ПД")}
+													onChange={(e) => {
+														const current = newFormData["РД ИД ПД"] || "";
+														const values = current.split(", ").filter(Boolean);
+														const newValues = e.target.checked
+														? [...values, "ПД"]
+														: values.filter((v) => v !== "ПД");
+														setNewFormData({
+														...newFormData,
+														"РД ИД ПД": newValues.join(", "),
+													});
+												}}
+												/>
+												<span>ПД</span>
+											</label>
+										</div>
+									</div>
 							<div className="form-group">
 								<label>Арендатор</label>
 								<input
