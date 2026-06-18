@@ -594,6 +594,7 @@ function extractContactsFromObjects(objects) {
 const INITIAL_CONTACTS = extractContactsFromObjects(INITIAL_OBJECTS);
 
 function App() {
+	console.log("App component rendering, INITIAL_OBJECTS:", INITIAL_OBJECTS?.length);
 	// --- СТЕЙТЫ АВТОРИЗАЦИИ ---
 	const [isAuthenticated, setIsAuthenticated] = useState(
 		() => localStorage.getItem("demo_isAuthenticated") === "true",
@@ -628,7 +629,7 @@ function App() {
 		}
 		return INITIAL_OBJECTS;
 	};
-	
+
 	const [objects, setObjects] = useState(getInitialObjects);
 	const [newFormData, setNewFormData] = useState(getEmptyObjectForm());
 	const [editingObject, setEditingObject] = useState(null);
@@ -1853,6 +1854,7 @@ function App() {
 	};
 
 	function renderObjectsSection() {
+		console.log("renderObjectsSection: objects =", objects?.length);
 		// Функция открытия окна выбора систем
 		const openSystemPicker = (obj, e) => {
 			e?.stopPropagation();
