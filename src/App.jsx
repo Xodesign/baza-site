@@ -613,25 +613,25 @@ function App() {
 	const [isExporting, setIsExporting] = useState(false);
 
 	// --- СТЕЙТЫ ОБЪЕКТОВ ---
-	// Загружаем из localStorage или используем начальные данные
-	const [objects, setObjects] = useState(() => {
-		console.log("Loading objects, INITIAL_OBJECTS:", INITIAL_OBJECTS?.length);
-		try {
-			const saved = localStorage.getItem("demo_objects_v2");
-			console.log("Saved objects:", saved?.substring(0, 100));
-			if (saved && saved !== "undefined" && saved !== "null" && saved !== "[]") {
+	const [objects, setObjects] = useState([]);
+	
+	// Загружаем объекты при монтировании
+	useEffect(() => {
+		const saved = localStorage.getItem("demo_objects_v2");
+		if (saved && saved !== "[]") {
+			try {
 				const parsed = JSON.parse(saved);
-				console.log("Parsed objects count:", parsed?.length);
 				if (Array.isArray(parsed) && parsed.length > 0) {
-					return parsed;
+					setObjects(parsed);
+					return;
 				}
+			} catch (e) {
+				console.error("Error parsing objects:", e);
 			}
-		} catch (e) {
-			console.error("Error loading objects:", e);
 		}
-		console.log("Using INITIAL_OBJECTS, count:", INITIAL_OBJECTS?.length);
-		return INITIAL_OBJECTS;
-	});
+		// Если ничего не загружено, используем начальные данные
+		setObjects(INITIAL_OBJECTS);
+	}, []);
 	const [newFormData, setNewFormData] = useState(getEmptyObjectForm());
 	const [editingObject, setEditingObject] = useState(null);
 	const [isEditModalOpen, setIsEditModalOpen] = useState(false);
@@ -808,7 +808,10 @@ function App() {
 		localStorage.setItem("demo_calls", JSON.stringify(calls));
 	}, [calls]);
 	useEffect(() => {
-		localStorage.setItem("demo_objects_v2", JSON.stringify(objects));
+		// Сохраняем только если есть данные
+		if (objects.length > 0) {
+			localStorage.setItem("demo_objects_v2", JSON.stringify(objects));
+		}
 	}, [objects]);
 	useEffect(() => {
 		localStorage.setItem("demo_staff", JSON.stringify(staff));
