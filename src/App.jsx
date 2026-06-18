@@ -614,15 +614,19 @@ function App() {
 
 	// --- СТЕЙТЫ ОБЪЕКТОВ ---
 	const [objects, setObjects] = useState([]);
-	
+
 	// Загружаем объекты при монтировании
 	useEffect(() => {
+		console.log("useEffect: Loading objects...");
 		const saved = localStorage.getItem("demo_objects_v2");
+		console.log("useEffect: saved =", saved?.substring(0, 50));
 		if (saved && saved !== "[]") {
 			try {
 				const parsed = JSON.parse(saved);
+				console.log("useEffect: parsed =", parsed?.length);
 				if (Array.isArray(parsed) && parsed.length > 0) {
 					setObjects(parsed);
+					console.log("useEffect: Using saved objects");
 					return;
 				}
 			} catch (e) {
@@ -630,6 +634,7 @@ function App() {
 			}
 		}
 		// Если ничего не загружено, используем начальные данные
+		console.log("useEffect: Using INITIAL_OBJECTS, count =", INITIAL_OBJECTS?.length);
 		setObjects(INITIAL_OBJECTS);
 	}, []);
 	const [newFormData, setNewFormData] = useState(getEmptyObjectForm());
@@ -1672,6 +1677,8 @@ function App() {
 	};
 
 	// === ФИЛЬТРАЦИЯ ОБЪЕКТОВ ===
+	console.log("DEBUG objects:", objects?.length, objects);
+	console.log("DEBUG INITIAL_OBJECTS:", INITIAL_OBJECTS?.length);
 	const filteredObjects = objects.filter((o) => {
 		// Текстовый поиск
 		const q = searchQuery.toLowerCase();
