@@ -2916,21 +2916,8 @@ function App() {
 												</div>
 											</>
 										)}
-									</div>
+								</div>
 								)}
-							</div>
-
-							{/* Наш инструмент */}
-							<div className="form-group form-group-full">
-								<label>Наш инструмент для выполнения (не обязательно)</label>
-								<textarea
-									value={newCallData.ourTool || ""}
-									onChange={(e) =>
-										setNewCallData({ ...newCallData, ourTool: e.target.value })
-									}
-									rows={4}
-									placeholder={`Укажите необходимый инструмент:\n• Перфоратор\n• Безаккумуляторные устройства\n• Стремянка (высота___) / тура\n• Удлинители\n• Болгарка (тип диска___)\n• Буры (диаметр___ х длина___)\n• Средства защиты`}
-								/>
 							</div>
 
 							{/* Приобрести для выполнения */}
