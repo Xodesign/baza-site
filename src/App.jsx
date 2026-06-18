@@ -2046,20 +2046,22 @@ function App() {
 									}
 								/>
 							</div>
-							<div className="form-group">
-								<label>Кто оплачивает ремонт</label>
-								<input
-									type="text"
-									value={newFormData["Кто оплачивает ремонт"] || ""}
-									onChange={(e) =>
-										setNewFormData({
-											...newFormData,
-											"Кто оплачивает ремонт": e.target.value,
-										})
-									}
-									placeholder="за наш счёт / заказчик"
-								/>
-							</div>
+									<div className="form-group">
+										<label>Кто оплачивает ремонт</label>
+											<select
+												value={newFormData["Кто оплачивает ремонт"] || ""}
+												onChange={(e) =>
+													setNewFormData({
+													...newFormData,
+													"Кто оплачивает ремонт": e.target.value,
+												})
+											}
+											>
+												<option value="">—</option>
+												<option value="Заказчик">Заказчик</option>
+												<option value="Наш счёт">За наш счёт</option>
+											</select>
+										</div>
 							<div className="form-group">
 								<label>Как оплачиваются доп.работы</label>
 								<input
@@ -2916,7 +2918,7 @@ function App() {
 												</div>
 											</>
 										)}
-								</div>
+									</div>
 								)}
 							</div>
 
