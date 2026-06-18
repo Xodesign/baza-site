@@ -2818,106 +2818,120 @@ function App() {
 								/>
 							</div>
 
-								{/* Выбор инструмента из справочника */}
-								<div className="form-group form-group-full">
-									<div className="tool-picker-header">
-										<button
-											type="button"
-											className="tool-picker-toggle"
-											onClick={() => setIsToolPickerOpen(!isToolPickerOpen)}
-										>
-											<Wrench size={16} />
-											<span>Выбор инструмента из справочника</span>
-											<span className="tool-count">
-												{selectedToolsForNewCall.length > 0 && `(${selectedToolsForNewCall.length} выбрано)`}
-											</span>
-											<ChevronDown
-												size={16}
+							{/* Выбор инструмента из справочника */}
+							<div className="form-group form-group-full">
+								<div className="tool-picker-header">
+									<button
+										type="button"
+										className="tool-picker-toggle"
+										onClick={() => setIsToolPickerOpen(!isToolPickerOpen)}
+									>
+										<Wrench size={16} />
+										<span>Выбор инструмента из справочника</span>
+										<span className="tool-count">
+											{selectedToolsForNewCall.length > 0 &&
+												`(${selectedToolsForNewCall.length} выбрано)`}
+										</span>
+										<ChevronDown
+											size={16}
 											className={`tool-chevron ${isToolPickerOpen ? "open" : ""}`}
 										/>
 									</button>
-									</div>
-									{isToolPickerOpen && (
-										<div className="tool-picker-body">
+								</div>
+								{isToolPickerOpen && (
+									<div className="tool-picker-body">
 										{tools.length === 0 ? (
 											<div className="tool-picker-empty">
 												<p>Справочник инструментов пуст.</p>
-												<p>Добавьте инструменты в разделе "Инструмент", чтобы выбирать их здесь.</p>
+												<p>
+													Добавьте инструменты в разделе "Инструмент", чтобы
+													выбирать их здесь.
+												</p>
 											</div>
 										) : (
 											<>
 												<div className="tool-picker-actions">
-												<label className="tool-select-all">
-													<input
-														type="checkbox"
-														checked={selectedToolsForNewCall.length === tools.length}
-														indeterminate={
-															selectedToolsForNewCall.length > 0 &&
-															selectedToolsForNewCall.length < tools.length
-														}
-														onChange={handleSelectAllToolsForCall}
-													/>
-													Выбрать все
-												</label>
-												{selectedToolsForNewCall.length > 0 && (
-													<button
-														type="button"
-														className="btn-clear-tools"
-														onClick={handleClearToolsForCall}
-													>
-														<X size={14} />
-													Очистить
-												</button>
-												)}
-											</div>
-											<div className="tool-picker-list">
-												{tools.map((tool) => (
-													<div
-														key={tool.id}
-														className={`tool-item ${selectedToolsForNewCall.includes(tool.id) ? "selected" : ""}`}
-													>
+													<label className="tool-select-all">
 														<input
 															type="checkbox"
-																checked={selectedToolsForNewCall.includes(tool.id)}
-																onChange={() => handleToggleToolForCall(tool.id)}
+															checked={
+																selectedToolsForNewCall.length === tools.length
+															}
+															indeterminate={
+																selectedToolsForNewCall.length > 0 &&
+																selectedToolsForNewCall.length < tools.length
+															}
+															onChange={handleSelectAllToolsForCall}
+														/>
+														Выбрать все
+													</label>
+													{selectedToolsForNewCall.length > 0 && (
+														<button
+															type="button"
+															className="btn-clear-tools"
+															onClick={handleClearToolsForCall}
+														>
+															<X size={14} />
+															Очистить
+														</button>
+													)}
+												</div>
+												<div className="tool-picker-list">
+													{tools.map((tool) => (
+														<div
+															key={tool.id}
+															className={`tool-item ${selectedToolsForNewCall.includes(tool.id) ? "selected" : ""}`}
+														>
+															<input
+																type="checkbox"
+																checked={selectedToolsForNewCall.includes(
+																	tool.id,
+																)}
+																onChange={() =>
+																	handleToggleToolForCall(tool.id)
+																}
 															/>
-														<div className="tool-info">
-															<span className="tool-name">
-																{tool.tool || "Без названия"}
-															</span>
-															{tool.brand && (
-																<span className="tool-brand">{tool.brand}</span>
-															)}
-															{tool.inventoryNumber && (
-																<span className="tool-inventory">
-																	Инв. №: {tool.inventoryNumber}
+															<div className="tool-info">
+																<span className="tool-name">
+																	{tool.tool || "Без названия"}
 																</span>
-															)}
-															{tool.objectName && (
-																<span className="tool-object">{tool.objectName}</span>
-															)}
+																{tool.brand && (
+																	<span className="tool-brand">
+																		{tool.brand}
+																	</span>
+																)}
+																{tool.inventoryNumber && (
+																	<span className="tool-inventory">
+																		Инв. №: {tool.inventoryNumber}
+																	</span>
+																)}
+																{tool.objectName && (
+																	<span className="tool-object">
+																		{tool.objectName}
+																	</span>
+																)}
+															</div>
 														</div>
-													</div>
-												))}
-											</div>
+													))}
+												</div>
 											</>
 										)}
 									</div>
-									)}
-								</div>
+								)}
+							</div>
 
-								{/* Наш инструмент */}
-								<div className="form-group form-group-full">
-									<label>Наш инструмент для выполнения (не обязательно)</label>
-									<textarea
-										value={newCallData.ourTool || ""}
-										onChange={(e) =>
-											setNewCallData({ ...newCallData, ourTool: e.target.value })
-										}
-										rows={4}
-										placeholder={`Укажите необходимый инструмент:\n• Перфоратор\n• Безаккумуляторные устройства\n• Стремянка (высота___) / тура\n• Удлинители\n• Болгарка (тип диска___)\n• Буры (диаметр___ х длина___)\n• Средства защиты`}
-									/>
-								</div>
+							{/* Наш инструмент */}
+							<div className="form-group form-group-full">
+								<label>Наш инструмент для выполнения (не обязательно)</label>
+								<textarea
+									value={newCallData.ourTool || ""}
+									onChange={(e) =>
+										setNewCallData({ ...newCallData, ourTool: e.target.value })
+									}
+									rows={4}
+									placeholder={`Укажите необходимый инструмент:\n• Перфоратор\n• Безаккумуляторные устройства\n• Стремянка (высота___) / тура\n• Удлинители\n• Болгарка (тип диска___)\n• Буры (диаметр___ х длина___)\n• Средства защиты`}
+								/>
+							</div>
 
 							{/* Приобрести для выполнения */}
 							<div className="form-group form-group-full">
