@@ -29,6 +29,7 @@ import {
 	Target,
 	UserCheck,
 	Zap,
+	ChevronDown,
 } from "lucide-react";
 import excelData from "./excel_data.js";
 import "./App.css";
@@ -731,6 +732,10 @@ function App() {
 	// --- СТЕЙТЫ ВЫБОРА ИНСТРУМЕНТА ---
 	const [selectedToolIds, setSelectedToolIds] = useState([]);
 
+	// --- СТЕЙТЫ ВЫБОРА ИНСТРУМЕНТА ДЛЯ ВЫЗОВА ---
+	const [selectedToolsForNewCall, setSelectedToolsForNewCall] = useState([]);
+	const [isToolPickerOpen, setIsToolPickerOpen] = useState(false);
+
 	// --- СТЕЙТЫ МОДАЛЬНОГО ОКНА ВЫБОРА СИСТЕМ ---
 	const [isSystemPickerOpen, setIsSystemPickerOpen] = useState(false);
 	const [systemPickerObject, setSystemPickerObject] = useState(null);
@@ -1243,12 +1248,25 @@ function App() {
 			alert("Выберите объект!");
 			return;
 		}
+		// Формируем список выбранных инструментов для сохранения в вызове
+		const selectedToolsList = selectedToolsForNewCall
+			.map((id) => {
+				const tool = tools.find((t) => t.id === id);
+				return tool
+					? `• ${tool.tool}${tool.brand ? ` (${tool.brand})` : ""}${tool.inventoryNumber ? ` [${tool.inventoryNumber}]` : ""}`
+					: null;
+			})
+			.filter(Boolean)
+			.join("\n");
 		const newCall = {
 			id: Date.now(),
 			...newCallData,
+			selectedToolIds: [...selectedToolsForNewCall],
+			selectedToolsList: selectedToolsList,
 		};
 		setCalls([newCall, ...calls]);
 		setNewCallData(getEmptyCallForm());
+		setSelectedToolsForNewCall([]);
 	};
 
 	const handleDeleteCall = (id) => {
@@ -1326,6 +1344,36 @@ function App() {
 		} else {
 			setSelectedToolIds(tools.map((t) => t.id));
 		}
+	};
+
+	// === ЛОГИКА ВЫБОРА ИНСТРУМЕНТА ДЛЯ ВЫЗОВА ===
+	const handleToggleToolForCall = (toolId) => {
+		setSelectedToolsForNewCall((prev) =>
+			prev.includes(toolId)
+				? prev.filter((id) => id !== toolId)
+				: [...prev, toolId],
+		);
+	};
+
+	const handleSelectAllToolsForCall = () => {
+		if (selectedToolsForNewCall.length === tools.length) {
+			setSelectedToolsForNewCall([]);
+		} else {
+			setSelectedToolsForNewCall(tools.map((t) => t.id));
+		}
+	};
+
+	const handleClearToolsForCall = () => {
+		setSelectedToolsForNewCall([]);
+	};
+
+	const handleAddToolToCall = (toolId) => {
+		setSelectedToolsForNewCall((prev) => {
+			if (prev.includes(toolId)) {
+				return prev;
+			}
+			return [...prev, toolId];
+		});
 	};
 
 	const handleBulkDeleteTools = () => {
@@ -1506,13 +1554,11 @@ function App() {
 
 		// Фильтр по типу договора
 		const matchesType =
-			!objectFilters.type ||
-			o["Тип договора"] === objectFilters.type;
+			!objectFilters.type || o["Тип договора"] === objectFilters.type;
 
 		// Фильтр по подрядчику
 		const matchesContractor =
-			!objectFilters.contractor ||
-			o["Подрядчик"] === objectFilters.contractor;
+			!objectFilters.contractor || o["Подрядчик"] === objectFilters.contractor;
 
 		// Фильтр по продлеваемости
 		const objExtendable = o["Продлеваемость"] || o["Продлеваемость "] || "";
@@ -1528,13 +1574,29 @@ function App() {
 			!objectFilters.hasTool ||
 			o["Инструмент на объекте"] === objectFilters.hasTool;
 
-		return matchesSearch && matchesType && matchesContractor && matchesExtendable && matchesTool;
+		return (
+			matchesSearch &&
+			matchesType &&
+			matchesContractor &&
+			matchesExtendable &&
+			matchesTool
+		);
 	});
 
 	// Получение уникальных значений для фильтров
-	const uniqueContractors = [...new Set(objects.map((o) => o["Подрядчик"]).filter(Boolean))];
-	const uniqueTypes = [...new Set(objects.map((o) => o["Тип договора"]).filter(Boolean))];
-	const uniqueExtendable = [...new Set(objects.map((o) => o["Продлеваемость"] || o["Продлеваемость "]).filter(Boolean))];
+	const uniqueContractors = [
+		...new Set(objects.map((o) => o["Подрядчик"]).filter(Boolean)),
+	];
+	const uniqueTypes = [
+		...new Set(objects.map((o) => o["Тип договора"]).filter(Boolean)),
+	];
+	const uniqueExtendable = [
+		...new Set(
+			objects
+				.map((o) => o["Продлеваемость"] || o["Продлеваемость "])
+				.filter(Boolean),
+		),
+	];
 
 	// === АВТОРИЗАЦИЯ ===
 	const handleLogin = async (e) => {
@@ -1726,93 +1788,102 @@ function App() {
 							</button>
 						)}
 					</div>
-								<span className="badge-count">
-									{filteredObjects.length} из {objects.length}
-								</span>
-						</div>
+					<span className="badge-count">
+						{filteredObjects.length} из {objects.length}
+					</span>
+				</div>
 
-						{/* ФИЛЬТРЫ ОБЪЕКТОВ */}
-						<div className="filters-bar">
-							<div className="filter-group">
-								<label>Тип договора:</label>
-								<select
-									value={objectFilters.type}
-									onChange={(e) =>
-										setObjectFilters({ ...objectFilters, type: e.target.value })
-									}
-								>
-									<option value="">Все</option>
-								{uniqueTypes.map((t) => (
-									<option key={t} value={t}>
-										{t}
-									</option>
-								))}
-								</select>
-							</div>
-							<div className="filter-group">
-								<label>Подрядчик:</label>
-								<select
-									value={objectFilters.contractor}
-									onChange={(e) =>
-										setObjectFilters({ ...objectFilters, contractor: e.target.value })
-									}
-								>
-									<option value="">Все</option>
-								{uniqueContractors.map((c) => (
-									<option key={c} value={c}>
-										{c}
-									</option>
-								))}
-								</select>
-							</div>
-							<div className="filter-group">
-								<label>Продлеваемость:</label>
-								<select
-									value={objectFilters.extendable}
-									onChange={(e) =>
-										setObjectFilters({ ...objectFilters, extendable: e.target.value })
-									}
-								>
-									<option value="">Все</option>
-									<option value="undefined">Не указано</option>
-									{uniqueExtendable.map((e) => (
-										<option key={e} value={e}>
-											{e}
-										</option>
-									))}
-								</select>
-							</div>
-							<div className="filter-group">
-								<label>Инструмент:</label>
-								<select
-									value={objectFilters.hasTool}
-									onChange={(e) =>
-										setObjectFilters({ ...objectFilters, hasTool: e.target.value })
-									}
-								>
-									<option value="">Все</option>
-									<option value="есть">Есть</option>
-									<option value="нет">Нет</option>
-								</select>
-							</div>
-							{(objectFilters.type || objectFilters.contractor || objectFilters.extendable || objectFilters.hasTool) && (
-								<button
-									className="btn-clear-filters"
-									onClick={() =>
-										setObjectFilters({
-											type: "",
-											contractor: "",
-											extendable: "",
-											hasTool: "",
-										})
-										}
-								>
-									<X size={14} /> Сбросить фильтры
-								</button>
-							)}
-						</div>
+				{/* ФИЛЬТРЫ ОБЪЕКТОВ */}
+				<div className="filters-bar">
+					<div className="filter-group">
+						<label>Тип договора:</label>
+						<select
+							value={objectFilters.type}
+							onChange={(e) =>
+								setObjectFilters({ ...objectFilters, type: e.target.value })
+							}
+						>
+							<option value="">Все</option>
+							{uniqueTypes.map((t) => (
+								<option key={t} value={t}>
+									{t}
+								</option>
+							))}
+						</select>
+					</div>
+					<div className="filter-group">
+						<label>Подрядчик:</label>
+						<select
+							value={objectFilters.contractor}
+							onChange={(e) =>
+								setObjectFilters({
+									...objectFilters,
+									contractor: e.target.value,
+								})
+							}
+						>
+							<option value="">Все</option>
+							{uniqueContractors.map((c) => (
+								<option key={c} value={c}>
+									{c}
+								</option>
+							))}
+						</select>
+					</div>
+					<div className="filter-group">
+						<label>Продлеваемость:</label>
+						<select
+							value={objectFilters.extendable}
+							onChange={(e) =>
+								setObjectFilters({
+									...objectFilters,
+									extendable: e.target.value,
+								})
+							}
+						>
+							<option value="">Все</option>
+							<option value="undefined">Не указано</option>
+							{uniqueExtendable.map((e) => (
+								<option key={e} value={e}>
+									{e}
+								</option>
+							))}
+						</select>
+					</div>
+					<div className="filter-group">
+						<label>Инструмент:</label>
+						<select
+							value={objectFilters.hasTool}
+							onChange={(e) =>
+								setObjectFilters({ ...objectFilters, hasTool: e.target.value })
+							}
+						>
+							<option value="">Все</option>
+							<option value="есть">Есть</option>
+							<option value="нет">Нет</option>
+						</select>
+					</div>
+					{(objectFilters.type ||
+						objectFilters.contractor ||
+						objectFilters.extendable ||
+						objectFilters.hasTool) && (
+						<button
+							className="btn-clear-filters"
+							onClick={() =>
+								setObjectFilters({
+									type: "",
+									contractor: "",
+									extendable: "",
+									hasTool: "",
+								})
+							}
+						>
+							<X size={14} /> Сбросить фильтры
+						</button>
+					)}
+				</div>
 
-						{/* ФОРМА ДОБАВЛЕНИЯ ОБЪЕКТА - НАВЕРХУ */}
+				{/* ФОРМА ДОБАВЛЕНИЯ ОБЪЕКТА - НАВЕРХУ */}
 				<div className="add-form-section add-form-full">
 					<h3>
 						<Plus size={20} />
@@ -1862,32 +1933,32 @@ function App() {
 									placeholder="№ 1-2024-РБ"
 								/>
 							</div>
-								<div className="form-group">
-									<label>Начало действия договора</label>
-									<input
-										type="date"
-										value={newFormData["Начало действия договора"] || ""}
-										onChange={(e) =>
-											setNewFormData({
-												...newFormData,
-												"Начало действия договора": e.target.value,
-											})
-											}
-									/>
-								</div>
-								<div className="form-group">
-									<label>Окончание действия договора</label>
-									<input
-										type="date"
-										value={newFormData["Окончание действия договора"] || ""}
-										onChange={(e) =>
-											setNewFormData({
-												...newFormData,
-												"Окончание действия договора": e.target.value,
-											})
-											}
-									/>
-								</div>
+							<div className="form-group">
+								<label>Начало действия договора</label>
+								<input
+									type="date"
+									value={newFormData["Начало действия договора"] || ""}
+									onChange={(e) =>
+										setNewFormData({
+											...newFormData,
+											"Начало действия договора": e.target.value,
+										})
+									}
+								/>
+							</div>
+							<div className="form-group">
+								<label>Окончание действия договора</label>
+								<input
+									type="date"
+									value={newFormData["Окончание действия договора"] || ""}
+									onChange={(e) =>
+										setNewFormData({
+											...newFormData,
+											"Окончание действия договора": e.target.value,
+										})
+									}
+								/>
+							</div>
 							<div className="form-group">
 								<label>Тип договора</label>
 								<select
@@ -2535,43 +2606,43 @@ function App() {
 							{/* Дата заявки */}
 							<div className="form-group">
 								<label>Дата заявки</label>
-														<input
-																type="date"
-																	value={newCallData.createdAt || ""}
-																	onChange={(e) =>
-																		setNewCallData({
-																			...newCallData,
-																				createdAt: e.target.value,
-																			})
-																	}
-																/>
+								<input
+									type="date"
+									value={newCallData.createdAt || ""}
+									onChange={(e) =>
+										setNewCallData({
+											...newCallData,
+											createdAt: e.target.value,
+										})
+									}
+								/>
 							</div>
 
 							{/* Дедлайн */}
 							<div className="form-group">
 								<label>Дедлайн</label>
-										<input
-												type="date"
-													value={newCallData.deadline || ""}
-													onChange={(e) =>
-													setNewCallData({ ...newCallData, deadline: e.target.value })
-													}
-												/>
+								<input
+									type="date"
+									value={newCallData.deadline || ""}
+									onChange={(e) =>
+										setNewCallData({ ...newCallData, deadline: e.target.value })
+									}
+								/>
 							</div>
 
 							{/* Дата проведения */}
 							<div className="form-group">
 								<label>Дата проведения</label>
-										<input
-												type="date"
-													value={newCallData.executionDate || ""}
-													onChange={(e) =>
-														setNewCallData({
-															...newCallData,
-															executionDate: e.target.value,
-														})
-														}
-												/>
+								<input
+									type="date"
+									value={newCallData.executionDate || ""}
+									onChange={(e) =>
+										setNewCallData({
+											...newCallData,
+											executionDate: e.target.value,
+										})
+									}
+								/>
 							</div>
 
 							{/* Исполнитель */}
@@ -2747,18 +2818,106 @@ function App() {
 								/>
 							</div>
 
-							{/* Наш инструмент */}
-							<div className="form-group form-group-full">
-								<label>Наш инструмент для выполнения (не обязательно)</label>
-								<textarea
-									value={newCallData.ourTool || ""}
-									onChange={(e) =>
-										setNewCallData({ ...newCallData, ourTool: e.target.value })
-									}
-									rows={4}
-									placeholder={`Укажите необходимый инструмент:\n• Перфоратор\n• Безаккумуляторные устройства\n• Стремянка (высота___) / тура\n• Удлинители\n• Болгарка (тип диска___)\n• Буры (диаметр___ х длина___)\n• Средства защиты`}
-								/>
-							</div>
+								{/* Выбор инструмента из справочника */}
+								<div className="form-group form-group-full">
+									<div className="tool-picker-header">
+										<button
+											type="button"
+											className="tool-picker-toggle"
+											onClick={() => setIsToolPickerOpen(!isToolPickerOpen)}
+										>
+											<Wrench size={16} />
+											<span>Выбор инструмента из справочника</span>
+											<span className="tool-count">
+												{selectedToolsForNewCall.length > 0 && `(${selectedToolsForNewCall.length} выбрано)`}
+											</span>
+											<ChevronDown
+												size={16}
+											className={`tool-chevron ${isToolPickerOpen ? "open" : ""}`}
+										/>
+									</button>
+									</div>
+									{isToolPickerOpen && (
+										<div className="tool-picker-body">
+										{tools.length === 0 ? (
+											<div className="tool-picker-empty">
+												<p>Справочник инструментов пуст.</p>
+												<p>Добавьте инструменты в разделе "Инструмент", чтобы выбирать их здесь.</p>
+											</div>
+										) : (
+											<>
+												<div className="tool-picker-actions">
+												<label className="tool-select-all">
+													<input
+														type="checkbox"
+														checked={selectedToolsForNewCall.length === tools.length}
+														indeterminate={
+															selectedToolsForNewCall.length > 0 &&
+															selectedToolsForNewCall.length < tools.length
+														}
+														onChange={handleSelectAllToolsForCall}
+													/>
+													Выбрать все
+												</label>
+												{selectedToolsForNewCall.length > 0 && (
+													<button
+														type="button"
+														className="btn-clear-tools"
+														onClick={handleClearToolsForCall}
+													>
+														<X size={14} />
+													Очистить
+												</button>
+												)}
+											</div>
+											<div className="tool-picker-list">
+												{tools.map((tool) => (
+													<div
+														key={tool.id}
+														className={`tool-item ${selectedToolsForNewCall.includes(tool.id) ? "selected" : ""}`}
+													>
+														<input
+															type="checkbox"
+																checked={selectedToolsForNewCall.includes(tool.id)}
+																onChange={() => handleToggleToolForCall(tool.id)}
+															/>
+														<div className="tool-info">
+															<span className="tool-name">
+																{tool.tool || "Без названия"}
+															</span>
+															{tool.brand && (
+																<span className="tool-brand">{tool.brand}</span>
+															)}
+															{tool.inventoryNumber && (
+																<span className="tool-inventory">
+																	Инв. №: {tool.inventoryNumber}
+																</span>
+															)}
+															{tool.objectName && (
+																<span className="tool-object">{tool.objectName}</span>
+															)}
+														</div>
+													</div>
+												))}
+											</div>
+											</>
+										)}
+									</div>
+									)}
+								</div>
+
+								{/* Наш инструмент */}
+								<div className="form-group form-group-full">
+									<label>Наш инструмент для выполнения (не обязательно)</label>
+									<textarea
+										value={newCallData.ourTool || ""}
+										onChange={(e) =>
+											setNewCallData({ ...newCallData, ourTool: e.target.value })
+										}
+										rows={4}
+										placeholder={`Укажите необходимый инструмент:\n• Перфоратор\n• Безаккумуляторные устройства\n• Стремянка (высота___) / тура\n• Удлинители\n• Болгарка (тип диска___)\n• Буры (диаметр___ х длина___)\n• Средства защиты`}
+									/>
+								</div>
 
 							{/* Приобрести для выполнения */}
 							<div className="form-group form-group-full">
@@ -3700,46 +3859,46 @@ function App() {
 							{/* Дата заявки */}
 							<div className="form-group">
 								<label>Дата заявки</label>
-									<input
-										type="date"
-											value={newTransportData.requestDate}
-											onChange={(e) =>
-											setNewTransportData({
-												...newTransportData,
-												requestDate: e.target.value,
-											})
-											}
-										/>
+								<input
+									type="date"
+									value={newTransportData.requestDate}
+									onChange={(e) =>
+										setNewTransportData({
+											...newTransportData,
+											requestDate: e.target.value,
+										})
+									}
+								/>
 							</div>
 
 							{/* Дедлайн */}
 							<div className="form-group">
 								<label>Дедлайн</label>
-									<input
-										type="date"
-											value={newTransportData.deadline}
-											onChange={(e) =>
-											setNewTransportData({
-												...newTransportData,
-												deadline: e.target.value,
-											})
-											}
-										/>
+								<input
+									type="date"
+									value={newTransportData.deadline}
+									onChange={(e) =>
+										setNewTransportData({
+											...newTransportData,
+											deadline: e.target.value,
+										})
+									}
+								/>
 							</div>
 
 							{/* Дата назначено */}
 							<div className="form-group">
 								<label>Дата назначено</label>
-									<input
-										type="date"
-											value={newTransportData.assignedDate}
-											onChange={(e) =>
-											setNewTransportData({
-												...newTransportData,
-												assignedDate: e.target.value,
-											})
-											}
-										/>
+								<input
+									type="date"
+									value={newTransportData.assignedDate}
+									onChange={(e) =>
+										setNewTransportData({
+											...newTransportData,
+											assignedDate: e.target.value,
+										})
+									}
+								/>
 							</div>
 
 							{/* Кому (исполнитель) */}
