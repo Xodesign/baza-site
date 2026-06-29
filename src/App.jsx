@@ -1743,7 +1743,7 @@ function App() {
 		e?.preventDefault();
 		// Валидация: поле "Что нужно транспортировать" обязательно
 		if (!newTransportData.whatToTransport?.trim()) {
-			alert("Заполните поле \"Что нужно транспортировать\"!");
+			alert('Заполните поле "Что нужно транспортировать"!');
 			return;
 		}
 		const newItem = { id: Date.now(), ...newTransportData };
@@ -1856,21 +1856,44 @@ function App() {
 								? costs
 								: activeTab === "tools"
 									? tools
-									: [];
+									: activeTab === "transport"
+										? transportItems
+										: activeTab === "buy"
+											? buyItems
+											: activeTab === "staff"
+												? staff
+												: [];
 			if (data.length === 0) {
 				setIsExporting(false);
 				return;
 			}
 			const headers = Object.keys(data[0]);
+			// BOM маркер для правильной кодировки UTF-8 в Excel
+			const BOM = "\uFEFF";
+			// Используем табуляцию как разделитель для лучшей совместимости с Excel
+			const delimiter = "\t";
 			const csv = [
-				headers.join(";"),
-				...data.map((r) => headers.map((h) => r[h] || "").join(";")),
+				headers.join(delimiter),
+				...data.map((r) =>
+					headers.map((h) => {
+						let val = r[h] || "";
+						// Экранируем кавычки и переносы строк
+						if (typeof val === "string") {
+							val = val.replace(/"/g, '""');
+							if (val.includes(delimiter) || val.includes('"') || val.includes("\n")) {
+								val = `"${val}"`;
+							}
+						}
+						return val;
+					}).join(delimiter),
+				),
 			].join("\n");
-			const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+			const blob = new Blob([BOM + csv], { type: "text/csv;charset=utf-8;" });
 			const url = URL.createObjectURL(blob);
 			const a = document.createElement("a");
 			a.href = url;
-			a.download = `${activeTab}_${new Date().toISOString().split("T")[0]}.csv`;
+			// Формат xlsx для лучшей совместимости
+			a.download = `${activeTab}_${new Date().toISOString().split("T")[0]}.xlsx`;
 			a.click();
 			URL.revokeObjectURL(url);
 			setIsExporting(false);
@@ -3973,7 +3996,9 @@ function App() {
 		];
 
 		const getStatusBadge = (status) => {
-			const statusInfo = transportStatuses.find((s) => s.value === String(status));
+			const statusInfo = transportStatuses.find(
+				(s) => s.value === String(status),
+			);
 			if (!statusInfo) return <span className="badge">{status}</span>;
 			return (
 				<span className={`badge ${statusInfo.className}`}>
@@ -3989,7 +4014,9 @@ function App() {
 			today.setHours(0, 0, 0, 0);
 			const deadlineDate = new Date(deadline);
 			deadlineDate.setHours(0, 0, 0, 0);
-			const diffDays = Math.ceil((deadlineDate - today) / (1000 * 60 * 60 * 24));
+			const diffDays = Math.ceil(
+				(deadlineDate - today) / (1000 * 60 * 60 * 24),
+			);
 			if (diffDays <= 2) return "deadline-urgent";
 			return "";
 		};
@@ -4021,7 +4048,9 @@ function App() {
 		// Статистика
 		const stats = {
 			new: transportItems.filter((t) => t.thisStatus === "1").length,
-			progress: transportItems.filter((t) => ["2", "3", "4"].includes(String(t.thisStatus))).length,
+			progress: transportItems.filter((t) =>
+				["2", "3", "4"].includes(String(t.thisStatus)),
+			).length,
 			completed: transportItems.filter((t) => t.thisStatus === "5").length,
 		};
 
@@ -4097,8 +4126,16 @@ function App() {
 											{t.deadline || "–"}
 										</td>
 										<td>{t.assignedTo || "-"}</td>
-										<td>{getLinkedPurchaseStatus(t.linkedPurchaseId) || t.purchaseStatus || "-"}</td>
-										<td>{getLinkedCallStatus(t.linkedCallId) || t.callStatus || "-"}</td>
+										<td>
+											{getLinkedPurchaseStatus(t.linkedPurchaseId) ||
+												t.purchaseStatus ||
+												"-"}
+										</td>
+										<td>
+											{getLinkedCallStatus(t.linkedCallId) ||
+												t.callStatus ||
+												"-"}
+										</td>
 										<td>{getStatusBadge(t.thisStatus)}</td>
 										<td>{t.objectName || "-"}</td>
 										<td>{t.shortAddress || "-"}</td>
@@ -4148,10 +4185,24 @@ function App() {
 
 							{/* Дедлайн с цветовой индикацией */}
 							<div className="form-group">
-								<label className={getDeadlineClass(newTransportData.deadline) ? "label-deadline-urgent" : ""}>
+								<label
+									className={
+										getDeadlineClass(newTransportData.deadline)
+											? "label-deadline-urgent"
+											: ""
+									}
+								>
 									Дедлайн
 									{newTransportData.deadline && (
-										<span className="deadline-hint"> ({getDeadlineClass(newTransportData.deadline) === "deadline-urgent" ? "Скоро!" : "Норма"})</span>
+										<span className="deadline-hint">
+											{" "}
+											(
+											{getDeadlineClass(newTransportData.deadline) ===
+											"deadline-urgent"
+												? "Скоро!"
+												: "Норма"}
+											)
+										</span>
 									)}
 								</label>
 								<input
@@ -4163,7 +4214,7 @@ function App() {
 											...newTransportData,
 											deadline: e.target.value,
 										})
-										}
+									}
 								/>
 							</div>
 
@@ -4178,7 +4229,7 @@ function App() {
 											...newTransportData,
 											assignedDate: e.target.value,
 										})
-										}
+									}
 								/>
 							</div>
 
@@ -4192,7 +4243,7 @@ function App() {
 											...newTransportData,
 											assignedTo: e.target.value,
 										})
-										}
+									}
 								>
 									<option value="">-- Выберите --</option>
 									<optgroup label="Водители">
@@ -4210,7 +4261,7 @@ function App() {
 											.map((s) => (
 												<option key={s.id} value={s.fullName}>
 													{s.fullName}
-											</option>
+												</option>
 											))}
 									</optgroup>
 									<optgroup label="Инженеры">
@@ -4231,7 +4282,7 @@ function App() {
 								<div className="info-field">
 									{newTransportData.linkedPurchaseId
 										? getLinkedPurchaseStatus(newTransportData.linkedPurchaseId)
-										: (newTransportData.purchaseStatus || "-")}
+										: newTransportData.purchaseStatus || "-"}
 								</div>
 							</div>
 
@@ -4241,7 +4292,7 @@ function App() {
 								<div className="info-field">
 									{newTransportData.linkedCallId
 										? getLinkedCallStatus(newTransportData.linkedCallId)
-										: (newTransportData.callStatus || "-")}
+										: newTransportData.callStatus || "-"}
 								</div>
 							</div>
 
@@ -4255,7 +4306,7 @@ function App() {
 											...newTransportData,
 											thisStatus: e.target.value,
 										})
-										}
+									}
 								>
 									<option value="0">0 - Черновик</option>
 									<option value="1">1 - Сформирована</option>
@@ -4301,14 +4352,16 @@ function App() {
 											...newTransportData,
 											shortAddress: e.target.value,
 										})
-										}
+									}
 									placeholder="Заполняется автоматически"
 								/>
 							</div>
 
 							{/* Что нужно транспортировать - ОБЯЗАТЕЛЬНО */}
 							<div className="form-group form-group-full">
-								<label className="label-required">Что нужно транспортировать *</label>
+								<label className="label-required">
+									Что нужно транспортировать *
+								</label>
 								<input
 									type="text"
 									value={newTransportData.whatToTransport}
@@ -4317,7 +4370,7 @@ function App() {
 											...newTransportData,
 											whatToTransport: e.target.value,
 										})
-										}
+									}
 									placeholder="Обязательно для заполнения"
 									required
 								/>
@@ -4333,7 +4386,7 @@ function App() {
 											...newTransportData,
 											toolsList: e.target.value,
 										})
-										}
+									}
 									rows={3}
 									placeholder="Список инструмента для перевозки (можно выбрать в разделе Инструменты)"
 								/>
