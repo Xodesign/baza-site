@@ -86,6 +86,9 @@ const SECTION_LABELS = {
 // Пустая заглушка - данные загружаются через useEffect
 const INITIAL_OBJECTS = [];
 
+// excelData будет загружен через fetch, но для INITIAL_* нужна заглушка
+const excelData = {};
+
 // === ДАННЫЕ ВЫЗОВОВ (из Excel) ===
 const INITIAL_CALLS =
 	excelData["Вызовы"]?.rows?.map((row, idx) => ({
@@ -502,6 +505,7 @@ function extractContactsFromObjects(objects) {
 const INITIAL_CONTACTS = extractContactsFromObjects(INITIAL_OBJECTS);
 
 function App() {
+	console.log("App rendering...");
 	// --- СТЕЙТЫ АВТОРИЗАЦИИ ---
 	const [isAuthenticated, setIsAuthenticated] = useState(
 		() => localStorage.getItem("demo_isAuthenticated") === "true",
@@ -526,8 +530,6 @@ function App() {
 	const [newFormData, setNewFormData] = useState(getEmptyObjectForm());
 	const [editingObject, setEditingObject] = useState(null);
 	const [isEditModalOpen, setIsEditModalOpen] = useState(false);
-	const [isAddFormOpen, setIsAddFormOpen] = useState(false);
-	const [isObjectsListOpen, setIsObjectsListOpen] = useState(true);
 
 	// Загрузка объектов из Excel при первом рендере
 	useEffect(() => {
@@ -2143,17 +2145,13 @@ function App() {
 					)}
 				</div>
 
-				{/* СЕКЦИЯ ДОБАВЛЕНИЯ */}
-				<div className="collapsible-section">
-					<div className="collapsible-header" onClick={() => setIsAddFormOpen(!isAddFormOpen)}>
-						<h3><Plus size={20} /> Добавить объект</h3>
-						<button className="btn-toggle">
-								<ChevronDown size={20} style={{transform: isAddFormOpen ? "rotate(0deg)" : "rotate(-90deg)", transition: "transform 0.3s"}} />
-						</button>
-					</div>
-					{isAddFormOpen && (
-						<div className="collapsible-content">
-								<div className="form-actions-row">
+				{/* ФОРМА ДОБАВЛЕНИЯ ОБЪЕКТА - НАВЕРХУ */}
+				<div className="add-form-section add-form-full">
+					<h3>
+						<Plus size={20} />
+						Добавить объект
+					</h3>
+					<div className="form-actions-row">
 						<form onSubmit={handleAddObject} className="add-form-inline">
 							<button type="submit" className="btn btn-primary">
 								<Plus size={18} />
@@ -2545,7 +2543,7 @@ function App() {
 										setNewFormData({ ...newFormData, Заметки: e.target.value })
 									}
 									rows={3}
-								placeholder="Дополнительная информация..."
+									placeholder="Дополнительная информация..."
 								/>
 							</div>
 						</div>
@@ -2554,8 +2552,6 @@ function App() {
 							Добавить объект
 						</button>
 					</form>
-					</div>
-				)}
 				</div>
 
 				{/* ТАБЛИЦА ОБЪЕКТОВ */}
