@@ -807,6 +807,63 @@
 }
 
 /* ================================
+   SYSTEM TAGS (Время section)
+   ================================ */
+.selected-systems {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 8px;
+	margin-bottom: 10px;
+}
+
+.system-tag {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	padding: 6px 12px;
+	background: var(--primary);
+	color: white;
+	border-radius: 20px;
+	font-size: 0.85rem;
+	font-weight: 500;
+}
+
+.system-tag-remove {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 18px;
+	height: 18px;
+	padding: 0;
+	background: rgba(255, 255, 255, 0.3);
+	color: white;
+	border: none;
+	border-radius: 50%;
+	cursor: pointer;
+	font-size: 14px;
+	line-height: 1;
+}
+
+.system-tag-remove:hover {
+	background: rgba(255, 255, 255, 0.5);
+}
+
+.text-success {
+	color: #2e7d32;
+	font-weight: 600;
+}
+
+.text-danger {
+	color: #c62828;
+	font-weight: 600;
+}
+
+.cell-id {
+	font-family: monospace;
+	color: var(--gray-500);
+}
+
+/* ================================
    LOADING SPINNER
    ================================ */
 .loading-spinner {

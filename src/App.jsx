@@ -698,6 +698,25 @@ function App() {
 		return saved ? JSON.parse(saved) : INITIAL_TIME;
 	});
 	const [newTimeData, setNewTimeData] = useState(getEmptyTimeForm());
+	
+	// States для систем времени
+	const [customTimeSystems, setCustomTimeSystems] = useState(() => {
+		const saved = localStorage.getItem("demo_custom_time_systems");
+		return saved ? JSON.parse(saved) : [];
+	});
+	const [isTimeSystemModalOpen, setIsTimeSystemModalOpen] = useState(false);
+	const [newTimeSystemData, setNewTimeSystemData] = useState({
+		systemName: "",
+		systemType: "",
+		quantity: "",
+		objectName: "",
+	});
+	
+	// Арендаторы для крупных объектов
+	const LARGE_OBJECT_TENANTS = {
+		"НПО экран": ["Арендатор 1", "Арендатор 2", "Арендатор 3"],
+		"Большевичка": ["Арендатор А", "Арендатор Б", "Арендатор В", "Арендатор Г"],
+	};
 
 	// --- СТЕЙТЫ СВОДНАЯ ---
 	const [summary] = useState(INITIAL_SUMMARY);
@@ -984,10 +1003,14 @@ function App() {
 			fullAddress: "",
 			shortAddress: "",
 			objectName: "",
+			objectId: null,
 			tenant: "",
-			systems: "",
-			calculatedYearlyTime: "",
-			actualYearlyTime: "",
+			systemId: null,
+			systemName: "",
+			systemQuantity: "",
+			systems: [], // Массив выбранных систем с количеством
+			calculatedYearlyTime: 0, // В часах
+			actualYearlyTime: 0, // В часах
 		};
 	}
 
@@ -1641,7 +1664,7 @@ function App() {
 	// === ЛОГИКА КУПИТЬ ===
 	const handleAddBuy = (e) => {
 		e?.preventDefault();
-		
+
 		// Валидация обязательных полей
 		if (!newBuyData.objectName?.trim()) {
 			alert("Выберите объект!");
@@ -1651,10 +1674,12 @@ function App() {
 			alert("Заполните что нужно приобрести!");
 			return;
 		}
-		
+
 		// Найти объект для получения данных
-		const selectedObject = objects.find(o => o["Наименование объекта"] === newBuyData.objectName);
-		
+		const selectedObject = objects.find(
+			(o) => o["Наименование объекта"] === newBuyData.objectName,
+		);
+
 		// Автозаполнение полей из объекта если не указаны
 		const autoBuyData = { ...newBuyData };
 		if (!autoBuyData.contractNumber && selectedObject) {
@@ -1668,9 +1693,9 @@ function App() {
 		}
 		autoBuyData.objectId = selectedObject?.id || null;
 		autoBuyData.creator = CURRENT_USER;
-		
+
 		const newItem = { id: Date.now(), ...autoBuyData };
-		
+
 		// Если статус "заказан_счёт" - создать запись в счетах
 		if (autoBuyData.status === BUY_STATUS.ORDERED) {
 			const newInvoice = {
@@ -1687,7 +1712,7 @@ function App() {
 			};
 			setInvoices([newInvoice, ...invoices]);
 		}
-		
+
 		// Если плательщик не "всё за наш счёт" - создать заявку на актирование
 		if (autoBuyData.payer && autoBuyData.payer !== "всё за наш счёт") {
 			const newActivation = {
@@ -1703,7 +1728,7 @@ function App() {
 			};
 			setActivations([newActivation, ...activations]);
 		}
-		
+
 		setBuyItems([newItem, ...buyItems]);
 		setNewBuyData(getEmptyBuyForm());
 	};
@@ -1771,7 +1796,30 @@ function App() {
 	// === ЛОГИКА ВРЕМЯ ===
 	const handleAddTime = (e) => {
 		e?.preventDefault();
-		const newTime = { id: Date.now(), ...newTimeData };
+		
+		// Валидация
+		if (!newTimeData.objectName?.trim()) {
+			alert("Выберите объект!");
+			return;
+		}
+		
+		// Расчёт разности
+		const calcTime = parseFloat(newTimeData.calculatedYearlyTime) || 0;
+		const factTime = parseFloat(newTimeData.actualYearlyTime) || 0;
+		const timeDifference = calcTime - factTime;
+		
+		// Формируем строку систем для отображения
+		const systemsDisplay = newTimeData.systems
+			?.map((s) => `${s.systemName}${s.quantity ? ` (${s.quantity})` : ""}`)
+			.join(", ") || "";
+		
+		const newTime = {
+			id: Date.now(),
+			...newTimeData,
+			systemsDisplay,
+			timeDifference: timeDifference.toFixed(1),
+		};
+		
 		setTimeEntries([newTime, ...timeEntries]);
 		setNewTimeData(getEmptyTimeForm());
 	};
@@ -1779,6 +1827,59 @@ function App() {
 	const handleDeleteTime = (id) => {
 		if (confirm("Удалить запись?"))
 			setTimeEntries(timeEntries.filter((t) => t.id !== id));
+	};
+
+	// === ЛОГИКА СИСТЕМ ВРЕМЕНИ ===
+	const handleAddTimeSystem = (e) => {
+		e?.preventDefault();
+		if (!newTimeSystemData.systemName?.trim()) {
+			alert("Введите название системы!");
+			return;
+		}
+		const newSystem = {
+			id: Date.now(),
+			...newTimeSystemData,
+			createdAt: new Date().toLocaleDateString("ru-RU"),
+		};
+		setCustomTimeSystems([newSystem, ...customTimeSystems]);
+		localStorage.setItem("demo_custom_time_systems", JSON.stringify([newSystem, ...customTimeSystems]));
+		
+		// Добавить в newTimeData
+		setNewTimeData({
+			...newTimeData,
+			systems: [...(newTimeData.systems || []), newSystem],
+			systemName: newSystem.systemName,
+		});
+		
+		setNewTimeSystemData({ systemName: "", systemType: "", quantity: "", objectName: "" });
+		setIsTimeSystemModalOpen(false);
+	};
+
+	const handleRemoveSystemFromTime = (systemId) => {
+		setNewTimeData({
+			...newTimeData,
+			systems: newTimeData.systems.filter((s) => s.id !== systemId),
+		});
+	};
+
+	// Получить все системы для выбранного объекта
+	const getSystemsForObject = (objectName) => {
+		// Системы из Excel
+		const excelSystems = systems
+			.filter((s) => s.parentObject === objectName)
+			.map((s) => ({
+				id: `excel_${s.id}`,
+				systemName: s.systemType || s.systemKind || s.system,
+				systemType: s.systemKind || s.systemType || "",
+				quantity: s.quantity || "",
+				objectName: objectName,
+				fromExcel: true,
+			}));
+		
+		// Кастомные системы
+		const customForObject = customTimeSystems.filter((s) => s.objectName === objectName);
+		
+		return [...excelSystems, ...customForObject];
 	};
 
 	// === ЛОГИКА КОНТАКТОВ ===
@@ -3854,17 +3955,25 @@ function App() {
 		const getBuyStatusBadge = (status) => {
 			const statusMap = {
 				[BUY_STATUS.ORDERED]: { label: "Заказан счёт", class: "badge-order" },
-				[BUY_STATUS.WAITING_CONFIRM]: { label: "Ждёт подтверждения", class: "badge-wait" },
+				[BUY_STATUS.WAITING_CONFIRM]: {
+					label: "Ждёт подтверждения",
+					class: "badge-wait",
+				},
 				[BUY_STATUS.CAN_PAY]: { label: "Можно оплачивать", class: "badge-pay" },
 				[BUY_STATUS.PAID]: { label: "Счёт оплачен", class: "badge-paid" },
-				[BUY_STATUS.WAREHOUSE]: { label: "На складе", class: "badge-warehouse" },
+				[BUY_STATUS.WAREHOUSE]: {
+					label: "На складе",
+					class: "badge-warehouse",
+				},
 				[BUY_STATUS.OFFICE]: { label: "В офисе", class: "badge-office" },
 			};
 			const info = statusMap[status] || { label: status, class: "" };
 			return <span className={`badge ${info.class}`}>{info.label}</span>;
 		};
 
-		const uniqueObjects = [...new Set(objects.map((o) => o["Наименование объекта"]).filter(Boolean))];
+		const uniqueObjects = [
+			...new Set(objects.map((o) => o["Наименование объекта"]).filter(Boolean)),
+		];
 
 		return (
 			<>
@@ -3900,27 +4009,49 @@ function App() {
 									<tr key={b.id}>
 										<td className="cell-id">{b.id}</td>
 										<td>{b.requestDate}</td>
-										<td>{b.deadline || <span className="text-muted">—</span>}</td>
+										<td>
+											{b.deadline || <span className="text-muted">—</span>}
+										</td>
 										<td>
 											<select
 												value={b.status}
-												onChange={(e) => handleStatusChange(b.id, e.target.value)}
-												style={{ padding: "4px 8px", borderRadius: "6px", border: "1px solid var(--border)" }}
+												onChange={(e) =>
+													handleStatusChange(b.id, e.target.value)
+												}
+												style={{
+													padding: "4px 8px",
+													borderRadius: "6px",
+													border: "1px solid var(--border)",
+												}}
 											>
 												<option value={BUY_STATUS.ORDERED}>Заказан счёт</option>
-												<option value={BUY_STATUS.WAITING_CONFIRM}>Счёт ждёт подтверждения</option>
-												<option value={BUY_STATUS.CAN_PAY}>Счёт можно оплачивать</option>
+												<option value={BUY_STATUS.WAITING_CONFIRM}>
+													Счёт ждёт подтверждения
+												</option>
+												<option value={BUY_STATUS.CAN_PAY}>
+													Счёт можно оплачивать
+												</option>
 												<option value={BUY_STATUS.PAID}>Счёт оплачен</option>
-												<option value={BUY_STATUS.WAREHOUSE}>Заказ на складе</option>
+												<option value={BUY_STATUS.WAREHOUSE}>
+													Заказ на складе
+												</option>
 												<option value={BUY_STATUS.OFFICE}>Заказ в офисе</option>
 											</select>
 										</td>
 										<td>{b.objectName}</td>
-										<td>{b.contractNumber || <span className="text-muted">—</span>}</td>
-										<td>{b.shortAddress || <span className="text-muted">—</span>}</td>
+										<td>
+											{b.contractNumber || (
+												<span className="text-muted">—</span>
+											)}
+										</td>
+										<td>
+											{b.shortAddress || <span className="text-muted">—</span>}
+										</td>
 										<td>{b.whatToBuy}</td>
 										<td>{b.payer || <span className="text-muted">—</span>}</td>
-										<td>{b.creator || <span className="text-muted">—</span>}</td>
+										<td>
+											{b.creator || <span className="text-muted">—</span>}
+										</td>
 										<td>
 											<button
 												className="btn-icon btn-delete"
@@ -3988,7 +4119,7 @@ function App() {
 									placeholder="Авто из объекта"
 									onChange={(e) =>
 										setNewBuyData({
-										...newBuyData,
+											...newBuyData,
 											contractNumber: e.target.value,
 										})
 									}
@@ -4031,15 +4162,33 @@ function App() {
 								/>
 							</div>
 						</div>
-						<div style={{ marginTop: "16px", padding: "12px", background: "var(--gray-50)", borderRadius: "8px", fontSize: "0.85rem" }}>
+						<div
+							style={{
+								marginTop: "16px",
+								padding: "12px",
+								background: "var(--gray-50)",
+								borderRadius: "8px",
+								fontSize: "0.85rem",
+							}}
+						>
 							<strong>Важно:</strong>
 							<ul style={{ margin: "8px 0 0 20px", paddingLeft: "16px" }}>
-								<li>При статусе "Заказан счёт" автоматически создаётся запись во вкладке "Счета"</li>
-								<li>Если плательщик отличается от "всё за наш счёт", создаётся заявка на актирование</li>
+								<li>
+									При статусе "Заказан счёт" автоматически создаётся запись во
+									вкладке "Счета"
+								</li>
+								<li>
+									Если плательщик отличается от "всё за наш счёт", создаётся
+									заявка на актирование
+								</li>
 								<li>Создатель заявки заполняется автоматически</li>
 							</ul>
 						</div>
-						<button type="submit" className="btn btn-primary" style={{ marginTop: "16px" }}>
+						<button
+							type="submit"
+							className="btn btn-primary"
+							style={{ marginTop: "16px" }}
+						>
 							<Plus size={18} />
 							Добавить закупку
 						</button>
@@ -4663,6 +4812,30 @@ function App() {
 	}
 
 	function renderTimeSection() {
+		// Обработчик выбора объекта
+		const handleObjectSelect = (objectName) => {
+			const selectedObject = objects.find(
+				(o) => o["Наименование объекта"] === objectName,
+			);
+			if (selectedObject) {
+				setNewTimeData({
+					...newTimeData,
+					objectName: selectedObject["Наименование объекта"] || "",
+					shortAddress: selectedObject["Адрес сокращенный"] || "",
+					fullAddress: selectedObject["Адрес полный"] || "",
+					objectId: selectedObject.id,
+					contractNumber: selectedObject["№ контр/дог"] || "",
+				});
+			} else {
+				setNewTimeData({ ...newTimeData, objectName });
+			}
+		};
+
+		const uniqueObjects = [...new Set(objects.map((o) => o["Наименование объекта"]).filter(Boolean))];
+		const availableTenants = LARGE_OBJECT_TENANTS[newTimeData.objectName] || [];
+		const isLargeObject = newTimeData.objectName in LARGE_OBJECT_TENANTS;
+		const availableSystems = getSystemsForObject(newTimeData.objectName);
+
 		return (
 			<>
 				<div className="content-header">
@@ -4677,10 +4850,12 @@ function App() {
 								<th>Подрядчик</th>
 								<th>Договор</th>
 								<th>Объект</th>
-								<th>Адрес</th>
+								<th>Адрес сокр.</th>
+								<th>Адрес полн.</th>
+								<th>Арендатор</th>
 								<th>Системы</th>
-								<th>Расчётное время (год)</th>
-								<th>Факт. время (год)</th>
+								<th>Расч. время (ч/год)</th>
+								<th>Факт. время (ч/год)</th>
 								<th>Разница</th>
 								<th>Действия</th>
 							</tr>
@@ -4688,23 +4863,29 @@ function App() {
 						<tbody>
 							{timeEntries.length === 0 ? (
 								<tr>
-									<td colSpan="11" className="empty-state">
+									<td colSpan="13" className="empty-state">
 										Нет записей
 									</td>
 								</tr>
 							) : (
 								timeEntries.map((t) => (
 									<tr key={t.id}>
-										<td>{t.id}</td>
+										<td className="cell-id">{t.id}</td>
 										<td>{t.customer}</td>
 										<td>{t.contractor}</td>
 										<td>{t.contractNumber}</td>
 										<td>{t.objectName}</td>
-										<td>{t.shortAddress}</td>
-										<td>{t.systems}</td>
-										<td>{t.calculatedYearlyTime}</td>
-										<td>{t.actualYearlyTime}</td>
-										<td>{t.timeDifference}</td>
+										<td>{t.shortAddress || <span className="text-muted">—</span>}</td>
+										<td>{t.fullAddress || <span className="text-muted">—</span>}</td>
+										<td>{t.tenant || <span className="text-muted">—</span>}</td>
+									<td>{t.systemsDisplay || t.systems || "—"}</td>
+										<td>{t.calculatedYearlyTime} ч</td>
+										<td>{t.actualYearlyTime} ч</td>
+										<td>
+											<span className={parseFloat(t.timeDifference) >= 0 ? "text-success" : "text-danger"}>
+												{t.timeDifference} ч
+											</span>
+										</td>
 										<td>
 											<button
 												className="btn-icon btn-delete"
@@ -4731,6 +4912,7 @@ function App() {
 								<input
 									type="text"
 									value={newTimeData.customer}
+									placeholder="Название заказчика"
 									onChange={(e) =>
 										setNewTimeData({ ...newTimeData, customer: e.target.value })
 									}
@@ -4748,15 +4930,16 @@ function App() {
 									}
 								>
 									<option value="СБ">СБ</option>
-									<option value="СБ+">СБ+</option>
-									<option value="ВСТ">ВСТ</option>
-								</select>
+										<option value="СБ+">СБ+</option>
+										<option value="ВСТ">ВСТ</option>
+									</select>
 							</div>
 							<div className="form-group">
 								<label>№ договора</label>
 								<input
 									type="text"
 									value={newTimeData.contractNumber}
+									placeholder="Авто из объекта"
 									onChange={(e) =>
 										setNewTimeData({
 											...newTimeData,
@@ -4766,23 +4949,25 @@ function App() {
 								/>
 							</div>
 							<div className="form-group">
-								<label>Объект</label>
-								<input
-									type="text"
+								<label>Объект *</label>
+								<select
 									value={newTimeData.objectName}
-									onChange={(e) =>
-										setNewTimeData({
-											...newTimeData,
-											objectName: e.target.value,
-										})
-									}
-								/>
+									onChange={(e) => handleObjectSelect(e.target.value)}
+								>
+									<option value="">Выберите объект</option>
+									{uniqueObjects.map((name) => (
+										<option key={name} value={name}>
+											{name}
+										</option>
+									))}
+								</select>
 							</div>
 							<div className="form-group">
-								<label>Адрес</label>
+								<label>Адрес сокращённый</label>
 								<input
 									type="text"
 									value={newTimeData.shortAddress}
+									placeholder="Авто из объекта"
 									onChange={(e) =>
 										setNewTimeData({
 											...newTimeData,
@@ -4792,58 +4977,244 @@ function App() {
 								/>
 							</div>
 							<div className="form-group">
-								<label>Арендатор</label>
+								<label>Адрес полный</label>
 								<input
 									type="text"
-									value={newTimeData.tenant}
-									onChange={(e) =>
-										setNewTimeData({ ...newTimeData, tenant: e.target.value })
-									}
-								/>
-							</div>
-							<div className="form-group">
-								<label>Системы</label>
-								<input
-									type="text"
-									value={newTimeData.systems}
-									onChange={(e) =>
-										setNewTimeData({ ...newTimeData, systems: e.target.value })
-									}
-								/>
-							</div>
-							<div className="form-group">
-								<label>Расчётное время (год)</label>
-								<input
-									type="text"
-									value={newTimeData.calculatedYearlyTime}
+									value={newTimeData.fullAddress}
+									placeholder="Полный адрес объекта"
 									onChange={(e) =>
 										setNewTimeData({
 											...newTimeData,
-											calculatedYearlyTime: e.target.value,
+											fullAddress: e.target.value,
 										})
 									}
 								/>
 							</div>
 							<div className="form-group">
-								<label>Факт. время (год)</label>
-								<input
-									type="text"
-									value={newTimeData.actualYearlyTime}
-									onChange={(e) =>
-										setNewTimeData({
-											...newTimeData,
-											actualYearlyTime: e.target.value,
-										})
-									}
-								/>
+								<label>Арендатор {isLargeObject ? "*" : "(для крупных объектов)"}</label>
+								{isLargeObject ? (
+									<select
+										value={newTimeData.tenant}
+										onChange={(e) =>
+											setNewTimeData({ ...newTimeData, tenant: e.target.value })
+										}
+									>
+										<option value="">Выберите арендатора</option>
+										{availableTenants.map((t) => (
+											<option key={t} value={t}>
+												{t}
+											</option>
+										))}
+									</select>
+								) : (
+									<input
+											type="text"
+											value={newTimeData.tenant}
+											placeholder="Не требуется"
+											disabled
+											onChange={(e) =>
+												setNewTimeData({ ...newTimeData, tenant: e.target.value })
+											}
+										/>
+								)}
+							</div>
+							<div className="form-group form-group-full">
+								<label>Системы (оборудование)</label>
+								{newTimeData.systems?.length > 0 && (
+									<div className="selected-systems">
+										{newTimeData.systems.map((sys) => (
+											<span key={sys.id} className="system-tag">
+												{sys.systemName}
+												{sys.quantity ? ` (${sys.quantity})` : ""}
+												<button
+													type="button"
+													className="system-tag-remove"
+													onClick={() => handleRemoveSystemFromTime(sys.id)}
+												>
+													&times;
+												</button>
+											</span>
+										))}
+									</div>
+								)}
+								<div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+									<select
+										value=""
+										onChange={(e) => {
+											if (e.target.value === "__new__") {
+												setIsTimeSystemModalOpen(true);
+											} else if (e.target.value) {
+												const sys = availableSystems.find((s) => s.id === parseInt(e.target.value) || s.id === e.target.value);
+												if (sys && !newTimeData.systems?.find((s) => s.id === sys.id)) {
+													setNewTimeData({
+													...newTimeData,
+														systems: [...(newTimeData.systems || []), sys],
+													});
+											}
+											}
+										}}
+									>
+										<option value="">Выберите систему...</option>
+										{availableSystems.map((sys) => (
+											<option key={sys.id} value={sys.id}>
+												{sys.systemName} {sys.quantity ? `(${sys.quantity})` : ""}
+												{sys.fromExcel ? " [из Excel]" : ""}
+											</option>
+										))}
+										<option value="__new__">+ Новая система</option>
+									</select>
+								</div>
+							</div>
+							<div className="form-group">
+								<label>Расчётное время на ТО (ч/год)</label>
+								<div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+									<input
+											type="range"
+											min="0"
+											max="2000"
+											value={parseFloat(newTimeData.calculatedYearlyTime) || 0}
+											onChange={(e) =>
+												setNewTimeData({
+												...newTimeData,
+												calculatedYearlyTime: parseFloat(e.target.value),
+												})
+											}
+											style={{ flex: 1 }}
+									/>
+									<input
+											type="number"
+											min="0"
+											value={parseFloat(newTimeData.calculatedYearlyTime) || 0}
+											onChange={(e) =>
+												setNewTimeData({
+												...newTimeData,
+												calculatedYearlyTime: parseFloat(e.target.value) || 0,
+												})
+											}
+											style={{ width: "80px" }}
+									/>
+									<span>ч</span>
+								</div>
+							</div>
+							<div className="form-group">
+								<label>Фактическое время на ТО (ч/год)</label>
+								<div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+									<input
+											type="range"
+											min="0"
+											max="2000"
+											value={parseFloat(newTimeData.actualYearlyTime) || 0}
+											onChange={(e) =>
+												setNewTimeData({
+												...newTimeData,
+												actualYearlyTime: parseFloat(e.target.value),
+												})
+											}
+											style={{ flex: 1 }}
+										/>
+									<input
+											type="number"
+											min="0"
+											value={parseFloat(newTimeData.actualYearlyTime) || 0}
+											onChange={(e) =>
+												setNewTimeData({
+												...newTimeData,
+												actualYearlyTime: parseFloat(e.target.value) || 0,
+												})
+											}
+											style={{ width: "80px" }}
+									/>
+									<span>ч</span>
+								</div>
+							</div>
+							<div className="form-group">
+								<label>Разность (расчётное − фактическое)</label>
+								<div style={{
+									padding: "10px 16px",
+									background: (parseFloat(newTimeData.calculatedYearlyTime) || 0) >= (parseFloat(newTimeData.actualYearlyTime) || 0) ? "#e8f5e9" : "#ffebee",
+									borderRadius: "8px",
+									fontWeight: "bold",
+									color: (parseFloat(newTimeData.calculatedYearlyTime) || 0) >= (parseFloat(newTimeData.actualYearlyTime) || 0) ? "#2e7d32" : "#c62828",
+								}}>
+									{((parseFloat(newTimeData.calculatedYearlyTime) || 0) - (parseFloat(newTimeData.actualYearlyTime) || 0)).toFixed(1)} ч
+								</div>
 							</div>
 						</div>
 						<button type="submit" className="btn btn-primary">
 							<Plus size={18} />
-							Добавить
+							Добавить запись
 						</button>
 					</form>
 				</div>
+
+				{/* МОДАЛКА НОВОЙ СИСТЕМЫ */}
+				{isTimeSystemModalOpen && (
+					<div className="modal-overlay" onClick={() => setIsTimeSystemModalOpen(false)}>
+						<div className="modal" onClick={(e) => e.stopPropagation()}>
+							<div className="modal-header">
+								<h3>Новая система</h3>
+								<button className="modal-close" onClick={() => setIsTimeSystemModalOpen(false)}>
+									&times;
+								</button>
+							</div>
+							<div className="modal-body">
+								<form onSubmit={handleAddTimeSystem}>
+									<div className="form-group">
+										<label>Название системы *</label>
+										<input
+											type="text"
+											value={newTimeSystemData.systemName}
+											placeholder="Например: АПС, СОУЭ, ПС"
+											onChange={(e) =>
+												setNewTimeSystemData({
+												...newTimeSystemData,
+													systemName: e.target.value,
+													objectName: newTimeData.objectName,
+												})
+												}
+											/>
+										</div>
+									<div className="form-group">
+										<label>Тип оборудования</label>
+										<input
+											type="text"
+											value={newTimeSystemData.systemType}
+											placeholder="Например: рукава, датчики, огнетушители"
+											onChange={(e) =>
+												setNewTimeSystemData({
+												...newTimeSystemData,
+													systemType: e.target.value,
+												})
+												}
+											/>
+										</div>
+									<div className="form-group">
+										<label>Количество</label>
+										<input
+											type="number"
+											min="0"
+											value={newTimeSystemData.quantity}
+											onChange={(e) =>
+												setNewTimeSystemData({
+												...newTimeSystemData,
+													quantity: e.target.value,
+												})
+												}
+											/>
+										</div>
+									<div className="form-actions">
+										<button type="button" className="btn btn-secondary" onClick={() => setIsTimeSystemModalOpen(false)}>
+											Отмена
+										</button>
+										<button type="submit" className="btn btn-primary">
+											Добавить систему
+										</button>
+									</div>
+								</form>
+							</div>
+						</div>
+					</div>
+				)}
 			</>
 		);
 	}
