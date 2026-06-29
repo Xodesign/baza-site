@@ -277,6 +277,7 @@ const INITIAL_STAFF = [
 		id: 1,
 		fullName: "Иванов Иван Иванович",
 		position: "Главный инженер",
+		category: "engineer",
 		location: "Офис Москва",
 		phone: "+7 (999) 123-45-67",
 		email: "ivanov@company.ru",
@@ -287,6 +288,7 @@ const INITIAL_STAFF = [
 		id: 2,
 		fullName: "Петров Пётр Петрович",
 		position: "Инженер",
+		category: "engineer",
 		location: "Офис СПб",
 		phone: "+7 (999) 234-56-78",
 		email: "petrov@company.ru",
@@ -297,6 +299,7 @@ const INITIAL_STAFF = [
 		id: 3,
 		fullName: "Сидоров Алексей Сергеевич",
 		position: "Старший инженер",
+		category: "engineer",
 		location: "Офис Екатеринбург",
 		phone: "+7 (999) 345-67-89",
 		email: "sidorov@company.ru",
@@ -307,6 +310,7 @@ const INITIAL_STAFF = [
 		id: 4,
 		fullName: "Козлова Мария Олеговна",
 		position: "Инженер",
+		category: "engineer",
 		location: "Офис Новосибирск",
 		phone: "+7 (999) 456-78-90",
 		email: "kozlova@company.ru",
@@ -317,6 +321,7 @@ const INITIAL_STAFF = [
 		id: 5,
 		fullName: "Смирнов Дмитрий Андреевич",
 		position: "Техник",
+		category: "engineer",
 		location: "Офис Москва",
 		phone: "+7 (999) 567-89-01",
 		email: "smirnov@company.ru",
@@ -327,13 +332,50 @@ const INITIAL_STAFF = [
 		id: 6,
 		fullName: "Новикова Елена Викторовна",
 		position: "Менеджер проектов",
+		category: "engineer",
 		location: "Офис Москва",
 		phone: "+7 (999) 678-90-12",
 		email: "novikova@company.ru",
 		description: "Координация работ",
 		photo: "",
 	},
+	{
+		id: 7,
+		fullName: "Волков Сергей Михайлович",
+		position: "Водитель",
+		category: "driver",
+		location: "Офис Москва",
+		phone: "+7 (999) 789-01-23",
+		email: "volkov@company.ru",
+		description: "Водитель-экспедитор",
+		photo: "",
+	},
+	{
+		id: 8,
+		fullName: "Морозов Андрей Викторович",
+		position: "Водитель",
+		category: "driver",
+		location: "Офис СПб",
+		phone: "+7 (999) 890-12-34",
+		email: "morozov@company.ru",
+		description: "Водитель-экспедитор",
+		photo: "",
+	},
+	{
+		id: 9,
+		fullName: "Павлова Ольга Николаевна",
+		position: "Курьер",
+		category: "courier",
+		location: "Офис Москва",
+		phone: "+7 (999) 901-23-45",
+		email: "pavlova@company.ru",
+		description: "Курьер доставки",
+		photo: "",
+	},
 ];
+
+// Категории персонажа для сортировки
+const STAFF_CATEGORIES = { driver: 1, courier: 2, engineer: 3 };
 
 // === ДАННЫЕ ЗАТРАТ (из Excel) ===
 const INITIAL_COSTS = excelData["Затраты"]?.rows?.map((row, idx) => {
@@ -977,19 +1019,24 @@ function App() {
 	}
 
 	function getEmptyTransportForm() {
+		const today = new Date().toLocaleDateString("ru-RU");
 		return {
-			requestDate: "",
+			requestDate: today,
 			deadline: "",
 			assignedDate: "",
 			assignedTo: "",
 			purchaseStatus: "",
 			callStatus: "",
-			thisStatus: "new",
+			thisStatus: "0",
 			objectName: "",
+			objectId: null,
 			shortAddress: "",
 			whatToTransport: "",
 			toolsList: "",
-			creator: "",
+			toolsIds: [],
+			creator: "Система",
+			linkedPurchaseId: null,
+			linkedCallId: null,
 		};
 	}
 
@@ -1567,7 +1614,11 @@ function App() {
 		setTools(
 			tools.map((t) =>
 				t.id === editingTool.id
-					? { ...t, isConfirmed: true, transportRequest: t.transportRequestId.toString() }
+					? {
+							...t,
+							isConfirmed: true,
+							transportRequest: t.transportRequestId.toString(),
+						}
 					: t,
 			),
 		);
@@ -1602,7 +1653,7 @@ function App() {
 							transportRequestId: null, // Очищаем связь
 							isConfirmed: false,
 						}
-						: t,
+					: t,
 			),
 		);
 	};
@@ -1690,6 +1741,11 @@ function App() {
 	// === ЛОГИКА ТРАНСПОРТ ===
 	const handleAddTransport = (e) => {
 		e?.preventDefault();
+		// Валидация: поле "Что нужно транспортировать" обязательно
+		if (!newTransportData.whatToTransport?.trim()) {
+			alert("Заполните поле \"Что нужно транспортировать\"!");
+			return;
+		}
 		const newItem = { id: Date.now(), ...newTransportData };
 		setTransportItems([newItem, ...transportItems]);
 		setNewTransportData(getEmptyTransportForm());
@@ -1707,7 +1763,9 @@ function App() {
 
 	const handleSaveTransport = (e) => {
 		e?.preventDefault();
-		const oldStatus = transportItems.find((t) => t.id === editingTransport.id)?.thisStatus;
+		const oldStatus = transportItems.find(
+			(t) => t.id === editingTransport.id,
+		)?.thisStatus;
 		const newStatus = editingTransport.thisStatus;
 		setTransportItems(
 			transportItems.map((t) =>
@@ -3344,60 +3402,68 @@ function App() {
 								<th>Действия</th>
 							</tr>
 						</thead>
-					<tbody>
-						{tools.length === 0 ? (
-							<tr>
-								<td colSpan="10" className="empty-state">
-									Нет инструментов
-								</td>
-							</tr>
-						) : (
-							tools.map((t) => (
-								<tr
-									key={t.id}
-									className={`tool-row ${selectedToolIds.includes(t.id) ? "tr-selected" : ""} ${t.transportRequestId ? "has-transport" : ""}`}
-									onClick={() => handleToolClick(t)}
-									title="Нажмите для редактирования"
-								>
-									<td className="td-checkbox" onClick={(e) => e.stopPropagation()}>
-										<input
-											type="checkbox"
-											checked={selectedToolIds.includes(t.id)}
-											onChange={() => handleToggleToolSelection(t.id)}
-											aria-label={`Выбрать инструмент ${t.tool}`}
-										/>
-									</td>
-									<td>{t.id}</td>
-									<td>{t.tool}</td>
-									<td>{t.inventoryNumber}</td>
-									<td>{t.brand}</td>
-									<td>{t.objectName || "-"}</td>
-									<td>{t.shortAddress || "-"}</td>
-									<td>
-										{t.transportRequestId ? (
-											<span className={`transport-badge ${t.isConfirmed ? "confirmed" : "pending"}`}>
-												{t.isConfirmed ? "✓ " : "• "}Заявка #{t.transportRequestId}
-											</span>
-										) : (
-											<span className="text-muted">Не назначен</span>
-										)}
-									</td>
-									<td>
-										{t.transportRequestId
-											? transportItems.find((tr) => tr.id === t.transportRequestId)?.callStatus || "-"
-											: "-"}
-									</td>
-									<td onClick={(e) => e.stopPropagation()}>
-										<button
-											className="btn-icon btn-delete"
-											onClick={() => handleDeleteTool(t.id)}
-										>
-											<Trash2 size={16} />
-										</button>
+						<tbody>
+							{tools.length === 0 ? (
+								<tr>
+									<td colSpan="10" className="empty-state">
+										Нет инструментов
 									</td>
 								</tr>
-							))
-						)}
+							) : (
+								tools.map((t) => (
+									<tr
+										key={t.id}
+										className={`tool-row ${selectedToolIds.includes(t.id) ? "tr-selected" : ""} ${t.transportRequestId ? "has-transport" : ""}`}
+										onClick={() => handleToolClick(t)}
+										title="Нажмите для редактирования"
+									>
+										<td
+											className="td-checkbox"
+											onClick={(e) => e.stopPropagation()}
+										>
+											<input
+												type="checkbox"
+												checked={selectedToolIds.includes(t.id)}
+												onChange={() => handleToggleToolSelection(t.id)}
+												aria-label={`Выбрать инструмент ${t.tool}`}
+											/>
+										</td>
+										<td>{t.id}</td>
+										<td>{t.tool}</td>
+										<td>{t.inventoryNumber}</td>
+										<td>{t.brand}</td>
+										<td>{t.objectName || "-"}</td>
+										<td>{t.shortAddress || "-"}</td>
+										<td>
+											{t.transportRequestId ? (
+												<span
+													className={`transport-badge ${t.isConfirmed ? "confirmed" : "pending"}`}
+												>
+													{t.isConfirmed ? "✓ " : "• "}Заявка #
+													{t.transportRequestId}
+												</span>
+											) : (
+												<span className="text-muted">Не назначен</span>
+											)}
+										</td>
+										<td>
+											{t.transportRequestId
+												? transportItems.find(
+														(tr) => tr.id === t.transportRequestId,
+													)?.callStatus || "-"
+												: "-"}
+										</td>
+										<td onClick={(e) => e.stopPropagation()}>
+											<button
+												className="btn-icon btn-delete"
+												onClick={() => handleDeleteTool(t.id)}
+											>
+												<Trash2 size={16} />
+											</button>
+										</td>
+									</tr>
+								))
+							)}
 						</tbody>
 					</table>
 				</div>
@@ -3544,7 +3610,10 @@ function App() {
 										type="text"
 										value={editingTool.inventoryNumber}
 										onChange={(e) =>
-											setEditingTool({ ...editingTool, inventoryNumber: e.target.value })
+											setEditingTool({
+												...editingTool,
+												inventoryNumber: e.target.value,
+											})
 										}
 									/>
 								</div>
@@ -3570,7 +3639,10 @@ function App() {
 										type="text"
 										value={editingTool.objectName || ""}
 										onChange={(e) =>
-											setEditingTool({ ...editingTool, objectName: e.target.value })
+											setEditingTool({
+												...editingTool,
+												objectName: e.target.value,
+											})
 										}
 									/>
 								</div>
@@ -3580,7 +3652,10 @@ function App() {
 										type="text"
 										value={editingTool.shortAddress || ""}
 										onChange={(e) =>
-											setEditingTool({ ...editingTool, shortAddress: e.target.value })
+											setEditingTool({
+												...editingTool,
+												shortAddress: e.target.value,
+											})
 										}
 									/>
 								</div>
@@ -3597,20 +3672,22 @@ function App() {
 										onChange={(e) =>
 											setEditingTool({
 												...editingTool,
-												transportRequestId: e.target.value ? Number(e.target.value) : null,
+												transportRequestId: e.target.value
+													? Number(e.target.value)
+													: null,
 												isConfirmed: false,
 											})
-											}
+										}
 									>
 										<option value="">-- Не назначен --</option>
 										{transportItems
 											.filter((t) => t.thisStatus !== "Выполнена")
 											.map((t) => (
-											<option key={t.id} value={t.id}>
-												Заявка #{t.id} - {t.objectName || "Без объекта"} (
+												<option key={t.id} value={t.id}>
+													Заявка #{t.id} - {t.objectName || "Без объекта"} (
 													{t.shortAddress || "нет адреса"})
 												</option>
-										))}
+											))}
 									</select>
 								</div>
 								<div className="form-group">
@@ -3645,7 +3722,10 @@ function App() {
 										type="text"
 										value={editingTool.factObjectName || ""}
 										onChange={(e) =>
-											setEditingTool({ ...editingTool, factObjectName: e.target.value })
+											setEditingTool({
+												...editingTool,
+												factObjectName: e.target.value,
+											})
 										}
 									/>
 								</div>
@@ -3655,7 +3735,10 @@ function App() {
 										type="text"
 										value={editingTool.factShortAddress || ""}
 										onChange={(e) =>
-											setEditingTool({ ...editingTool, factShortAddress: e.target.value })
+											setEditingTool({
+												...editingTool,
+												factShortAddress: e.target.value,
+											})
 										}
 									/>
 								</div>
@@ -3665,7 +3748,10 @@ function App() {
 										type="text"
 										value={editingTool.arrivalDate || ""}
 										onChange={(e) =>
-											setEditingTool({ ...editingTool, arrivalDate: e.target.value })
+											setEditingTool({
+												...editingTool,
+												arrivalDate: e.target.value,
+											})
 										}
 									/>
 								</div>
@@ -3876,16 +3962,18 @@ function App() {
 			}
 		};
 
-		// Статусы для заявки на транспорт
+		// Статусы для заявки на транспорт (новые коды 0-5)
 		const transportStatuses = [
-			{ value: "new", label: "Новая", className: "stat-new" },
-			{ value: "in_progress", label: "В работе", className: "stat-progress" },
-			{ value: "completed", label: "Выполнена", className: "stat-completed" },
-			{ value: "cancelled", label: "Отменена", className: "stat-cancelled" },
+			{ value: "0", label: "Черновик", className: "stat-draft" },
+			{ value: "1", label: "Сформирована", className: "stat-new" },
+			{ value: "2", label: "Дата назначена", className: "stat-progress" },
+			{ value: "3", label: "В машине", className: "stat-incar" },
+			{ value: "4", label: "В ремонте", className: "stat-repair" },
+			{ value: "5", label: "Выполнено", className: "stat-completed" },
 		];
 
 		const getStatusBadge = (status) => {
-			const statusInfo = transportStatuses.find((s) => s.value === status);
+			const statusInfo = transportStatuses.find((s) => s.value === String(status));
 			if (!statusInfo) return <span className="badge">{status}</span>;
 			return (
 				<span className={`badge ${statusInfo.className}`}>
@@ -3894,13 +3982,47 @@ function App() {
 			);
 		};
 
+		// Проверка дедлайна - красный если <= 2 дней
+		const getDeadlineClass = (deadline) => {
+			if (!deadline) return "deadline-empty";
+			const today = new Date();
+			today.setHours(0, 0, 0, 0);
+			const deadlineDate = new Date(deadline);
+			deadlineDate.setHours(0, 0, 0, 0);
+			const diffDays = Math.ceil((deadlineDate - today) / (1000 * 60 * 60 * 24));
+			if (diffDays <= 2) return "deadline-urgent";
+			return "";
+		};
+
+		// Сортировка персонала: водители -> курьеры -> инженеры
+		const getSortedStaff = () => {
+			return [...staff].sort((a, b) => {
+				const catA = STAFF_CATEGORIES[a.category] || 99;
+				const catB = STAFF_CATEGORIES[b.category] || 99;
+				if (catA !== catB) return catA - catB;
+				return a.fullName.localeCompare(b.fullName);
+			});
+		};
+
+		// Получить статус связанной закупки
+		const getLinkedPurchaseStatus = (linkedId) => {
+			if (!linkedId) return "-";
+			const purchase = buyItems.find((b) => b.id === linkedId);
+			return purchase?.status || "-";
+		};
+
+		// Получить статус связанного вызова
+		const getLinkedCallStatus = (linkedId) => {
+			if (!linkedId) return "-";
+			const call = calls.find((c) => c.id === linkedId);
+			return call?.status || "-";
+		};
+
 		// Статистика
 		const stats = {
-			new: transportItems.filter((t) => t.thisStatus === "new").length,
-			in_progress: transportItems.filter((t) => t.thisStatus === "in_progress")
-				.length,
-			completed: transportItems.filter((t) => t.thisStatus === "completed")
-				.length,
+			new: transportItems.filter((t) => t.thisStatus === "1").length,
+			progress: transportItems.filter((t) => ["2", "3", "4"].includes(String(t.thisStatus))).length,
+			completed: transportItems.filter((t) => t.thisStatus === "5").length,
 		};
 
 		return (
@@ -3917,7 +4039,7 @@ function App() {
 						</div>
 						<div className="stat-info">
 							<span className="stat-count">{stats.new}</span>
-							<span className="stat-label">Новых</span>
+							<span className="stat-label">Сформировано</span>
 						</div>
 					</div>
 					<div className="stat-card stat-progress">
@@ -3925,7 +4047,7 @@ function App() {
 							<Clock size={20} />
 						</div>
 						<div className="stat-info">
-							<span className="stat-count">{stats.in_progress}</span>
+							<span className="stat-count">{stats.progress}</span>
 							<span className="stat-label">В работе</span>
 						</div>
 					</div>
@@ -3945,10 +4067,9 @@ function App() {
 						<thead>
 							<tr>
 								<th>ID</th>
-								<th>Дата заявки</th>
-								<th>Дедлайн</th>
-								<th>Дата назначено</th>
-								<th>Кому (исполнитель)</th>
+								<th>Дата</th>
+								<th className="th-deadline">Дедлайн</th>
+								<th>Кому</th>
 								<th>Закупка</th>
 								<th>Вызов</th>
 								<th>Статус</th>
@@ -3963,7 +4084,7 @@ function App() {
 						<tbody>
 							{transportItems.length === 0 ? (
 								<tr>
-									<td colSpan="14" className="empty-state">
+									<td colSpan="13" className="empty-state">
 										Нет заявок на транспорт
 									</td>
 								</tr>
@@ -3972,11 +4093,12 @@ function App() {
 									<tr key={t.id}>
 										<td>{t.id}</td>
 										<td>{t.requestDate || "-"}</td>
-										<td>{t.deadline || "-"}</td>
-										<td>{t.assignedDate || "-"}</td>
+										<td className={getDeadlineClass(t.deadline)}>
+											{t.deadline || "–"}
+										</td>
 										<td>{t.assignedTo || "-"}</td>
-										<td>{t.purchaseStatus || "-"}</td>
-										<td>{t.callStatus || "-"}</td>
+										<td>{getLinkedPurchaseStatus(t.linkedPurchaseId) || t.purchaseStatus || "-"}</td>
+										<td>{getLinkedCallStatus(t.linkedCallId) || t.callStatus || "-"}</td>
 										<td>{getStatusBadge(t.thisStatus)}</td>
 										<td>{t.objectName || "-"}</td>
 										<td>{t.shortAddress || "-"}</td>
@@ -4013,33 +4135,35 @@ function App() {
 					</h3>
 					<form onSubmit={handleAddTransport} className="add-form">
 						<div className="form-grid">
-							{/* Дата заявки */}
+							{/* Дата заявки - автозаполняется */}
 							<div className="form-group">
 								<label>Дата заявки</label>
 								<input
-									type="date"
+									type="text"
 									value={newTransportData.requestDate}
-									onChange={(e) =>
-										setNewTransportData({
-											...newTransportData,
-											requestDate: e.target.value,
-										})
-									}
+									disabled
+									className="input-disabled"
 								/>
 							</div>
 
-							{/* Дедлайн */}
+							{/* Дедлайн с цветовой индикацией */}
 							<div className="form-group">
-								<label>Дедлайн</label>
+								<label className={getDeadlineClass(newTransportData.deadline) ? "label-deadline-urgent" : ""}>
+									Дедлайн
+									{newTransportData.deadline && (
+										<span className="deadline-hint"> ({getDeadlineClass(newTransportData.deadline) === "deadline-urgent" ? "Скоро!" : "Норма"})</span>
+									)}
+								</label>
 								<input
 									type="date"
 									value={newTransportData.deadline}
+									className={getDeadlineClass(newTransportData.deadline)}
 									onChange={(e) =>
 										setNewTransportData({
 											...newTransportData,
 											deadline: e.target.value,
 										})
-									}
+										}
 								/>
 							</div>
 
@@ -4054,86 +4178,97 @@ function App() {
 											...newTransportData,
 											assignedDate: e.target.value,
 										})
-									}
+										}
 								/>
 							</div>
 
-							{/* Кому (исполнитель) */}
+							{/* Кому - выпадающий список отсортированный */}
 							<div className="form-group">
 								<label>Кому (исполнитель)</label>
-								<input
-									type="text"
+								<select
 									value={newTransportData.assignedTo}
 									onChange={(e) =>
 										setNewTransportData({
 											...newTransportData,
 											assignedTo: e.target.value,
 										})
-									}
-									placeholder="ФИО исполнителя"
-									list="staff-list"
-								/>
-								<datalist id="staff-list">
-									{staff.map((s) => (
-										<option key={s.id} value={s.fullName} />
-									))}
-								</datalist>
+										}
+								>
+									<option value="">-- Выберите --</option>
+									<optgroup label="Водители">
+										{getSortedStaff()
+											.filter((s) => s.category === "driver")
+											.map((s) => (
+												<option key={s.id} value={s.fullName}>
+													{s.fullName}
+												</option>
+											))}
+									</optgroup>
+									<optgroup label="Курьеры">
+										{getSortedStaff()
+											.filter((s) => s.category === "courier")
+											.map((s) => (
+												<option key={s.id} value={s.fullName}>
+													{s.fullName}
+											</option>
+											))}
+									</optgroup>
+									<optgroup label="Инженеры">
+										{getSortedStaff()
+											.filter((s) => s.category === "engineer")
+											.map((s) => (
+												<option key={s.id} value={s.fullName}>
+													{s.fullName}
+												</option>
+											))}
+									</optgroup>
+								</select>
 							</div>
 
-							{/* Статус заявки на закупку */}
+							{/* Статус заявки на закупку -readonly */}
 							<div className="form-group">
 								<label>Статус заявки на закупку</label>
-								<input
-									type="text"
-									value={newTransportData.purchaseStatus}
-									onChange={(e) =>
-										setNewTransportData({
-											...newTransportData,
-											purchaseStatus: e.target.value,
-										})
-									}
-									placeholder="Ожидает / Закуплено / -"
-								/>
+								<div className="info-field">
+									{newTransportData.linkedPurchaseId
+										? getLinkedPurchaseStatus(newTransportData.linkedPurchaseId)
+										: (newTransportData.purchaseStatus || "-")}
+								</div>
 							</div>
 
-							{/* Статус вызова */}
+							{/* Статус вызова - readonly */}
 							<div className="form-group">
 								<label>Статус вызова</label>
-								<input
-									type="text"
-									value={newTransportData.callStatus}
-									onChange={(e) =>
-										setNewTransportData({
-											...newTransportData,
-											callStatus: e.target.value,
-										})
-									}
-									placeholder="Новый / В работе / Завершён"
-								/>
+								<div className="info-field">
+									{newTransportData.linkedCallId
+										? getLinkedCallStatus(newTransportData.linkedCallId)
+										: (newTransportData.callStatus || "-")}
+								</div>
 							</div>
 
-							{/* Статус этой заявки */}
+							{/* Статус этой заявки - новые коды */}
 							<div className="form-group">
 								<label>Статус заявки</label>
 								<select
-									value={newTransportData.thisStatus || "new"}
+									value={newTransportData.thisStatus || "0"}
 									onChange={(e) =>
 										setNewTransportData({
 											...newTransportData,
 											thisStatus: e.target.value,
 										})
-									}
+										}
 								>
-									<option value="new">Новая</option>
-									<option value="in_progress">В работе</option>
-									<option value="completed">Выполнена</option>
-									<option value="cancelled">Отменена</option>
+									<option value="0">0 - Черновик</option>
+									<option value="1">1 - Сформирована</option>
+									<option value="2">2 - Дата назначена</option>
+									<option value="3">3 - В машине</option>
+									<option value="4">4 - В ремонте</option>
+									<option value="5">5 - Выполнено</option>
 								</select>
 							</div>
 
-							{/* Наименование объекта */}
+							{/* Наименование объекта - автозаполнение */}
 							<div className="form-group">
-								<label>Объект (выберите или введите) *</label>
+								<label>Объект *</label>
 								<input
 									type="text"
 									value={newTransportData.objectName || ""}
@@ -4155,7 +4290,7 @@ function App() {
 								</datalist>
 							</div>
 
-							{/* Сокращенный адрес */}
+							{/* Сокращенный адрес - автозаполнение */}
 							<div className="form-group">
 								<label>Сокращенный адрес</label>
 								<input
@@ -4166,14 +4301,14 @@ function App() {
 											...newTransportData,
 											shortAddress: e.target.value,
 										})
-									}
-									placeholder="Адрес объекта"
+										}
+									placeholder="Заполняется автоматически"
 								/>
 							</div>
 
-							{/* Что нужно транспортировать */}
+							{/* Что нужно транспортировать - ОБЯЗАТЕЛЬНО */}
 							<div className="form-group form-group-full">
-								<label>Что нужно транспортировать</label>
+								<label className="label-required">Что нужно транспортировать *</label>
 								<input
 									type="text"
 									value={newTransportData.whatToTransport}
@@ -4182,8 +4317,9 @@ function App() {
 											...newTransportData,
 											whatToTransport: e.target.value,
 										})
-									}
-									placeholder="Опишите, что требуется перевезти"
+										}
+									placeholder="Обязательно для заполнения"
+									required
 								/>
 							</div>
 
@@ -4197,25 +4333,20 @@ function App() {
 											...newTransportData,
 											toolsList: e.target.value,
 										})
-									}
+										}
 									rows={3}
-									placeholder="Список инструмента для перевозки"
+									placeholder="Список инструмента для перевозки (можно выбрать в разделе Инструменты)"
 								/>
 							</div>
 
-							{/* Создатель заявки */}
+							{/* Создатель заявки - автозаполняется */}
 							<div className="form-group">
 								<label>Создатель заявки</label>
 								<input
 									type="text"
 									value={newTransportData.creator}
-									onChange={(e) =>
-										setNewTransportData({
-											...newTransportData,
-											creator: e.target.value,
-										})
-									}
-									placeholder="Ваше имя"
+									disabled
+									className="input-disabled"
 								/>
 							</div>
 						</div>

@@ -3314,3 +3314,78 @@ input[type="date"]:focus {
 	border-radius: 8px;
 	font-weight: 600;
 }
+
+/* ================================
+   TRANSPORT SECTION STYLES
+   ================================ */
+
+/* Deadline coloring */
+.deadline-empty {
+	color: #2196f3;
+	font-style: italic;
+}
+
+.deadline-urgent {
+	color: #c62828;
+	font-weight: 600;
+	background-color: #ffebee;
+}
+
+.th-deadline {
+	min-width: 100px;
+}
+
+.label-deadline-urgent {
+	color: #c62828;
+	font-weight: 600;
+}
+
+.deadline-hint {
+	font-size: 0.85rem;
+	font-weight: normal;
+	color: var(--gray-500);
+}
+
+/* Disabled input */
+.input-disabled {
+	background-color: var(--gray-100);
+	color: var(--gray-600);
+	cursor: not-allowed;
+}
+
+/* Required label */
+.label-required::after {
+	content: " *";
+	color: #c62828;
+}
+
+/* Status badges for transport */
+.stat-draft {
+	background-color: var(--gray-200);
+	color: var(--gray-600);
+}
+
+.stat-incar {
+	background-color: #e3f2fd;
+	color: #1565c0;
+}
+
+.stat-repair {
+	background-color: #fff3e0;
+	color: #e65100;
+}
+
+/* Transport table */
+.table-container.table-horizontal {
+	overflow-x: auto;
+}
+
+.table-container.table-horizontal table {
+	min-width: 1400px;
+}
+
+.table-container.table-horizontal td,
+.table-container.table-horizontal th {
+	white-space: nowrap;
+	padding: 10px 12px;
+}
