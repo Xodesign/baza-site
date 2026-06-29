@@ -238,6 +238,28 @@ const INITIAL_STAFF = [
 // Категории персонажа для сортировки
 const STAFF_CATEGORIES = { driver: 1, courier: 2, engineer: 3 };
 
+// === СТАТУСЫ ЗАКУПКИ ===
+const BUY_STATUS = {
+	ORDERED: "заказан_счёт",
+	WAITING_CONFIRM: "счёт_ждёт_подтверждения",
+	CAN_PAY: "счёт_можно_оплатить",
+	PAID: "счёт_оплачен",
+	WAREHOUSE: "заказ_на_складе",
+	OFFICE: "заказ_в_офисе",
+};
+
+const BUY_STATUS_LABELS = {
+	[BUY_STATUS.ORDERED]: "Заказан счёт",
+	[BUY_STATUS.WAITING_CONFIRM]: "Счёт ждёт подтверждения на оплату",
+	[BUY_STATUS.CAN_PAY]: "Счёт можно оплачивать",
+	[BUY_STATUS.PAID]: "Счёт оплачен",
+	[BUY_STATUS.WAREHOUSE]: "Заказ на складе",
+	[BUY_STATUS.OFFICE]: "Заказ в офисе",
+};
+
+// Текущий пользователь (заглушка - можно заменить на реальный логин)
+const CURRENT_USER = "Текущий пользователь";
+
 // === ДАННЫЕ ЗАТРАТ (из Excel) ===
 const INITIAL_COSTS = excelData["Затраты"]?.rows?.map((row, idx) => {
 	const matchedObj = INITIAL_OBJECTS.find(
@@ -907,14 +929,16 @@ function App() {
 
 	function getEmptyBuyForm() {
 		return {
-			requestDate: "",
+			requestDate: new Date().toLocaleDateString("ru-RU"),
 			deadline: "",
-			status: "",
+			status: BUY_STATUS.ORDERED,
 			contractNumber: "",
 			objectName: "",
+			objectId: null,
 			shortAddress: "",
 			payer: "",
 			whatToBuy: "",
+			creator: CURRENT_USER,
 		};
 	}
 
@@ -1617,7 +1641,69 @@ function App() {
 	// === ЛОГИКА КУПИТЬ ===
 	const handleAddBuy = (e) => {
 		e?.preventDefault();
-		const newItem = { id: Date.now(), ...newBuyData };
+		
+		// Валидация обязательных полей
+		if (!newBuyData.objectName?.trim()) {
+			alert("Выберите объект!");
+			return;
+		}
+		if (!newBuyData.whatToBuy?.trim()) {
+			alert("Заполните что нужно приобрести!");
+			return;
+		}
+		
+		// Найти объект для получения данных
+		const selectedObject = objects.find(o => o["Наименование объекта"] === newBuyData.objectName);
+		
+		// Автозаполнение полей из объекта если не указаны
+		const autoBuyData = { ...newBuyData };
+		if (!autoBuyData.contractNumber && selectedObject) {
+			autoBuyData.contractNumber = selectedObject["№ контр/дог"] || "";
+		}
+		if (!autoBuyData.shortAddress && selectedObject) {
+			autoBuyData.shortAddress = selectedObject["Адрес сокращенный"] || "";
+		}
+		if (!autoBuyData.payer && selectedObject) {
+			autoBuyData.payer = selectedObject["Кто оплачивает ремонт"] || "";
+		}
+		autoBuyData.objectId = selectedObject?.id || null;
+		autoBuyData.creator = CURRENT_USER;
+		
+		const newItem = { id: Date.now(), ...autoBuyData };
+		
+		// Если статус "заказан_счёт" - создать запись в счетах
+		if (autoBuyData.status === BUY_STATUS.ORDERED) {
+			const newInvoice = {
+				id: Date.now(),
+				requestDate: autoBuyData.requestDate,
+				contractNumber: autoBuyData.contractNumber,
+				objectName: autoBuyData.objectName,
+				shortAddress: autoBuyData.shortAddress,
+				description: autoBuyData.whatToBuy,
+				status: "pending", // Ожидает подтверждения
+				payer: autoBuyData.payer,
+				buyItemId: newItem.id, // Связь с закупкой
+				creator: CURRENT_USER,
+			};
+			setInvoices([newInvoice, ...invoices]);
+		}
+		
+		// Если плательщик не "всё за наш счёт" - создать заявку на актирование
+		if (autoBuyData.payer && autoBuyData.payer !== "всё за наш счёт") {
+			const newActivation = {
+				id: Date.now() + 1,
+				requestDate: autoBuyData.requestDate,
+				deadline: autoBuyData.deadline,
+				objectName: autoBuyData.objectName,
+				shortAddress: autoBuyData.shortAddress,
+				description: `Закупка: ${autoBuyData.whatToBuy}. Плательщик: ${autoBuyData.payer}`,
+				status: "new",
+				buyItemId: newItem.id, // Связь с закупкой
+				creator: CURRENT_USER,
+			};
+			setActivations([newActivation, ...activations]);
+		}
+		
 		setBuyItems([newItem, ...buyItems]);
 		setNewBuyData(getEmptyBuyForm());
 	};
@@ -2154,8 +2240,13 @@ function App() {
 
 				{/* СЕКЦИЯ ДОБАВЛЕНИЯ */}
 				<div className="collapsible-section">
-					<div className="collapsible-header" onClick={() => setIsAddFormOpen(!isAddFormOpen)}>
-						<h3><Plus size={20} /> Добавить объект</h3>
+					<div
+						className="collapsible-header"
+						onClick={() => setIsAddFormOpen(!isAddFormOpen)}
+					>
+						<h3>
+							<Plus size={20} /> Добавить объект
+						</h3>
 						<ChevronDown
 							size={20}
 							className={`collapse-icon ${isAddFormOpen ? "open" : ""}`}
@@ -2164,413 +2255,446 @@ function App() {
 					{isAddFormOpen && (
 						<div className="collapsible-content">
 							<div className="add-form-section add-form-full">
-					<div className="form-actions-row">
-						<form onSubmit={handleAddObject} className="add-form-inline">
-							<button type="submit" className="btn btn-primary">
-								<Plus size={18} />
-								Добавить объект
-							</button>
-						</form>
-						<button
-							type="button"
-							className="btn btn-secondary"
-							onClick={() => handleAddRandomObjects(5)}
-						>
-							<Zap size={18} />
-							Добавить 5 рандомных
-						</button>
-					</div>
-					<form onSubmit={handleAddObject} className="add-form">
-						<div className="form-grid">
-							<div className="form-group">
-								<label>Заказчик</label>
-								<input
-									type="text"
-									value={newFormData["Заказчик"] || ""}
-									onChange={(e) =>
-										setNewFormData({ ...newFormData, Заказчик: e.target.value })
-									}
-									placeholder="Заказчик"
-								/>
-							</div>
-							<div className="form-group">
-								<label>Подрядчик</label>
-								<select
-									value={newFormData["Подрядчик"] || "СБ"}
-									onChange={(e) =>
-										setNewFormData({
-											...newFormData,
-											Подрядчик: e.target.value,
-										})
-									}
-								>
-									<option value="СБ">СБ</option>
-									<option value="СБ+">СБ+</option>
-									<option value="ВСТ">ВСТ</option>
-									<option value="ИП">ИП</option>
-								</select>
-							</div>
-							<div className="form-group">
-								<label>№ контр/дог</label>
-								<input
-									type="text"
-									value={newFormData["№ контр/дог"] || ""}
-									onChange={(e) =>
-										setNewFormData({
-											...newFormData,
-											"№ контр/дог": e.target.value,
-										})
-									}
-									placeholder="№ 1-2024-РБ"
-								/>
-							</div>
-							<div className="form-group">
-								<label>Начало действия договора</label>
-								<input
-									type="date"
-									value={newFormData["Начало действия договора"] || ""}
-									onChange={(e) =>
-										setNewFormData({
-											...newFormData,
-											"Начало действия договора": e.target.value,
-										})
-									}
-								/>
-							</div>
-							<div className="form-group">
-								<label>Окончание действия договора</label>
-								<input
-									type="date"
-									value={newFormData["Окончание действия договора"] || ""}
-									onChange={(e) =>
-										setNewFormData({
-											...newFormData,
-											"Окончание действия договора": e.target.value,
-										})
-									}
-								/>
-							</div>
-							<div className="form-group">
-								<label>Тип договора</label>
-								<select
-									value={newFormData["Тип договора"] || "ТО"}
-									onChange={(e) =>
-										setNewFormData({
-											...newFormData,
-											"Тип договора": e.target.value,
-										})
-									}
-								>
-									<option value="ТО">ТО</option>
-									<option value="СМР">СМР</option>
-									<option value="ПИР">ПИР</option>
-								</select>
-							</div>
-							<div className="form-group">
-								<label>Продлеваемость</label>
-								<select
-									value={newFormData["Продлеваемость"] || ""}
-									onChange={(e) =>
-										setNewFormData({
-											...newFormData,
-											Продлеваемость: e.target.value,
-										})
-									}
-								>
-									<option value="">—</option>
-									<option value="Продлеваемый автоматически">
-										Продлеваемый автоматически
-									</option>
-									<option value="Не продлеваемый">Не продлеваемый</option>
-									<option value="Продлеваемый доп соглашением">
-										Продлеваемый доп соглашением
-									</option>
-									<option value="Конкурсный">Конкурсный</option>
-								</select>
-							</div>
-							<div className="form-group">
-								<label>Письмо о повышении стоимости ТО</label>
-								<input
-									type="text"
-									value={newFormData["Письмо о повышении стоимости ТО"] || ""}
-									onChange={(e) =>
-										setNewFormData({
-											...newFormData,
-											"Письмо о повышении стоимости ТО": e.target.value,
-										})
-									}
-								/>
-							</div>
-							<div className="form-group">
-								<label>Свершившееся повышение цены ТО</label>
-								<input
-									type="text"
-									value={newFormData["Свершившееся повышение цены ТО"] || ""}
-									onChange={(e) =>
-										setNewFormData({
-											...newFormData,
-											"Свершившееся повышение цены ТО": e.target.value,
-										})
-									}
-								/>
-							</div>
-							<div className="form-group">
-								<label>Доп соглашение</label>
-								<input
-									type="text"
-									value={newFormData["Доп соглашение"] || ""}
-									onChange={(e) =>
-										setNewFormData({
-											...newFormData,
-											"Доп соглашение": e.target.value,
-										})
-									}
-								/>
-							</div>
-							<div className="form-group">
-								<label>Письма</label>
-								<input
-									type="text"
-									value={newFormData["Письма"] || ""}
-									onChange={(e) =>
-										setNewFormData({ ...newFormData, Письма: e.target.value })
-									}
-								/>
-							</div>
-							<div className="form-group">
-								<label>Кто оплачивает ремонт</label>
-								<select
-									value={newFormData["Кто оплачивает ремонт"] || ""}
-									onChange={(e) =>
-										setNewFormData({
-											...newFormData,
-											"Кто оплачивает ремонт": e.target.value,
-										})
-									}
-								>
-									<option value="">—</option>
-									<option value="Заказчик">Заказчик</option>
-									<option value="Наш счёт">За наш счёт</option>
-								</select>
-							</div>
-							<div className="form-group">
-								<label>Как оплачиваются доп.работы</label>
-								<input
-									type="text"
-									value={newFormData["Как оплачиваются доп.работы"] || ""}
-									onChange={(e) =>
-										setNewFormData({
-											...newFormData,
-											"Как оплачиваются доп.работы": e.target.value,
-										})
-									}
-									placeholder="Сметы / КП / По договору"
-								/>
-							</div>
-							<div className="form-group">
-								<label>К доп работам есть ли аванс</label>
-								<select
-									value={newFormData["К доп работам есть ли аванс"] || ""}
-									onChange={(e) =>
-										setNewFormData({
-											...newFormData,
-											"К доп работам есть ли аванс": e.target.value,
-										})
-									}
-								>
-									<option value="">—</option>
-									<option value="Аванс">Аванс</option>
-									<option value="Без аванса">Без аванса</option>
-								</select>
-							</div>
-							<div className="form-group form-group-full">
-								<label>Адрес полный объекта</label>
-								<input
-									type="text"
-									value={newFormData["Адрес полный объекта"] || ""}
-									onChange={(e) =>
-										setNewFormData({
-											...newFormData,
-											"Адрес полный объекта": e.target.value,
-										})
-									}
-									placeholder="г. Москва, ул. Примерная, д. 1"
-								/>
-							</div>
-							<div className="form-group">
-								<label>Адрес сокращенный</label>
-								<input
-									type="text"
-									value={newFormData["Адрес сокращенный"] || ""}
-									onChange={(e) =>
-										setNewFormData({
-											...newFormData,
-											"Адрес сокращенный": e.target.value,
-										})
-									}
-									placeholder="Примерная, 1"
-								/>
-							</div>
-							<div className="form-group">
-								<label>Наименование объекта</label>
-								<input
-									type="text"
-									value={newFormData["Наименование объекта"] || ""}
-									onChange={(e) =>
-										setNewFormData({
-											...newFormData,
-											"Наименование объекта": e.target.value,
-										})
-									}
-									placeholder="Название объекта"
-								/>
-							</div>
-							<div className="form-group">
-								<label>РД ИД ПД</label>
-								<div className="checkbox-group">
-									<label className="checkbox-label">
-										<input
-											type="checkbox"
-											checked={(newFormData["РД ИД ПД"] || "").includes("РД")}
-											onChange={(e) => {
-												const current = newFormData["РД ИД ПД"] || "";
-												const values = current.split(", ").filter(Boolean);
-												const newValues = e.target.checked
-													? [...values, "РД"]
-													: values.filter((v) => v !== "РД");
-												setNewFormData({
-													...newFormData,
-													"РД ИД ПД": newValues.join(", "),
-												});
-											}}
-										/>
-										<span>РД</span>
-									</label>
-									<label className="checkbox-label">
-										<input
-											type="checkbox"
-											checked={(newFormData["РД ИД ПД"] || "").includes("ИД")}
-											onChange={(e) => {
-												const current = newFormData["РД ИД ПД"] || "";
-												const values = current.split(", ").filter(Boolean);
-												const newValues = e.target.checked
-													? [...values, "ИД"]
-													: values.filter((v) => v !== "ИД");
-												setNewFormData({
-													...newFormData,
-													"РД ИД ПД": newValues.join(", "),
-												});
-											}}
-										/>
-										<span>ИД</span>
-									</label>
-									<label className="checkbox-label">
-										<input
-											type="checkbox"
-											checked={(newFormData["РД ИД ПД"] || "").includes("ПД")}
-											onChange={(e) => {
-												const current = newFormData["РД ИД ПД"] || "";
-												const values = current.split(", ").filter(Boolean);
-												const newValues = e.target.checked
-													? [...values, "ПД"]
-													: values.filter((v) => v !== "ПД");
-												setNewFormData({
-													...newFormData,
-													"РД ИД ПД": newValues.join(", "),
-												});
-											}}
-										/>
-										<span>ПД</span>
-									</label>
+								<div className="form-actions-row">
+									<form onSubmit={handleAddObject} className="add-form-inline">
+										<button type="submit" className="btn btn-primary">
+											<Plus size={18} />
+											Добавить объект
+										</button>
+									</form>
+									<button
+										type="button"
+										className="btn btn-secondary"
+										onClick={() => handleAddRandomObjects(5)}
+									>
+										<Zap size={18} />
+										Добавить 5 рандомных
+									</button>
 								</div>
+								<form onSubmit={handleAddObject} className="add-form">
+									<div className="form-grid">
+										<div className="form-group">
+											<label>Заказчик</label>
+											<input
+												type="text"
+												value={newFormData["Заказчик"] || ""}
+												onChange={(e) =>
+													setNewFormData({
+														...newFormData,
+														Заказчик: e.target.value,
+													})
+												}
+												placeholder="Заказчик"
+											/>
+										</div>
+										<div className="form-group">
+											<label>Подрядчик</label>
+											<select
+												value={newFormData["Подрядчик"] || "СБ"}
+												onChange={(e) =>
+													setNewFormData({
+														...newFormData,
+														Подрядчик: e.target.value,
+													})
+												}
+											>
+												<option value="СБ">СБ</option>
+												<option value="СБ+">СБ+</option>
+												<option value="ВСТ">ВСТ</option>
+												<option value="ИП">ИП</option>
+											</select>
+										</div>
+										<div className="form-group">
+											<label>№ контр/дог</label>
+											<input
+												type="text"
+												value={newFormData["№ контр/дог"] || ""}
+												onChange={(e) =>
+													setNewFormData({
+														...newFormData,
+														"№ контр/дог": e.target.value,
+													})
+												}
+												placeholder="№ 1-2024-РБ"
+											/>
+										</div>
+										<div className="form-group">
+											<label>Начало действия договора</label>
+											<input
+												type="date"
+												value={newFormData["Начало действия договора"] || ""}
+												onChange={(e) =>
+													setNewFormData({
+														...newFormData,
+														"Начало действия договора": e.target.value,
+													})
+												}
+											/>
+										</div>
+										<div className="form-group">
+											<label>Окончание действия договора</label>
+											<input
+												type="date"
+												value={newFormData["Окончание действия договора"] || ""}
+												onChange={(e) =>
+													setNewFormData({
+														...newFormData,
+														"Окончание действия договора": e.target.value,
+													})
+												}
+											/>
+										</div>
+										<div className="form-group">
+											<label>Тип договора</label>
+											<select
+												value={newFormData["Тип договора"] || "ТО"}
+												onChange={(e) =>
+													setNewFormData({
+														...newFormData,
+														"Тип договора": e.target.value,
+													})
+												}
+											>
+												<option value="ТО">ТО</option>
+												<option value="СМР">СМР</option>
+												<option value="ПИР">ПИР</option>
+											</select>
+										</div>
+										<div className="form-group">
+											<label>Продлеваемость</label>
+											<select
+												value={newFormData["Продлеваемость"] || ""}
+												onChange={(e) =>
+													setNewFormData({
+														...newFormData,
+														Продлеваемость: e.target.value,
+													})
+												}
+											>
+												<option value="">—</option>
+												<option value="Продлеваемый автоматически">
+													Продлеваемый автоматически
+												</option>
+												<option value="Не продлеваемый">Не продлеваемый</option>
+												<option value="Продлеваемый доп соглашением">
+													Продлеваемый доп соглашением
+												</option>
+												<option value="Конкурсный">Конкурсный</option>
+											</select>
+										</div>
+										<div className="form-group">
+											<label>Письмо о повышении стоимости ТО</label>
+											<input
+												type="text"
+												value={
+													newFormData["Письмо о повышении стоимости ТО"] || ""
+												}
+												onChange={(e) =>
+													setNewFormData({
+														...newFormData,
+														"Письмо о повышении стоимости ТО": e.target.value,
+													})
+												}
+											/>
+										</div>
+										<div className="form-group">
+											<label>Свершившееся повышение цены ТО</label>
+											<input
+												type="text"
+												value={
+													newFormData["Свершившееся повышение цены ТО"] || ""
+												}
+												onChange={(e) =>
+													setNewFormData({
+														...newFormData,
+														"Свершившееся повышение цены ТО": e.target.value,
+													})
+												}
+											/>
+										</div>
+										<div className="form-group">
+											<label>Доп соглашение</label>
+											<input
+												type="text"
+												value={newFormData["Доп соглашение"] || ""}
+												onChange={(e) =>
+													setNewFormData({
+														...newFormData,
+														"Доп соглашение": e.target.value,
+													})
+												}
+											/>
+										</div>
+										<div className="form-group">
+											<label>Письма</label>
+											<input
+												type="text"
+												value={newFormData["Письма"] || ""}
+												onChange={(e) =>
+													setNewFormData({
+														...newFormData,
+														Письма: e.target.value,
+													})
+												}
+											/>
+										</div>
+										<div className="form-group">
+											<label>Кто оплачивает ремонт</label>
+											<select
+												value={newFormData["Кто оплачивает ремонт"] || ""}
+												onChange={(e) =>
+													setNewFormData({
+														...newFormData,
+														"Кто оплачивает ремонт": e.target.value,
+													})
+												}
+											>
+												<option value="">—</option>
+												<option value="Заказчик">Заказчик</option>
+												<option value="Наш счёт">За наш счёт</option>
+											</select>
+										</div>
+										<div className="form-group">
+											<label>Как оплачиваются доп.работы</label>
+											<input
+												type="text"
+												value={newFormData["Как оплачиваются доп.работы"] || ""}
+												onChange={(e) =>
+													setNewFormData({
+														...newFormData,
+														"Как оплачиваются доп.работы": e.target.value,
+													})
+												}
+												placeholder="Сметы / КП / По договору"
+											/>
+										</div>
+										<div className="form-group">
+											<label>К доп работам есть ли аванс</label>
+											<select
+												value={newFormData["К доп работам есть ли аванс"] || ""}
+												onChange={(e) =>
+													setNewFormData({
+														...newFormData,
+														"К доп работам есть ли аванс": e.target.value,
+													})
+												}
+											>
+												<option value="">—</option>
+												<option value="Аванс">Аванс</option>
+												<option value="Без аванса">Без аванса</option>
+											</select>
+										</div>
+										<div className="form-group form-group-full">
+											<label>Адрес полный объекта</label>
+											<input
+												type="text"
+												value={newFormData["Адрес полный объекта"] || ""}
+												onChange={(e) =>
+													setNewFormData({
+														...newFormData,
+														"Адрес полный объекта": e.target.value,
+													})
+												}
+												placeholder="г. Москва, ул. Примерная, д. 1"
+											/>
+										</div>
+										<div className="form-group">
+											<label>Адрес сокращенный</label>
+											<input
+												type="text"
+												value={newFormData["Адрес сокращенный"] || ""}
+												onChange={(e) =>
+													setNewFormData({
+														...newFormData,
+														"Адрес сокращенный": e.target.value,
+													})
+												}
+												placeholder="Примерная, 1"
+											/>
+										</div>
+										<div className="form-group">
+											<label>Наименование объекта</label>
+											<input
+												type="text"
+												value={newFormData["Наименование объекта"] || ""}
+												onChange={(e) =>
+													setNewFormData({
+														...newFormData,
+														"Наименование объекта": e.target.value,
+													})
+												}
+												placeholder="Название объекта"
+											/>
+										</div>
+										<div className="form-group">
+											<label>РД ИД ПД</label>
+											<div className="checkbox-group">
+												<label className="checkbox-label">
+													<input
+														type="checkbox"
+														checked={(newFormData["РД ИД ПД"] || "").includes(
+															"РД",
+														)}
+														onChange={(e) => {
+															const current = newFormData["РД ИД ПД"] || "";
+															const values = current
+																.split(", ")
+																.filter(Boolean);
+															const newValues = e.target.checked
+																? [...values, "РД"]
+																: values.filter((v) => v !== "РД");
+															setNewFormData({
+																...newFormData,
+																"РД ИД ПД": newValues.join(", "),
+															});
+														}}
+													/>
+													<span>РД</span>
+												</label>
+												<label className="checkbox-label">
+													<input
+														type="checkbox"
+														checked={(newFormData["РД ИД ПД"] || "").includes(
+															"ИД",
+														)}
+														onChange={(e) => {
+															const current = newFormData["РД ИД ПД"] || "";
+															const values = current
+																.split(", ")
+																.filter(Boolean);
+															const newValues = e.target.checked
+																? [...values, "ИД"]
+																: values.filter((v) => v !== "ИД");
+															setNewFormData({
+																...newFormData,
+																"РД ИД ПД": newValues.join(", "),
+															});
+														}}
+													/>
+													<span>ИД</span>
+												</label>
+												<label className="checkbox-label">
+													<input
+														type="checkbox"
+														checked={(newFormData["РД ИД ПД"] || "").includes(
+															"ПД",
+														)}
+														onChange={(e) => {
+															const current = newFormData["РД ИД ПД"] || "";
+															const values = current
+																.split(", ")
+																.filter(Boolean);
+															const newValues = e.target.checked
+																? [...values, "ПД"]
+																: values.filter((v) => v !== "ПД");
+															setNewFormData({
+																...newFormData,
+																"РД ИД ПД": newValues.join(", "),
+															});
+														}}
+													/>
+													<span>ПД</span>
+												</label>
+											</div>
+										</div>
+										<div className="form-group">
+											<label>Арендатор</label>
+											<input
+												type="text"
+												value={newFormData["Арендатор"] || ""}
+												onChange={(e) =>
+													setNewFormData({
+														...newFormData,
+														Арендатор: e.target.value,
+													})
+												}
+											/>
+										</div>
+										<div className="form-group">
+											<label>Системы</label>
+											<input
+												type="text"
+												value={newFormData["Системы"] || ""}
+												onChange={(e) =>
+													setNewFormData({
+														...newFormData,
+														Системы: e.target.value,
+													})
+												}
+												placeholder="АПС, СОУЭ, ВПВ"
+											/>
+										</div>
+										<div className="form-group">
+											<label>Расчетное время на обслуживание</label>
+											<input
+												type="text"
+												value={
+													newFormData["Расчетное время на обслуживание"] || ""
+												}
+												onChange={(e) =>
+													setNewFormData({
+														...newFormData,
+														"Расчетное время на обслуживание": e.target.value,
+													})
+												}
+												placeholder="2 часа"
+											/>
+										</div>
+										<div className="form-group">
+											<label>Контакты</label>
+											<input
+												type="text"
+												value={newFormData["Контакты"] || ""}
+												onChange={(e) =>
+													setNewFormData({
+														...newFormData,
+														Контакты: e.target.value,
+													})
+												}
+												placeholder="Иванов Иван +79991234567"
+											/>
+										</div>
+										<div className="form-group">
+											<label>Инструмент на объекте</label>
+											<select
+												value={newFormData["Инструмент на объекте"] || "нет"}
+												onChange={(e) =>
+													setNewFormData({
+														...newFormData,
+														"Инструмент на объекте": e.target.value,
+													})
+												}
+											>
+												<option value="нет">Нет</option>
+												<option value="есть">Есть</option>
+											</select>
+										</div>
+										<div className="form-group form-group-full">
+											<label>Заметки</label>
+											<textarea
+												value={newFormData["Заметки"] || ""}
+												onChange={(e) =>
+													setNewFormData({
+														...newFormData,
+														Заметки: e.target.value,
+													})
+												}
+												rows={3}
+												placeholder="Дополнительная информация..."
+											/>
+										</div>
+									</div>
+									<button type="submit" className="btn btn-primary">
+										<Plus size={18} />
+										Добавить объект
+									</button>
+								</form>
 							</div>
-							<div className="form-group">
-								<label>Арендатор</label>
-								<input
-									type="text"
-									value={newFormData["Арендатор"] || ""}
-									onChange={(e) =>
-										setNewFormData({
-											...newFormData,
-											Арендатор: e.target.value,
-										})
-									}
-								/>
-							</div>
-							<div className="form-group">
-								<label>Системы</label>
-								<input
-									type="text"
-									value={newFormData["Системы"] || ""}
-									onChange={(e) =>
-										setNewFormData({ ...newFormData, Системы: e.target.value })
-									}
-									placeholder="АПС, СОУЭ, ВПВ"
-								/>
-							</div>
-							<div className="form-group">
-								<label>Расчетное время на обслуживание</label>
-								<input
-									type="text"
-									value={newFormData["Расчетное время на обслуживание"] || ""}
-									onChange={(e) =>
-										setNewFormData({
-											...newFormData,
-											"Расчетное время на обслуживание": e.target.value,
-										})
-									}
-									placeholder="2 часа"
-								/>
-							</div>
-							<div className="form-group">
-								<label>Контакты</label>
-								<input
-									type="text"
-									value={newFormData["Контакты"] || ""}
-									onChange={(e) =>
-										setNewFormData({ ...newFormData, Контакты: e.target.value })
-									}
-									placeholder="Иванов Иван +79991234567"
-								/>
-							</div>
-							<div className="form-group">
-								<label>Инструмент на объекте</label>
-								<select
-									value={newFormData["Инструмент на объекте"] || "нет"}
-									onChange={(e) =>
-										setNewFormData({
-											...newFormData,
-											"Инструмент на объекте": e.target.value,
-										})
-									}
-								>
-									<option value="нет">Нет</option>
-									<option value="есть">Есть</option>
-								</select>
-							</div>
-							<div className="form-group form-group-full">
-								<label>Заметки</label>
-								<textarea
-									value={newFormData["Заметки"] || ""}
-									onChange={(e) =>
-										setNewFormData({ ...newFormData, Заметки: e.target.value })
-									}
-									rows={3}
-									placeholder="Дополнительная информация..."
-								/>
-							</div>
-						</div>
-						<button type="submit" className="btn btn-primary">
-									<Plus size={18} />
-									Добавить объект
-								</button>
-							</form>
-						</div>
 						</div>
 					)}
-					</div>
+				</div>
 
-					{/* ТАБЛИЦА ОБЪЕКТОВ */}
+				{/* ТАБЛИЦА ОБЪЕКТОВ */}
 				<div className="table-container table-horizontal">
 					<table className="data-table">
 						<thead>
@@ -3701,6 +3825,47 @@ function App() {
 	}
 
 	function renderBuySection() {
+		// Обработчик выбора объекта - автозаполнение данных
+		const handleObjectSelect = (objectName) => {
+			const selectedObject = objects.find(
+				(o) => o["Наименование объекта"] === objectName,
+			);
+			if (selectedObject) {
+				setNewBuyData({
+					...newBuyData,
+					objectName: selectedObject["Наименование объекта"] || "",
+					contractNumber: selectedObject["№ контр/дог"] || "",
+					shortAddress: selectedObject["Адрес сокращенный"] || "",
+					payer: selectedObject["Кто оплачивает ремонт"] || "",
+				});
+			} else {
+				setNewBuyData({ ...newBuyData, objectName });
+			}
+		};
+
+		// Обработчик изменения статуса
+		const handleStatusChange = (id, newStatus) => {
+			setBuyItems(
+				buyItems.map((b) => (b.id === id ? { ...b, status: newStatus } : b)),
+			);
+		};
+
+		// Статус заявки на покупку
+		const getBuyStatusBadge = (status) => {
+			const statusMap = {
+				[BUY_STATUS.ORDERED]: { label: "Заказан счёт", class: "badge-order" },
+				[BUY_STATUS.WAITING_CONFIRM]: { label: "Ждёт подтверждения", class: "badge-wait" },
+				[BUY_STATUS.CAN_PAY]: { label: "Можно оплачивать", class: "badge-pay" },
+				[BUY_STATUS.PAID]: { label: "Счёт оплачен", class: "badge-paid" },
+				[BUY_STATUS.WAREHOUSE]: { label: "На складе", class: "badge-warehouse" },
+				[BUY_STATUS.OFFICE]: { label: "В офисе", class: "badge-office" },
+			};
+			const info = statusMap[status] || { label: status, class: "" };
+			return <span className={`badge ${info.class}`}>{info.label}</span>;
+		};
+
+		const uniqueObjects = [...new Set(objects.map((o) => o["Наименование объекта"]).filter(Boolean))];
+
 		return (
 			<>
 				<div className="content-header">
@@ -3715,30 +3880,47 @@ function App() {
 								<th>Дедлайн</th>
 								<th>Статус</th>
 								<th>Объект</th>
+								<th>№ дог/контр</th>
 								<th>Адрес</th>
 								<th>Что купить</th>
 								<th>Плательщик</th>
+								<th>Создатель</th>
 								<th>Действия</th>
 							</tr>
 						</thead>
 						<tbody>
 							{buyItems.length === 0 ? (
 								<tr>
-									<td colSpan="9" className="empty-state">
+									<td colSpan="11" className="empty-state">
 										Нет закупок
 									</td>
 								</tr>
 							) : (
 								buyItems.map((b) => (
 									<tr key={b.id}>
-										<td>{b.id}</td>
+										<td className="cell-id">{b.id}</td>
 										<td>{b.requestDate}</td>
-										<td>{b.deadline}</td>
-										<td>{b.status}</td>
+										<td>{b.deadline || <span className="text-muted">—</span>}</td>
+										<td>
+											<select
+												value={b.status}
+												onChange={(e) => handleStatusChange(b.id, e.target.value)}
+												style={{ padding: "4px 8px", borderRadius: "6px", border: "1px solid var(--border)" }}
+											>
+												<option value={BUY_STATUS.ORDERED}>Заказан счёт</option>
+												<option value={BUY_STATUS.WAITING_CONFIRM}>Счёт ждёт подтверждения</option>
+												<option value={BUY_STATUS.CAN_PAY}>Счёт можно оплачивать</option>
+												<option value={BUY_STATUS.PAID}>Счёт оплачен</option>
+												<option value={BUY_STATUS.WAREHOUSE}>Заказ на складе</option>
+												<option value={BUY_STATUS.OFFICE}>Заказ в офисе</option>
+											</select>
+										</td>
 										<td>{b.objectName}</td>
-										<td>{b.shortAddress}</td>
+										<td>{b.contractNumber || <span className="text-muted">—</span>}</td>
+										<td>{b.shortAddress || <span className="text-muted">—</span>}</td>
 										<td>{b.whatToBuy}</td>
-										<td>{b.payer}</td>
+										<td>{b.payer || <span className="text-muted">—</span>}</td>
+										<td>{b.creator || <span className="text-muted">—</span>}</td>
 										<td>
 											<button
 												className="btn-icon btn-delete"
@@ -3778,41 +3960,37 @@ function App() {
 								<input
 									type="text"
 									value={newBuyData.deadline}
+									placeholder="дд.мм.гггг"
 									onChange={(e) =>
 										setNewBuyData({ ...newBuyData, deadline: e.target.value })
 									}
 								/>
 							</div>
 							<div className="form-group">
-								<label>Статус</label>
-								<input
-									type="text"
-									value={newBuyData.status}
-									onChange={(e) =>
-										setNewBuyData({ ...newBuyData, status: e.target.value })
-									}
-								/>
+								<label>Объект *</label>
+								<select
+									value={newBuyData.objectName}
+									onChange={(e) => handleObjectSelect(e.target.value)}
+								>
+									<option value="">Выберите объект</option>
+									{uniqueObjects.map((name) => (
+										<option key={name} value={name}>
+											{name}
+										</option>
+									))}
+								</select>
 							</div>
 							<div className="form-group">
-								<label>№ договора</label>
+								<label>№ договор/контр</label>
 								<input
 									type="text"
 									value={newBuyData.contractNumber}
+									placeholder="Авто из объекта"
 									onChange={(e) =>
 										setNewBuyData({
-											...newBuyData,
+										...newBuyData,
 											contractNumber: e.target.value,
 										})
-									}
-								/>
-							</div>
-							<div className="form-group">
-								<label>Объект</label>
-								<input
-									type="text"
-									value={newBuyData.objectName}
-									onChange={(e) =>
-										setNewBuyData({ ...newBuyData, objectName: e.target.value })
 									}
 								/>
 							</div>
@@ -3821,6 +3999,7 @@ function App() {
 								<input
 									type="text"
 									value={newBuyData.shortAddress}
+									placeholder="Авто из объекта"
 									onChange={(e) =>
 										setNewBuyData({
 											...newBuyData,
@@ -3830,29 +4009,39 @@ function App() {
 								/>
 							</div>
 							<div className="form-group">
-								<label>Плательщик</label>
+								<label>Кто оплачивает</label>
 								<input
 									type="text"
 									value={newBuyData.payer}
+									placeholder="Авто из объекта"
 									onChange={(e) =>
 										setNewBuyData({ ...newBuyData, payer: e.target.value })
 									}
 								/>
 							</div>
 							<div className="form-group form-group-full">
-								<label>Что купить</label>
-								<input
-									type="text"
+								<label>Что нужно приобрести *</label>
+								<textarea
 									value={newBuyData.whatToBuy}
+									placeholder="Опишите что нужно приобрести..."
+									rows={3}
 									onChange={(e) =>
 										setNewBuyData({ ...newBuyData, whatToBuy: e.target.value })
 									}
 								/>
 							</div>
 						</div>
-						<button type="submit" className="btn btn-primary">
+						<div style={{ marginTop: "16px", padding: "12px", background: "var(--gray-50)", borderRadius: "8px", fontSize: "0.85rem" }}>
+							<strong>Важно:</strong>
+							<ul style={{ margin: "8px 0 0 20px", paddingLeft: "16px" }}>
+								<li>При статусе "Заказан счёт" автоматически создаётся запись во вкладке "Счета"</li>
+								<li>Если плательщик отличается от "всё за наш счёт", создаётся заявка на актирование</li>
+								<li>Создатель заявки заполняется автоматически</li>
+							</ul>
+						</div>
+						<button type="submit" className="btn btn-primary" style={{ marginTop: "16px" }}>
 							<Plus size={18} />
-							Добавить
+							Добавить закупку
 						</button>
 					</form>
 				</div>
