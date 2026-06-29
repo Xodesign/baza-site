@@ -1175,9 +1175,9 @@ function App() {
 			"Наименование объекта": objectName,
 			"РД ИД ПД": rd,
 			Арендатор: `Арендатор${num}`,
-			Системы: [0, 1, 2, 3]
-				.map(() => systems[Math.floor(Math.random() * systems.length)])
-				.filter((v, i, a) => a.indexOf(v) === i)
+			Системы: ["АПС", "СОУЭ", "ВПВ", "ОПС", "ВИДЕОНАБЛЮДЕНИЕ", "СКУД"]
+				.filter(() => Math.random() > 0.5)
+				.slice(0, 3)
 				.join(", "),
 			"Расчетное время на обслуживание": `${Math.floor(Math.random() * 8) + 1} часов`,
 			Контакты: `Контактное лицо +7999${Math.floor(Math.random() * 90000000) + 10000000}`,
@@ -1383,7 +1383,7 @@ function App() {
 	const handleAddCall = (formData) => {
 		// formData может быть событием (e) или объектом с данными
 		const callData = formData?.preventDefault ? null : formData;
-		
+
 		if (callData) {
 			// Новый компонент передаёт данные напрямую
 			const newCall = {
@@ -1443,7 +1443,7 @@ function App() {
 	// Создание заявки на закупку из раздела Вызовы
 	const handleCreateBuyFromCall = (data) => {
 		const obj = objects.find(
-			(o) => o["Наименование объекта"] === data.objectName
+			(o) => o["Наименование объекта"] === data.objectName,
 		);
 		const newBuy = {
 			id: Date.now(),

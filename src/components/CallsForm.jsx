@@ -26,7 +26,9 @@ import {
 // === КАЛЕНДАРНЫЙ КОМПОНЕНТ ДЛЯ ДЕДЛАЙНА ===
 function DeadlineCalendar({ value, onChange }) {
 	const [showCalendar, setShowCalendar] = useState(false);
-	const [viewDate, setViewDate] = useState(() => value ? new Date(value) : new Date());
+	const [viewDate, setViewDate] = useState(() =>
+		value ? new Date(value) : new Date(),
+	);
 
 	const days = useMemo(() => {
 		const year = viewDate.getFullYear();
@@ -94,17 +96,28 @@ function DeadlineCalendar({ value, onChange }) {
 				className={`deadline-display ${status}`}
 				onClick={() => setShowCalendar(!showCalendar)}
 			>
-				{value ? formatDisplayDate(value) : <span className="deadline-placeholder">Выберите дату</span>}
+				{value ? (
+					formatDisplayDate(value)
+				) : (
+					<span className="deadline-placeholder">Выберите дату</span>
+				)}
 				<ChevronDown size={16} />
 			</div>
 			{showCalendar && (
 				<div className="calendar-popup">
 					<div className="calendar-header">
-						<button type="button" onClick={handlePrevMonth}>&lt;</button>
+						<button type="button" onClick={handlePrevMonth}>
+							&lt;
+						</button>
 						<span>
-							{viewDate.toLocaleDateString("ru-RU", { month: "long", year: "numeric" })}
+							{viewDate.toLocaleDateString("ru-RU", {
+								month: "long",
+								year: "numeric",
+							})}
 						</span>
-						<button type="button" onClick={handleNextMonth}>&gt;</button>
+						<button type="button" onClick={handleNextMonth}>
+							&gt;
+						</button>
 					</div>
 					<div className="calendar-weekdays">
 						{["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"].map((d) => (
@@ -211,7 +224,12 @@ function AddressSelect({ value, onChange, objects, onSelectObject }) {
 // === ВЫБОР СИСТЕМ С ГАЛОЧКАМИ ===
 function SystemMultiSelect({ value, onChange, availableSystems, disabled }) {
 	const [isOpen, setIsOpen] = useState(false);
-	const selected = value ? value.split(",").map((s) => s.trim()).filter(Boolean) : [];
+	const selected = value
+		? value
+				.split(",")
+				.map((s) => s.trim())
+				.filter(Boolean)
+		: [];
 
 	const toggleSystem = (system) => {
 		if (disabled) return;
@@ -225,11 +243,18 @@ function SystemMultiSelect({ value, onChange, availableSystems, disabled }) {
 	const isRed = !disabled && selected.length === 0;
 
 	return (
-		<div className={`system-multiselect ${disabled ? "disabled" : ""} ${isRed ? "required" : ""}`}>
-			<div className="system-selected" onClick={() => !disabled && setIsOpen(!isOpen)}>
+		<div
+			className={`system-multiselect ${disabled ? "disabled" : ""} ${isRed ? "required" : ""}`}
+		>
+			<div
+				className="system-selected"
+				onClick={() => !disabled && setIsOpen(!isOpen)}
+			>
 				{selected.length > 0 ? (
 					selected.map((s) => (
-						<span key={s} className="system-tag">{s}</span>
+						<span key={s} className="system-tag">
+							{s}
+						</span>
 					))
 				) : (
 					<span className="system-placeholder">Выберите системы</span>
@@ -260,7 +285,12 @@ function SystemMultiSelect({ value, onChange, availableSystems, disabled }) {
 }
 
 // === НАШ ИНСТРУМЕНТ ВЫБОР ===
-function OurToolSelect({ value, onChange, onCreateTransport, transportStatus }) {
+function OurToolSelect({
+	value,
+	onChange,
+	onCreateTransport,
+	transportStatus,
+}) {
 	const [isOpen, setIsOpen] = useState(false);
 	const options = [
 		{ value: "0", label: "------------", color: "#dc3545" },
@@ -275,10 +305,15 @@ function OurToolSelect({ value, onChange, onCreateTransport, transportStatus }) 
 		<div className="tool-select-wrapper">
 			<div
 				className="tool-selected"
-				style={{ borderColor: selectedOption.color, backgroundColor: selectedOption.color + "15" }}
+				style={{
+					borderColor: selectedOption.color,
+					backgroundColor: selectedOption.color + "15",
+				}}
 				onClick={() => setIsOpen(!isOpen)}
 			>
-				<span style={{ color: selectedOption.color }}>{selectedOption.label}</span>
+				<span style={{ color: selectedOption.color }}>
+					{selectedOption.label}
+				</span>
 				<ChevronDown size={14} />
 			</div>
 			{isOpen && (
@@ -304,7 +339,12 @@ function OurToolSelect({ value, onChange, onCreateTransport, transportStatus }) 
 			{transportStatus && (
 				<div className="transport-status">
 					<Truck size={12} />
-					<a href="#" onClick={(e) => { e.preventDefault(); /* переход в транспорт */ }}>
+					<a
+						href="#"
+						onClick={(e) => {
+							e.preventDefault(); /* переход в транспорт */
+						}}
+					>
 						Заявка на транспорт
 					</a>
 				</div>
@@ -329,10 +369,15 @@ function PurchaseSelect({ value, onChange, onCreateBuy, buyStatus }) {
 		<div className="purchase-select-wrapper">
 			<div
 				className="tool-selected"
-				style={{ borderColor: selectedOption.color, backgroundColor: selectedOption.color + "15" }}
+				style={{
+					borderColor: selectedOption.color,
+					backgroundColor: selectedOption.color + "15",
+				}}
 				onClick={() => setIsOpen(!isOpen)}
 			>
-				<span style={{ color: selectedOption.color }}>{selectedOption.label}</span>
+				<span style={{ color: selectedOption.color }}>
+					{selectedOption.label}
+				</span>
 				<ChevronDown size={14} />
 			</div>
 			{isOpen && (
@@ -358,7 +403,12 @@ function PurchaseSelect({ value, onChange, onCreateBuy, buyStatus }) {
 			{buyStatus && (
 				<div className="transport-status">
 					<ShoppingCart size={12} />
-					<a href="#" onClick={(e) => { e.preventDefault(); /* переход в купить */ }}>
+					<a
+						href="#"
+						onClick={(e) => {
+							e.preventDefault(); /* переход в купить */
+						}}
+					>
 						Заявка на закупку
 					</a>
 				</div>
@@ -416,15 +466,21 @@ function StaffSelect({ value, onChange, staff, placeholder }) {
 }
 
 // === ВЫБОР КОНТАКТА С ДОБАВЛЕНИЕМ ===
-function ContactSelect({ value, onChange, contacts, objectName, onAddContact }) {
+function ContactSelect({
+	value,
+	onChange,
+	contacts,
+	objectName,
+	onAddContact,
+}) {
 	const [isOpen, setIsOpen] = useState(false);
 	const [inputValue, setInputValue] = useState(value || "");
 	const [showAddForm, setShowAddForm] = useState(false);
 	const [newContactName, setNewContactName] = useState("");
 	const [newContactPhone, setNewContactPhone] = useState("");
 
-	const objectContacts = contacts.filter((c) =>
-		c.objectName === objectName || !objectName
+	const objectContacts = contacts.filter(
+		(c) => c.objectName === objectName || !objectName,
 	);
 
 	const handleAddNew = () => {
@@ -500,10 +556,18 @@ function ContactSelect({ value, onChange, contacts, objectName, onAddContact }) 
 						onChange={(e) => setNewContactPhone(e.target.value)}
 					/>
 					<div className="contact-add-actions">
-						<button type="button" className="btn btn-sm btn-primary" onClick={handleAddNew}>
+						<button
+							type="button"
+							className="btn btn-sm btn-primary"
+							onClick={handleAddNew}
+						>
 							Добавить
 						</button>
-						<button type="button" className="btn btn-sm" onClick={() => setShowAddForm(false)}>
+						<button
+							type="button"
+							className="btn btn-sm"
+							onClick={() => setShowAddForm(false)}
+						>
 							Отмена
 						</button>
 					</div>
@@ -559,18 +623,22 @@ export default function CallsForm({
 		const obj = objects.find(
 			(o) =>
 				o["Наименование объекта"] === formData.objectName ||
-				o["Адрес сокращенный"] === formData.objectName
+				o["Адрес сокращенный"] === formData.objectName,
 		);
 		if (!obj) return [];
 		const objSystems = systems.filter(
-			(s) => s.objectId === obj.id || s.parentObject === obj["Наименование объекта"]
+			(s) =>
+				s.objectId === obj.id || s.parentObject === obj["Наименование объекта"],
 		);
 		if (objSystems.length > 0) {
 			return [...new Set(objSystems.map((s) => s.systemType).filter(Boolean))];
 		}
 		// fallback на системы из поля объекта
 		const systemsStr = obj["Системы"] || "";
-		return systemsStr.split(",").map((s) => s.trim()).filter(Boolean);
+		return systemsStr
+			.split(",")
+			.map((s) => s.trim())
+			.filter(Boolean);
 	}, [formData.objectName, objects, systems]);
 
 	// Обновляем доступные системы при изменении объекта
@@ -616,9 +684,7 @@ export default function CallsForm({
 
 		// Автозаполнение при выборе адреса
 		if (field === "shortAddress" && !isObjectSelected) {
-			const obj = objects.find(
-				(o) => o["Адрес сокращенный"] === value
-			);
+			const obj = objects.find((o) => o["Адрес сокращенный"] === value);
 			if (obj) {
 				setFormData({
 					...formData,
@@ -635,7 +701,7 @@ export default function CallsForm({
 			const obj = objects.find(
 				(o) =>
 					o["Наименование объекта"] === value ||
-					`${o.objectNumber || o.id}. ${o["Наименование объекта"]}` === value
+					`${o.objectNumber || o.id}. ${o["Наименование объекта"]}` === value,
 			);
 			if (obj) {
 				setFormData({
@@ -711,8 +777,10 @@ export default function CallsForm({
 	const deadlineStatus = getDeadlineStatus(formData.deadline);
 	const isEngineerRequired = !formData.engineer?.trim();
 	const isSystemRequired = !formData.system?.trim();
-	const isRequestRequired = !formData.request?.trim() || formData.request.trim().length < 10;
-	const isDataOwnerRed = formData.ourTool === "3" || formData.toPurchase === "3";
+	const isRequestRequired =
+		!formData.request?.trim() || formData.request.trim().length < 10;
+	const isDataOwnerRed =
+		formData.ourTool === "3" || formData.toPurchase === "3";
 
 	return (
 		<div className="calls-form-container">
@@ -742,8 +810,12 @@ export default function CallsForm({
 					<div className="form-group">
 						<label className={`deadline-label ${deadlineStatus}`}>
 							Дедлайн
-							{deadlineStatus === "empty" && <span className="status-badge empty">(не заполнено)</span>}
-							{deadlineStatus === "urgent" && <span className="status-badge urgent">≤2 дней!</span>}
+							{deadlineStatus === "empty" && (
+								<span className="status-badge empty">(не заполнено)</span>
+							)}
+							{deadlineStatus === "urgent" && (
+								<span className="status-badge urgent">≤2 дней!</span>
+							)}
 						</label>
 						<DeadlineCalendar
 							value={formData.deadline}
@@ -765,9 +837,13 @@ export default function CallsForm({
 
 					{/* Исполнитель - КРАСНЫЙ пока не выбран */}
 					<div className="form-group">
-						<label className={`required-label ${isEngineerRequired ? "error" : ""}`}>
+						<label
+							className={`required-label ${isEngineerRequired ? "error" : ""}`}
+						>
 							Исполнитель *
-							{isEngineerRequired && <span className="required-indicator">!</span>}
+							{isEngineerRequired && (
+								<span className="required-indicator">!</span>
+							)}
 						</label>
 						<StaffSelect
 							value={formData.engineer}
@@ -779,27 +855,31 @@ export default function CallsForm({
 
 					{/* Помощник - ГОЛУБОЙ матовый до заполнения + "(не требуется)" / "(требуется)" */}
 					<div className="form-group">
-						<label className={!formData.assistant ? "helper-label-unfilled" : ""}>
+						<label
+							className={!formData.assistant ? "helper-label-unfilled" : ""}
+						>
 							Помощник
 							{!formData.assistant && (
 								<span className="helper-options">
-										<span
-											className="helper-option"
-												onClick={() => handleChange("assistant", "(не требуется)")}
-										>
-												(не требуется)
-											</span>
-											<span className="helper-separator"> / </span>
-										<span
-											className="helper-option required"
-												onClick={() => handleChange("assistant", "(требуется)")}
-										>
-												(требуется)
-											</span>
-										</span>
+									<span
+										className="helper-option"
+										onClick={() => handleChange("assistant", "(не требуется)")}
+									>
+										(не требуется)
+									</span>
+									<span className="helper-separator"> / </span>
+									<span
+										className="helper-option required"
+										onClick={() => handleChange("assistant", "(требуется)")}
+									>
+										(требуется)
+									</span>
+								</span>
 							)}
 						</label>
-						<div className={`helper-input-wrapper ${!formData.assistant ? "unfilled" : ""}`}>
+						<div
+							className={`helper-input-wrapper ${!formData.assistant ? "unfilled" : ""}`}
+						>
 							<StaffSelect
 								value={formData.assistant}
 								onChange={(val) => handleChange("assistant", val)}
@@ -856,7 +936,9 @@ export default function CallsForm({
 							onChange={(e) => handleChange("objectName", e.target.value)}
 							list="objects-list"
 							placeholder="Введите или выберите объект"
-							className={errors.objectName && touched.objectName ? "input-error" : ""}
+							className={
+								errors.objectName && touched.objectName ? "input-error" : ""
+							}
 							autoFocus
 						/>
 						<datalist id="objects-list">
@@ -906,14 +988,22 @@ export default function CallsForm({
 
 					{/* СИСТЕМА - мультивыбор с галочками, КРАСНЫЙ если не заполнено */}
 					<div className="form-group">
-						<label className={`required-label ${isSystemRequired ? "error" : ""}`}>
+						<label
+							className={`required-label ${isSystemRequired ? "error" : ""}`}
+						>
 							Система *
-							{isSystemRequired && <span className="required-indicator">!</span>}
+							{isSystemRequired && (
+								<span className="required-indicator">!</span>
+							)}
 						</label>
 						<SystemMultiSelect
 							value={formData.system}
 							onChange={(val) => handleChange("system", val)}
-							availableSystems={objectSystems.length > 0 ? objectSystems : ["АПС", "СОУЭ", "ВПВ", "ОПС", "ВИДЕОНАБЛЮДЕНИЕ", "СКУД"]}
+							availableSystems={
+								objectSystems.length > 0
+									? objectSystems
+									: ["АПС", "СОУЭ", "ВПВ", "ОПС", "ВИДЕОНАБЛЮДЕНИЕ", "СКУД"]
+							}
 							disabled={!isObjectSelected}
 						/>
 						{!isObjectSelected && (
@@ -923,9 +1013,13 @@ export default function CallsForm({
 
 					{/* ЗАЯВКА - КРАСНЫЙ если не заполнено, сохраняется только если ≥10 символов */}
 					<div className="form-group form-group-full">
-						<label className={`required-label ${isRequestRequired ? "error" : ""}`}>
+						<label
+							className={`required-label ${isRequestRequired ? "error" : ""}`}
+						>
 							Заявка * (минимум 10 символов)
-							{isRequestRequired && <span className="required-indicator">!</span>}
+							{isRequestRequired && (
+								<span className="required-indicator">!</span>
+							)}
 						</label>
 						<textarea
 							value={formData.request}
@@ -939,7 +1033,9 @@ export default function CallsForm({
 							<span className="error-message">{errors.request}</span>
 						)}
 						{formData.request && (
-							<span className="char-count">{formData.request.length} символов</span>
+							<span className="char-count">
+								{formData.request.length} символов
+							</span>
 						)}
 					</div>
 
@@ -987,14 +1083,20 @@ export default function CallsForm({
 							value={formData.activation}
 							onChange={(e) => handleChange("activation", e.target.value)}
 							disabled={!isObjectSelected || formData.status !== "completed"}
-							className={isObjectSelected && formData.status === "completed" ? "" : "disabled-field"}
+							className={
+								isObjectSelected && formData.status === "completed"
+									? ""
+									: "disabled-field"
+							}
 						>
 							<option value="">-- Выберите --</option>
 							<option value="требуется">Требуется</option>
 							<option value="не требуется">Не требуется</option>
 						</select>
 						{formData.status !== "completed" && (
-							<span className="field-hint">Доступно после статуса "Завершён"</span>
+							<span className="field-hint">
+								Доступно после статуса "Завершён"
+							</span>
 						)}
 					</div>
 
