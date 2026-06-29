@@ -438,6 +438,18 @@
 
 .btn-outline:hover {
 	background: var(--gray-50);
+}
+
+.btn-warning {
+	background: #ff9800;
+	color: white;
+	border: none;
+}
+
+.btn-warning:hover {
+	background: #f57c00;
+}
+	background: var(--gray-50);
 	border-color: var(--gray-300);
 }
 
