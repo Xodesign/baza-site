@@ -3188,3 +3188,129 @@ input[type="date"]:focus {
 	padding: 12px 24px;
 	font-size: 1rem;
 }
+
+/* ================================
+   TOOL SECTION STYLES
+   ================================ */
+.tool-row {
+	cursor: pointer;
+	transition: background-color 0.15s ease;
+}
+
+.tool-row:hover {
+	background-color: var(--gray-50);
+}
+
+.tool-row.has-transport {
+	background-color: #e3f2fd;
+}
+
+.tool-row.has-transport:hover {
+	background-color: #bbdefb;
+}
+
+.transport-badge {
+	display: inline-flex;
+	align-items: center;
+	padding: 4px 8px;
+	border-radius: 4px;
+	font-size: 0.85rem;
+	font-weight: 500;
+}
+
+.transport-badge.pending {
+	background-color: #fff3e0;
+	color: #e65100;
+}
+
+.transport-badge.confirmed {
+	background-color: #e8f5e9;
+	color: #2e7d32;
+}
+
+.text-muted {
+	color: var(--gray-400);
+	font-style: italic;
+}
+
+/* Tool Modal Styles */
+.tool-modal {
+	max-width: 800px;
+}
+
+.tool-info-section,
+.tool-target-section,
+.tool-fact-section {
+	margin-bottom: 24px;
+	padding-bottom: 20px;
+	border-bottom: 1px solid var(--gray-200);
+}
+
+.tool-info-section:last-of-type {
+	border-bottom: none;
+}
+
+.tool-info-section h3,
+.tool-target-section h3,
+.tool-fact-section h3 {
+	font-size: 1rem;
+	color: var(--gray-700);
+	margin-bottom: 16px;
+	padding-bottom: 8px;
+	border-bottom: 2px solid var(--primary);
+}
+
+.tool-target-section h3 {
+	border-bottom-color: #ff9800;
+}
+
+.tool-transport-section {
+	margin-bottom: 24px;
+	padding-bottom: 20px;
+	border-bottom: 1px solid var(--gray-200);
+}
+
+.tool-transport-section h3 {
+	font-size: 1rem;
+	color: var(--gray-700);
+	margin-bottom: 16px;
+	padding-bottom: 8px;
+	border-bottom: 2px solid #4caf50;
+}
+
+.info-field {
+	padding: 8px 12px;
+	background-color: var(--gray-100);
+	border-radius: 6px;
+	font-size: 0.9rem;
+	color: var(--gray-700);
+	min-height: 38px;
+	display: flex;
+	align-items: center;
+}
+
+.btn-confirm {
+	width: 100%;
+	margin-top: 16px;
+	padding: 12px;
+	font-size: 1rem;
+	font-weight: 600;
+	background-color: #4caf50;
+}
+
+.btn-confirm:hover {
+	background-color: #388e3c;
+}
+
+.confirmed-badge {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	gap: 8px;
+	margin-top: 16px;
+	padding: 12px;
+	background-color: #e8f5e9;
+	color: #2e7d32;
+	border-radius: 8px;
+	font-weight: 600;
+}

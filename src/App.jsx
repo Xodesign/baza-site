@@ -440,6 +440,11 @@ const INITIAL_TOOLS =
 			callStatus: row["Статус вызова"] || "",
 			transportRequest: row["подтвердить выбор "] || "",
 			targetAddress: row["Целевой"] || "",
+			// Новые поля для связи с транспортом
+			transportRequestId: null, // ID заявки на транспорт
+			factObjectName: "", // Фактический объект
+			factShortAddress: "", // Фактический адрес
+			isConfirmed: false, // Подтвержден ли выбор
 		};
 	}) || [];
 
@@ -686,6 +691,8 @@ function App() {
 		return saved ? JSON.parse(saved) : INITIAL_TOOLS;
 	});
 	const [newToolData, setNewToolData] = useState(getEmptyToolForm());
+	const [editingTool, setEditingTool] = useState(null); // Инструмент для редактирования в модалке
+	const [isToolModalOpen, setIsToolModalOpen] = useState(false); // Открыта ли модалка
 
 	// --- СТЕЙТЫ АКТИРОВАНИЯ ---
 	const [activations, setActivations] = useState(() => {
@@ -1189,11 +1196,22 @@ function App() {
 	};
 
 	const handleAddRandomObjects = (count = 5) => {
+		console.log(
+			"handleAddRandomObjects called, count:",
+			count,
+			"current objects:",
+			objects.length,
+		);
 		objectContactsSyncRef.current = true;
 		const newObjects = Array.from({ length: count }, () =>
 			generateRandomObject(),
 		);
+		console.log("Generated newObjects:", newObjects.length, newObjects);
 		setObjects([...newObjects, ...objects]);
+		console.log(
+			"setObjects called with total:",
+			newObjects.length + objects.length,
+		);
 	};
 
 	const handleDeleteObject = (id) => {
@@ -1524,6 +1542,71 @@ function App() {
 			setTools(tools.filter((t) => t.id !== id));
 	};
 
+	// Открытие модалки редактирования инструмента
+	const handleToolClick = (tool) => {
+		setEditingTool({ ...tool });
+		setIsToolModalOpen(true);
+	};
+
+	// Закрытие модалки
+	const handleCloseToolModal = () => {
+		setIsToolModalOpen(false);
+		setEditingTool(null);
+	};
+
+	// Сохранение изменений инструмента
+	const handleSaveTool = () => {
+		if (!editingTool) return;
+		setTools(tools.map((t) => (t.id === editingTool.id ? editingTool : t)));
+		handleCloseToolModal();
+	};
+
+	// Подтверждение выбора инструмента для заявки на транспорт
+	const handleConfirmToolSelection = () => {
+		if (!editingTool?.transportRequestId) return;
+		setTools(
+			tools.map((t) =>
+				t.id === editingTool.id
+					? { ...t, isConfirmed: true, transportRequest: t.transportRequestId.toString() }
+					: t,
+			),
+		);
+		setEditingTool({ ...editingTool, isConfirmed: true });
+	};
+
+	// Обработчик изменения статуса в транспорте - автообновление инструментов
+	const handleTransportStatusChange = (transportId, newStatus) => {
+		if (newStatus !== "Выполнена") return;
+
+		// Найти заявку на транспорт
+		const transport = transportItems.find((t) => t.id === transportId);
+		if (!transport) return;
+
+		// Найти все инструменты привязанные к этой заявке
+		const toolsToUpdate = tools.filter(
+			(t) => t.transportRequestId === transportId,
+		);
+
+		if (toolsToUpdate.length === 0) return;
+
+		// Обновить инструменты: фактический адрес = из транспорта, дата прибытия = сейчас
+		const now = new Date().toLocaleDateString("ru-RU");
+		setTools(
+			tools.map((t) =>
+				t.transportRequestId === transportId
+					? {
+							...t,
+							factObjectName: transport.objectName,
+							factShortAddress: transport.shortAddress,
+							arrivalDate: now,
+							transportRequestId: null, // Очищаем связь
+							isConfirmed: false,
+						}
+						: t,
+			),
+		);
+	};
+
 	const handleToggleToolSelection = (id) => {
 		setSelectedToolIds((prev) =>
 			prev.includes(id) ? prev.filter((tid) => tid !== id) : [...prev, id],
@@ -1624,11 +1707,17 @@ function App() {
 
 	const handleSaveTransport = (e) => {
 		e?.preventDefault();
+		const oldStatus = transportItems.find((t) => t.id === editingTransport.id)?.thisStatus;
+		const newStatus = editingTransport.thisStatus;
 		setTransportItems(
 			transportItems.map((t) =>
 				t.id === editingTransport.id ? editingTransport : t,
 			),
 		);
+		// Если статус изменился на "Выполнена", обновить связанные инструменты
+		if (oldStatus !== "Выполнена" && newStatus === "Выполнена") {
+			handleTransportStatusChange(editingTransport.id, newStatus);
+		}
 		setIsTransportModalOpen(false);
 		setEditingTransport(null);
 	};
@@ -1893,7 +1982,12 @@ function App() {
 			case "costs":
 				return renderCostsSection();
 			case "tools":
-				return renderToolsSection();
+				return (
+					<>
+						{renderToolsSection()}
+						<ToolEditModal />
+					</>
+				);
 			case "buy":
 				return renderBuySection();
 			case "transport":
@@ -3243,53 +3337,67 @@ function App() {
 								<th>Инструмент</th>
 								<th>Инв. номер</th>
 								<th>Марка</th>
-								<th>Объект</th>
-								<th>Адрес</th>
-								<th>Статус</th>
+								<th>Целевой объект</th>
+								<th>Целевой адрес</th>
+								<th>Заявка на транспорт</th>
+								<th>Статус вызова</th>
 								<th>Действия</th>
 							</tr>
 						</thead>
-						<tbody>
-							{tools.length === 0 ? (
-								<tr>
-									<td colSpan="9" className="empty-state">
-										Нет инструментов
+					<tbody>
+						{tools.length === 0 ? (
+							<tr>
+								<td colSpan="10" className="empty-state">
+									Нет инструментов
+								</td>
+							</tr>
+						) : (
+							tools.map((t) => (
+								<tr
+									key={t.id}
+									className={`tool-row ${selectedToolIds.includes(t.id) ? "tr-selected" : ""} ${t.transportRequestId ? "has-transport" : ""}`}
+									onClick={() => handleToolClick(t)}
+									title="Нажмите для редактирования"
+								>
+									<td className="td-checkbox" onClick={(e) => e.stopPropagation()}>
+										<input
+											type="checkbox"
+											checked={selectedToolIds.includes(t.id)}
+											onChange={() => handleToggleToolSelection(t.id)}
+											aria-label={`Выбрать инструмент ${t.tool}`}
+										/>
+									</td>
+									<td>{t.id}</td>
+									<td>{t.tool}</td>
+									<td>{t.inventoryNumber}</td>
+									<td>{t.brand}</td>
+									<td>{t.objectName || "-"}</td>
+									<td>{t.shortAddress || "-"}</td>
+									<td>
+										{t.transportRequestId ? (
+											<span className={`transport-badge ${t.isConfirmed ? "confirmed" : "pending"}`}>
+												{t.isConfirmed ? "✓ " : "• "}Заявка #{t.transportRequestId}
+											</span>
+										) : (
+											<span className="text-muted">Не назначен</span>
+										)}
+									</td>
+									<td>
+										{t.transportRequestId
+											? transportItems.find((tr) => tr.id === t.transportRequestId)?.callStatus || "-"
+											: "-"}
+									</td>
+									<td onClick={(e) => e.stopPropagation()}>
+										<button
+											className="btn-icon btn-delete"
+											onClick={() => handleDeleteTool(t.id)}
+										>
+											<Trash2 size={16} />
+										</button>
 									</td>
 								</tr>
-							) : (
-								tools.map((t) => (
-									<tr
-										key={t.id}
-										className={
-											selectedToolIds.includes(t.id) ? "tr-selected" : ""
-										}
-									>
-										<td className="td-checkbox">
-											<input
-												type="checkbox"
-												checked={selectedToolIds.includes(t.id)}
-												onChange={() => handleToggleToolSelection(t.id)}
-												aria-label={`Выбрать инструмент ${t.tool}`}
-											/>
-										</td>
-										<td>{t.id}</td>
-										<td>{t.tool}</td>
-										<td>{t.inventoryNumber}</td>
-										<td>{t.brand}</td>
-										<td>{t.objectName}</td>
-										<td>{t.shortAddress}</td>
-										<td>{t.callStatus}</td>
-										<td>
-											<button
-												className="btn-icon btn-delete"
-												onClick={() => handleDeleteTool(t.id)}
-											>
-												<Trash2 size={16} />
-											</button>
-										</td>
-									</tr>
-								))
-							)}
+							))
+						)}
 						</tbody>
 					</table>
 				</div>
@@ -3393,6 +3501,195 @@ function App() {
 					</form>
 				</div>
 			</>
+		);
+	}
+
+	// МОДАЛКА РЕДАКТИРОВАНИЯ ИНСТРУМЕНТА
+	function ToolEditModal() {
+		if (!isToolModalOpen || !editingTool) return null;
+
+		// Найти статус вызова из связанной заявки на транспорт
+		const linkedTransport = transportItems.find(
+			(t) => t.id === editingTool.transportRequestId,
+		);
+		const callStatus = linkedTransport?.callStatus || "-";
+		const transportStatus = linkedTransport?.thisStatus || "-";
+
+		return (
+			<div className="modal-overlay" onClick={handleCloseToolModal}>
+				<div className="modal tool-modal" onClick={(e) => e.stopPropagation()}>
+					<div className="modal-header">
+						<h2>Редактирование инструмента</h2>
+						<button className="modal-close" onClick={handleCloseToolModal}>
+							<X size={24} />
+						</button>
+					</div>
+					<div className="modal-body">
+						<div className="tool-info-section">
+							<h3>Информация об инструменте</h3>
+							<div className="form-grid">
+								<div className="form-group">
+									<label>Инструмент</label>
+									<input
+										type="text"
+										value={editingTool.tool}
+										onChange={(e) =>
+											setEditingTool({ ...editingTool, tool: e.target.value })
+										}
+									/>
+								</div>
+								<div className="form-group">
+									<label>Инв. номер</label>
+									<input
+										type="text"
+										value={editingTool.inventoryNumber}
+										onChange={(e) =>
+											setEditingTool({ ...editingTool, inventoryNumber: e.target.value })
+										}
+									/>
+								</div>
+								<div className="form-group">
+									<label>Марка</label>
+									<input
+										type="text"
+										value={editingTool.brand}
+										onChange={(e) =>
+											setEditingTool({ ...editingTool, brand: e.target.value })
+										}
+									/>
+								</div>
+							</div>
+						</div>
+
+						<div className="tool-target-section">
+							<h3>Целевые данные (откуда забираем)</h3>
+							<div className="form-grid">
+								<div className="form-group">
+									<label>Целевой объект</label>
+									<input
+										type="text"
+										value={editingTool.objectName || ""}
+										onChange={(e) =>
+											setEditingTool({ ...editingTool, objectName: e.target.value })
+										}
+									/>
+								</div>
+								<div className="form-group">
+									<label>Целевой адрес</label>
+									<input
+										type="text"
+										value={editingTool.shortAddress || ""}
+										onChange={(e) =>
+											setEditingTool({ ...editingTool, shortAddress: e.target.value })
+										}
+									/>
+								</div>
+							</div>
+						</div>
+
+						<div className="tool-transport-section">
+							<h3>Заявка на транспорт</h3>
+							<div className="form-grid">
+								<div className="form-group">
+									<label>Выберите заявку на транспорт</label>
+									<select
+										value={editingTool.transportRequestId || ""}
+										onChange={(e) =>
+											setEditingTool({
+												...editingTool,
+												transportRequestId: e.target.value ? Number(e.target.value) : null,
+												isConfirmed: false,
+											})
+											}
+									>
+										<option value="">-- Не назначен --</option>
+										{transportItems
+											.filter((t) => t.thisStatus !== "Выполнена")
+											.map((t) => (
+											<option key={t.id} value={t.id}>
+												Заявка #{t.id} - {t.objectName || "Без объекта"} (
+													{t.shortAddress || "нет адреса"})
+												</option>
+										))}
+									</select>
+								</div>
+								<div className="form-group">
+									<label>Статус заявки на транспорт</label>
+									<div className="info-field">{transportStatus}</div>
+								</div>
+								<div className="form-group">
+									<label>Статус вызова</label>
+									<div className="info-field">{callStatus}</div>
+								</div>
+							</div>
+							{editingTool.transportRequestId && !editingTool.isConfirmed && (
+								<button
+									type="button"
+									className="btn btn-primary btn-confirm"
+									onClick={handleConfirmToolSelection}
+								>
+									Подтвердите выбор
+								</button>
+							)}
+							{editingTool.transportRequestId && editingTool.isConfirmed && (
+								<div className="confirmed-badge">✓ Выбор подтверждён</div>
+							)}
+						</div>
+
+						<div className="tool-fact-section">
+							<h3>Фактические данные (куда доставлен)</h3>
+							<div className="form-grid">
+								<div className="form-group">
+									<label>Фактический объект</label>
+									<input
+										type="text"
+										value={editingTool.factObjectName || ""}
+										onChange={(e) =>
+											setEditingTool({ ...editingTool, factObjectName: e.target.value })
+										}
+									/>
+								</div>
+								<div className="form-group">
+									<label>Фактический адрес</label>
+									<input
+										type="text"
+										value={editingTool.factShortAddress || ""}
+										onChange={(e) =>
+											setEditingTool({ ...editingTool, factShortAddress: e.target.value })
+										}
+									/>
+								</div>
+								<div className="form-group">
+									<label>Дата прибытия</label>
+									<input
+										type="text"
+										value={editingTool.arrivalDate || ""}
+										onChange={(e) =>
+											setEditingTool({ ...editingTool, arrivalDate: e.target.value })
+										}
+									/>
+								</div>
+							</div>
+						</div>
+					</div>
+					<div className="modal-footer">
+						<button
+							type="button"
+							className="btn btn-secondary"
+							onClick={handleCloseToolModal}
+						>
+							Отмена
+						</button>
+						<button
+							type="button"
+							className="btn btn-primary"
+							onClick={handleSaveTool}
+						>
+							Сохранить
+						</button>
+					</div>
+				</div>
+			</div>
 		);
 	}
 
