@@ -696,6 +696,16 @@
 }
 
 /* ================================
+   LOADING STATE
+   ================================ */
+.loading {
+	padding: 40px;
+	text-align: center;
+	color: var(--gray-500);
+	font-size: 16px;
+}
+
+/* ================================
    LOADING SPINNER
    ================================ */
 .loading-spinner {
