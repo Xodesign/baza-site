@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Test Objects</title>
+    <style>
+      body {
+        font-family: Arial;
+        padding: 20px;
+      }
+      table {
+        border-collapse: collapse;
+        width: 100%;
+      }
+      th,
+      td {
+        border: 1px solid #ddd;
+        padding: 8px;
+        text-align: left;
+      }
+      th {
+        background: #333;
+        color: white;
+      }
+      tr:nth-child(even) {
+        background: #f2f2f2;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Тест: Объекты</h1>
+    <div id="data"></div>
+    <script type="module">
+      const INITIAL_OBJECTS = [
+        {
+          id: 1,
+          "Наименование объекта": "ТЦ Мега",
+          Заказчик: "ООО Торговый центр",
+        },
+        {
+          id: 2,
+          "Наименование объекта": "БЦ Невский",
+          Заказчик: "ЗАО СтройИнвест",
+        },
+        {
+          id: 3,
+          "Наименование объекта": "ТРЦ Галерея",
+          Заказчик: "ИП Сидоров",
+        },
+        {
+          id: 4,
+          "Наименование объекта": "Супермаркет Ромашка",
+          Заказчик: "ООО Ромашка",
+        },
+        {
+          id: 5,
+          "Наименование объекта": "Штаб-квартира Газпром",
+          Заказчик: "ПАО Газпром",
+        },
+      ];
+
+      const container = document.getElementById("data");
+      let html =
+        "<table><tr><th>ID</th><th>Название</th><th>Заказчик</th></tr>";
+      INITIAL_OBJECTS.forEach((obj) => {
+        html += `<tr><td>${obj.id}</td><td>${obj["Наименование объекта"]}</td><td>${obj.Заказчик}</td></tr>`;
+      });
+      html += "</table>";
+      html += `<p>Всего объектов: ${INITIAL_OBJECTS.length}</p>`;
+      container.innerHTML = html;
+      console.log("Test: objects loaded =", INITIAL_OBJECTS.length);
+    </script>
+  </body>
+</html>

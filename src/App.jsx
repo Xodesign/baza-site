@@ -1,4 +1,6 @@
 import { useState, useEffect, useRef } from "react";
+
+console.log("=== APP.JSX LOADED ===");
 import {
 	Search,
 	Plus,
@@ -34,6 +36,7 @@ import {
 import excelData from "./excel_data.js";
 import "./App.css";
 import EngineersCalendar from "./components/EngineersCalendar";
+import CallsForm from "./components/CallsForm";
 
 // === ИКОНКИ ДЛЯ РАЗДЕЛОВ ===
 const SECTION_ICONS = {
@@ -594,7 +597,10 @@ function extractContactsFromObjects(objects) {
 const INITIAL_CONTACTS = extractContactsFromObjects(INITIAL_OBJECTS);
 
 function App() {
-	console.log("App component rendering, INITIAL_OBJECTS:", INITIAL_OBJECTS?.length);
+	console.log(
+		"App component rendering, INITIAL_OBJECTS:",
+		INITIAL_OBJECTS?.length,
+	);
 	// --- СТЕЙТЫ АВТОРИЗАЦИИ ---
 	const [isAuthenticated, setIsAuthenticated] = useState(
 		() => localStorage.getItem("demo_isAuthenticated") === "true",
@@ -1374,31 +1380,85 @@ function App() {
 	};
 
 	// === ЛОГИКА ВЫЗОВОВ ===
-	const handleAddCall = (e) => {
-		e?.preventDefault();
-		if (!newCallData.objectName?.trim()) {
-			alert("Выберите объект!");
-			return;
+	const handleAddCall = (formData) => {
+		// formData может быть событием (e) или объектом с данными
+		const callData = formData?.preventDefault ? null : formData;
+		
+		if (callData) {
+			// Новый компонент передаёт данные напрямую
+			const newCall = {
+				id: Date.now(),
+				...callData,
+				createdAt: callData.createdAt || new Date().toISOString().split("T")[0],
+			};
+			setCalls([newCall, ...calls]);
+		} else {
+			// Старая форма через событие
+			if (!newCallData.objectName?.trim()) {
+				alert("Выберите объект!");
+				return;
+			}
+			const selectedToolsList = selectedToolsForNewCall
+				.map((id) => {
+					const tool = tools.find((t) => t.id === id);
+					return tool
+						? `• ${tool.tool}${tool.brand ? ` (${tool.brand})` : ""}${tool.inventoryNumber ? ` [${tool.inventoryNumber}]` : ""}`
+						: null;
+				})
+				.filter(Boolean)
+				.join("\n");
+			const newCall = {
+				id: Date.now(),
+				...newCallData,
+				selectedToolIds: [...selectedToolsForNewCall],
+				selectedToolsList: selectedToolsList,
+			};
+			setCalls([newCall, ...calls]);
+			setNewCallData(getEmptyCallForm());
+			setSelectedToolsForNewCall([]);
 		}
-		// Формируем список выбранных инструментов для сохранения в вызове
-		const selectedToolsList = selectedToolsForNewCall
-			.map((id) => {
-				const tool = tools.find((t) => t.id === id);
-				return tool
-					? `• ${tool.tool}${tool.brand ? ` (${tool.brand})` : ""}${tool.inventoryNumber ? ` [${tool.inventoryNumber}]` : ""}`
-					: null;
-			})
-			.filter(Boolean)
-			.join("\n");
-		const newCall = {
+	};
+
+	// Создание заявки на транспорт из раздела Вызовы
+	const handleCreateTransportFromCall = (data) => {
+		const newTransport = {
 			id: Date.now(),
-			...newCallData,
-			selectedToolIds: [...selectedToolsForNewCall],
-			selectedToolsList: selectedToolsList,
+			requestDate: new Date().toISOString().split("T")[0],
+			deadline: "",
+			assignedDate: "",
+			assignedTo: "",
+			purchaseStatus: "",
+			callStatus: "new",
+			thisStatus: "new",
+			objectName: data.objectName || "",
+			shortAddress: data.shortAddress || "",
+			whatToTransport: data.whatToTransport || "",
+			toolsList: "",
+			creator: data.creator || "",
 		};
-		setCalls([newCall, ...calls]);
-		setNewCallData(getEmptyCallForm());
-		setSelectedToolsForNewCall([]);
+		setTransportItems([newTransport, ...transportItems]);
+		alert("Заявка на транспорт создана!");
+	};
+
+	// Создание заявки на закупку из раздела Вызовы
+	const handleCreateBuyFromCall = (data) => {
+		const obj = objects.find(
+			(o) => o["Наименование объекта"] === data.objectName
+		);
+		const newBuy = {
+			id: Date.now(),
+			requestDate: new Date().toISOString().split("T")[0],
+			deadline: "",
+			status: "new",
+			contractNumber: obj?.["№ контр/дог"] || "",
+			objectName: data.objectName || "",
+			shortAddress: data.shortAddress || "",
+			payer: obj?.["Кто оплачивает ремонт"] || "",
+			whatToBuy: data.whatToBuy || "",
+			creator: data.creator || "",
+		};
+		setBuyItems([newBuy, ...buyItems]);
+		alert("Заявка на закупку создана!");
 	};
 
 	const handleDeleteCall = (id) => {
@@ -1671,7 +1731,16 @@ function App() {
 	};
 
 	// === ФИЛЬТРАЦИЯ ОБЪЕКТОВ ===
+	console.log(
+		"filteredObjects: objects.length =",
+		objects.length,
+		"objectFilters =",
+		objectFilters,
+		"searchQuery =",
+		searchQuery,
+	);
 	const filteredObjects = objects.filter((o) => {
+		console.log("filtering object:", o["Наименование объекта"]);
 		// Текстовый поиск
 		const q = searchQuery.toLowerCase();
 		const matchesSearch =
@@ -1810,9 +1879,12 @@ function App() {
 	}
 
 	// === РЕНДЕР РАЗДЕЛОВ ===
+	console.log("renderSection: activeTab =", activeTab);
 	const renderSection = () => {
+		console.log("renderSection function: activeTab =", activeTab);
 		switch (activeTab) {
 			case "objects":
+				console.log("Calling renderObjectsSection");
 				return renderObjectsSection();
 			case "calls":
 				return renderCallsSection();
@@ -2793,426 +2865,16 @@ function App() {
 						</tbody>
 					</table>
 				</div>
-				<div className="add-form-section add-form-full">
-					<h3>
-						<Plus size={20} />
-						Новая заявка (вызов)
-					</h3>
-					<form onSubmit={handleAddCall} className="add-form">
-						<div className="form-grid">
-							{/* Дата заявки */}
-							<div className="form-group">
-								<label>Дата заявки</label>
-								<input
-									type="date"
-									value={newCallData.createdAt || ""}
-									onChange={(e) =>
-										setNewCallData({
-											...newCallData,
-											createdAt: e.target.value,
-										})
-									}
-								/>
-							</div>
-
-							{/* Дедлайн */}
-							<div className="form-group">
-								<label>Дедлайн</label>
-								<input
-									type="date"
-									value={newCallData.deadline || ""}
-									onChange={(e) =>
-										setNewCallData({ ...newCallData, deadline: e.target.value })
-									}
-								/>
-							</div>
-
-							{/* Дата проведения */}
-							<div className="form-group">
-								<label>Дата проведения</label>
-								<input
-									type="date"
-									value={newCallData.executionDate || ""}
-									onChange={(e) =>
-										setNewCallData({
-											...newCallData,
-											executionDate: e.target.value,
-										})
-									}
-								/>
-							</div>
-
-							{/* Исполнитель */}
-							<div className="form-group">
-								<label>Исполнитель</label>
-								<input
-									type="text"
-									value={newCallData.engineer || ""}
-									onChange={(e) =>
-										setNewCallData({ ...newCallData, engineer: e.target.value })
-									}
-									placeholder="ФИО"
-									list="calls-engineers-list"
-								/>
-								<datalist id="calls-engineers-list">
-									{staff.map((s) => (
-										<option key={s.id} value={s.fullName} />
-									))}
-								</datalist>
-							</div>
-
-							{/* Помощник */}
-							<div className="form-group">
-								<label>Помощник</label>
-								<input
-									type="text"
-									value={newCallData.assistant || ""}
-									onChange={(e) =>
-										setNewCallData({
-											...newCallData,
-											assistant: e.target.value,
-										})
-									}
-									placeholder="ФИО"
-									list="calls-engineers-list"
-								/>
-							</div>
-
-							{/* Статус вызова */}
-							<div className="form-group">
-								<label>Статус вызова</label>
-								<select
-									value={newCallData.status || "new"}
-									onChange={(e) =>
-										setNewCallData({ ...newCallData, status: e.target.value })
-									}
-								>
-									<option value="new">Новый</option>
-									<option value="in_progress">В работе</option>
-									<option value="completed">Завершён</option>
-								</select>
-							</div>
-
-							{/* Тип заявки */}
-							<div className="form-group">
-								<label>Тип заявки</label>
-								<input
-									type="text"
-									value={newCallData.type || ""}
-									onChange={(e) =>
-										setNewCallData({ ...newCallData, type: e.target.value })
-									}
-									placeholder="ТО / СМР / Аварийная"
-								/>
-							</div>
-
-							{/* Объект */}
-							<div className="form-group">
-								<label>Объект (выберите или введите) *</label>
-								<input
-									type="text"
-									value={newCallData.objectName || ""}
-									onChange={(e) => {
-										const inputVal = e.target.value;
-										// Ищем объект по номеру или названию
-										const selectedByNum = objects.find(
-											(o) =>
-												`${o.objectNumber || o.id}.` ===
-												inputVal.split(".")[0] + ".",
-										);
-										const selectedByName = objects.find(
-											(o) => o["Наименование объекта"] === inputVal,
-										);
-										const selected = selectedByNum || selectedByName;
-
-										if (selected) {
-											setNewCallData({
-												...newCallData,
-												objectId: selected.id,
-												objectNumber: selected.objectNumber,
-												objectName: selected["Наименование объекта"],
-												shortAddress: selected["Адрес сокращенный"] || "",
-												tenant: selected["Арендатор"] || "",
-												// Подтягиваем дополнительные данные из объекта
-											});
-										} else {
-											setNewCallData({
-												...newCallData,
-												objectId: null,
-												objectNumber: null,
-												objectName: inputVal,
-											});
-										}
-									}}
-									list="calls-objects-list"
-									required
-								/>
-								<div className="form-hint">
-									Введите номер объекта (1, 2...) или название
-								</div>
-								<datalist id="calls-objects-list">
-									{objects.map((obj) => (
-										<option
-											key={obj.id}
-											value={`${obj.objectNumber || obj.id}. ${obj["Наименование объекта"]}`}
-										/>
-									))}
-								</datalist>
-							</div>
-
-							{/* Сокращенный адрес */}
-							<div className="form-group">
-								<label>Сокращенный адрес</label>
-								<input
-									type="text"
-									value={newCallData.shortAddress || ""}
-									onChange={(e) =>
-										setNewCallData({
-											...newCallData,
-											shortAddress: e.target.value,
-										})
-									}
-									placeholder="Адрес объекта"
-								/>
-							</div>
-
-							{/* Арендатор */}
-							<div className="form-group">
-								<label>Арендатор</label>
-								<input
-									type="text"
-									value={newCallData.tenant || ""}
-									onChange={(e) =>
-										setNewCallData({ ...newCallData, tenant: e.target.value })
-									}
-									placeholder="Арендатор"
-								/>
-							</div>
-
-							{/* Система */}
-							<div className="form-group">
-								<label>Система</label>
-								<input
-									type="text"
-									value={newCallData.system || ""}
-									onChange={(e) =>
-										setNewCallData({ ...newCallData, system: e.target.value })
-									}
-									placeholder="АПС, СОУЭ, ВПВ"
-								/>
-							</div>
-
-							{/* Заявка */}
-							<div className="form-group form-group-full">
-								<label>Заявка (описание)</label>
-								<textarea
-									value={newCallData.request || ""}
-									onChange={(e) =>
-										setNewCallData({ ...newCallData, request: e.target.value })
-									}
-									rows={3}
-									placeholder="Опишите заявку подробно..."
-								/>
-							</div>
-
-							{/* Выбор инструмента из справочника */}
-							<div className="form-group form-group-full">
-								<div className="tool-picker-header">
-									<button
-										type="button"
-										className="tool-picker-toggle"
-										onClick={() => setIsToolPickerOpen(!isToolPickerOpen)}
-									>
-										<Wrench size={16} />
-										<span>Выбор инструмента из справочника</span>
-										<span className="tool-count">
-											{selectedToolsForNewCall.length > 0 &&
-												`(${selectedToolsForNewCall.length} выбрано)`}
-										</span>
-										<ChevronDown
-											size={16}
-											className={`tool-chevron ${isToolPickerOpen ? "open" : ""}`}
-										/>
-									</button>
-								</div>
-								{isToolPickerOpen && (
-									<div className="tool-picker-body">
-										{tools.length === 0 ? (
-											<div className="tool-picker-empty">
-												<p>Справочник инструментов пуст.</p>
-												<p>
-													Добавьте инструменты в разделе "Инструмент", чтобы
-													выбирать их здесь.
-												</p>
-											</div>
-										) : (
-											<>
-												<div className="tool-picker-actions">
-													<label className="tool-select-all">
-														<input
-															type="checkbox"
-															checked={
-																selectedToolsForNewCall.length === tools.length
-															}
-															indeterminate={
-																selectedToolsForNewCall.length > 0 &&
-																selectedToolsForNewCall.length < tools.length
-															}
-															onChange={handleSelectAllToolsForCall}
-														/>
-														Выбрать все
-													</label>
-													{selectedToolsForNewCall.length > 0 && (
-														<button
-															type="button"
-															className="btn-clear-tools"
-															onClick={handleClearToolsForCall}
-														>
-															<X size={14} />
-															Очистить
-														</button>
-													)}
-												</div>
-												<div className="tool-picker-list">
-													{tools.map((tool) => (
-														<div
-															key={tool.id}
-															className={`tool-item ${selectedToolsForNewCall.includes(tool.id) ? "selected" : ""}`}
-														>
-															<input
-																type="checkbox"
-																checked={selectedToolsForNewCall.includes(
-																	tool.id,
-																)}
-																onChange={() =>
-																	handleToggleToolForCall(tool.id)
-																}
-															/>
-															<div className="tool-info">
-																<span className="tool-name">
-																	{tool.tool || "Без названия"}
-																</span>
-																{tool.brand && (
-																	<span className="tool-brand">
-																		{tool.brand}
-																	</span>
-																)}
-																{tool.inventoryNumber && (
-																	<span className="tool-inventory">
-																		Инв. №: {tool.inventoryNumber}
-																	</span>
-																)}
-																{tool.objectName && (
-																	<span className="tool-object">
-																		{tool.objectName}
-																	</span>
-																)}
-															</div>
-														</div>
-													))}
-												</div>
-											</>
-										)}
-									</div>
-								)}
-							</div>
-
-							{/* Приобрести для выполнения */}
-							<div className="form-group form-group-full">
-								<label>Приобрести для выполнения</label>
-								<textarea
-									value={newCallData.toPurchase || ""}
-									onChange={(e) =>
-										setNewCallData({
-											...newCallData,
-											toPurchase: e.target.value,
-										})
-									}
-									rows={2}
-									placeholder="Что нужно приобрести..."
-								/>
-							</div>
-
-							{/* Отвезти в ремонт */}
-							<div className="form-group form-group-full">
-								<label>Отвезти в ремонт</label>
-								<textarea
-									value={newCallData.toRepair || ""}
-									onChange={(e) =>
-										setNewCallData({ ...newCallData, toRepair: e.target.value })
-									}
-									rows={2}
-									placeholder="Что требует ремонта..."
-								/>
-							</div>
-
-							{/* Актирование работ */}
-							<div className="form-group">
-								<label>Актирование работ</label>
-								<input
-									type="text"
-									value={newCallData.activation || ""}
-									onChange={(e) =>
-										setNewCallData({
-											...newCallData,
-											activation: e.target.value,
-										})
-									}
-									placeholder="Да / Нет / ..."
-								/>
-							</div>
-
-							{/* У кого данные */}
-							<div className="form-group">
-								<label>У кого данные</label>
-								<input
-									type="text"
-									value={newCallData.dataOwner || ""}
-									onChange={(e) =>
-										setNewCallData({
-											...newCallData,
-											dataOwner: e.target.value,
-										})
-									}
-									placeholder="У кого хранятся данные..."
-								/>
-							</div>
-
-							{/* Кто обратился */}
-							<div className="form-group">
-								<label>Кто обратился с заявкой от заказчика</label>
-								<input
-									type="text"
-									value={newCallData.customerContact || ""}
-									onChange={(e) =>
-										setNewCallData({
-											...newCallData,
-											customerContact: e.target.value,
-										})
-									}
-									placeholder="ФИО контакта"
-								/>
-							</div>
-
-							{/* Создатель заявки */}
-							<div className="form-group">
-								<label>Создатель заявки</label>
-								<input
-									type="text"
-									value={newCallData.creator || ""}
-									onChange={(e) =>
-										setNewCallData({ ...newCallData, creator: e.target.value })
-									}
-									placeholder="Ваше имя"
-								/>
-							</div>
-						</div>
-						<button type="submit" className="btn btn-primary">
-							<Plus size={18} />
-							Создать заявку
-						</button>
-					</form>
-				</div>
+				{/* Новый компонент формы вызова */}
+				<CallsForm
+					objects={objects}
+					staff={staff}
+					systems={systems}
+					contacts={contacts}
+					onAddCall={handleAddCall}
+					onCreateTransport={handleCreateTransportFromCall}
+					onCreateBuy={handleCreateBuyFromCall}
+				/>
 			</>
 		);
 	}
