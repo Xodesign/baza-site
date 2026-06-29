@@ -526,6 +526,8 @@ function App() {
 	const [newFormData, setNewFormData] = useState(getEmptyObjectForm());
 	const [editingObject, setEditingObject] = useState(null);
 	const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+	const [isAddFormOpen, setIsAddFormOpen] = useState(false);
+	const [isObjectsListOpen, setIsObjectsListOpen] = useState(true);
 
 	// Загрузка объектов из Excel при первом рендере
 	useEffect(() => {
@@ -2141,13 +2143,17 @@ function App() {
 					)}
 				</div>
 
-				{/* ФОРМА ДОБАВЛЕНИЯ ОБЪЕКТА - НАВЕРХУ */}
-				<div className="add-form-section add-form-full">
-					<h3>
-						<Plus size={20} />
-						Добавить объект
-					</h3>
-					<div className="form-actions-row">
+				{/* === СЕКЦИЯ ДОБАВЛЕНИЯ === */}
+				<div className="collapsible-section">
+					<div className="collapsible-header" onClick={() => setIsAddFormOpen(!isAddFormOpen)}>
+						<h3><Plus size={20} /> Добавить объект</h3>
+						<button className="btn-toggle">
+								<ChevronDown size={20} style={{transform: isAddFormOpen ? "rotate(0deg)" : "rotate(-90deg)", transition: "transform 0.3s"}} />
+						</button>
+					</div>
+					{isAddFormOpen && (
+						<div className="collapsible-content">
+								<div className="form-actions-row">
 						<form onSubmit={handleAddObject} className="add-form-inline">
 							<button type="submit" className="btn btn-primary">
 								<Plus size={18} />
@@ -2548,9 +2554,34 @@ function App() {
 							Добавить объект
 						</button>
 					</form>
+					</div>
+					)}
 				</div>
 
-				{/* ТАБЛИЦА ОБЪЕКТОВ */}
+				{/* === СЕКЦИЯ СПИСКА === */}
+				<div className="collapsible-section">
+					<div className="collapsible-header" onClick={() => setIsObjectsListOpen(!isObjectsListOpen)}>
+						<h3><Building2 size={20} /> Список объектов <span className="badge-count">({filteredObjects.length} из {objects.length})</span></h3>
+						<button className="btn-toggle">
+							<ChevronDown size={20} style={{transform: isObjectsListOpen ? "rotate(0deg)" : "rotate(-90deg)", transition: "transform 0.3s"}} />
+						</button>
+					</div>
+					{isObjectsListOpen && (
+						<div className="collapsible-content">
+							{/* Фильтры */}
+							<div className="filters-bar">
+								<div className="filter-group"><label>Тип:</label><select value={objectFilters.type} onChange={(e) => setObjectFilters({...objectFilters, type: e.target.value})}><option value="">Все</option>{uniqueTypes.map((t) => <option key={t} value={t}>{t}</option>)}</select></div>
+								<div className="filter-group"><label>Подрядчик:</label><select value={objectFilters.contractor} onChange={(e) => setObjectFilters({...objectFilters, contractor: e.target.value})}><option value="">Все</option>{uniqueContractors.map((c) => <option key={c} value={c}>{c}</option>)}</select></div>
+								<div className="filter-group"><label>Продл.:</label><select value={objectFilters.extendable} onChange={(e) => setObjectFilters({...objectFilters, extendable: e.target.value})}><option value="">Все</option><option value="undefined">Не указано</option>{uniqueExtendable.map((e) => <option key={e} value={e}>{e}</option>)}</select></div>
+								<div className="filter-group"><label>Инструмент:</label><select value={objectFilters.hasTool} onChange={(e) => setObjectFilters({...objectFilters, hasTool: e.target.value})}><option value="">Все</option><option value="есть">Есть</option><option value="нет">Нет</option></select></div>
+								{(objectFilters.type || objectFilters.contractor || objectFilters.extendable || objectFilters.hasTool) && <button className="btn-clear-filters" onClick={() => setObjectFilters({type: "", contractor: "", extendable: "", hasTool: ""})}><X size={14} /> Сбросить</button>}
+							</div>
+							{/* Поиск */}
+							<div className="content-header">
+								<div className="search-box"><Search size={20} /><input type="text" placeholder="Поиск..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} />{searchQuery && <button className="clear-search" onClick={() => setSearchQuery("")}><X size={16} /></button>}</div>
+							</div>
+
+						{/* ТАБЛИЦА ОБЪЕКТОВ */}
 				<div className="table-container table-horizontal">
 					<table className="data-table">
 						<thead>
@@ -2655,11 +2686,14 @@ function App() {
 									</tr>
 								))
 							)}
-						</tbody>
-					</table>
-				</div>
+								</tbody>
+							</table>
+						</div>
+						</div>
+						)}
+					</div>
 
-				{/* МОДАЛЬНОЕ ОКНО ВЫБОРА СИСТЕМ */}
+					{/* МОДАЛЬНОЕ ОКНО ВЫБОРА СИСТЕМ */}
 				{isSystemPickerOpen && systemPickerObject && (
 					<div
 						className="modal-overlay"
