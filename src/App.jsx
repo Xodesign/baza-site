@@ -644,10 +644,6 @@ function extractContactsFromObjects(objects) {
 const INITIAL_CONTACTS = extractContactsFromObjects(INITIAL_OBJECTS);
 
 function App() {
-	console.log(
-		"App component rendering, INITIAL_OBJECTS:",
-		INITIAL_OBJECTS?.length,
-	);
 	// --- СТЕЙТЫ АВТОРИЗАЦИИ ---
 	const [isAuthenticated, setIsAuthenticated] = useState(
 		() => localStorage.getItem("demo_isAuthenticated") === "true",
@@ -1243,22 +1239,11 @@ function App() {
 	};
 
 	const handleAddRandomObjects = (count = 5) => {
-		console.log(
-			"handleAddRandomObjects called, count:",
-			count,
-			"current objects:",
-			objects.length,
-		);
 		objectContactsSyncRef.current = true;
 		const newObjects = Array.from({ length: count }, () =>
 			generateRandomObject(),
 		);
-		console.log("Generated newObjects:", newObjects.length, newObjects);
 		setObjects([...newObjects, ...objects]);
-		console.log(
-			"setObjects called with total:",
-			newObjects.length + objects.length,
-		);
 	};
 
 	const handleDeleteObject = (id) => {
@@ -1875,17 +1860,23 @@ function App() {
 			const csv = [
 				headers.join(delimiter),
 				...data.map((r) =>
-					headers.map((h) => {
-						let val = r[h] || "";
-						// Экранируем кавычки и переносы строк
-						if (typeof val === "string") {
-							val = val.replace(/"/g, '""');
-							if (val.includes(delimiter) || val.includes('"') || val.includes("\n")) {
-								val = `"${val}"`;
+					headers
+						.map((h) => {
+							let val = r[h] || "";
+							// Экранируем кавычки и переносы строк
+							if (typeof val === "string") {
+								val = val.replace(/"/g, '""');
+								if (
+									val.includes(delimiter) ||
+									val.includes('"') ||
+									val.includes("\n")
+								) {
+									val = `"${val}"`;
+								}
 							}
-						}
-						return val;
-					}).join(delimiter),
+							return val;
+						})
+						.join(delimiter),
 				),
 			].join("\n");
 			const blob = new Blob([BOM + csv], { type: "text/csv;charset=utf-8;" });
@@ -1901,16 +1892,7 @@ function App() {
 	};
 
 	// === ФИЛЬТРАЦИЯ ОБЪЕКТОВ ===
-	console.log(
-		"filteredObjects: objects.length =",
-		objects.length,
-		"objectFilters =",
-		objectFilters,
-		"searchQuery =",
-		searchQuery,
-	);
 	const filteredObjects = objects.filter((o) => {
-		console.log("filtering object:", o["Наименование объекта"]);
 		// Текстовый поиск
 		const q = searchQuery.toLowerCase();
 		const matchesSearch =
@@ -2049,12 +2031,9 @@ function App() {
 	}
 
 	// === РЕНДЕР РАЗДЕЛОВ ===
-	console.log("renderSection: activeTab =", activeTab);
 	const renderSection = () => {
-		console.log("renderSection function: activeTab =", activeTab);
 		switch (activeTab) {
 			case "objects":
-				console.log("Calling renderObjectsSection");
 				return renderObjectsSection();
 			case "calls":
 				return renderCallsSection();
@@ -2101,7 +2080,6 @@ function App() {
 	};
 
 	function renderObjectsSection() {
-		console.log("renderObjectsSection: objects =", objects?.length);
 		// Функция открытия окна выбора систем
 		const openSystemPicker = (obj, e) => {
 			e?.stopPropagation();
