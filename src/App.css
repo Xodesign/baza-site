@@ -706,6 +706,74 @@
 }
 
 /* ================================
+   COLLAPSIBLE SECTIONS
+   ================================ */
+.collapsible-section {
+	background: white;
+	border-radius: 12px;
+	box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+	margin-bottom: 20px;
+	overflow: hidden;
+}
+
+.collapsible-header {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	padding: 16px 20px;
+	background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+	cursor: pointer;
+	transition: background 0.2s;
+	border-bottom: 1px solid transparent;
+}
+
+.collapsible-section.open .collapsible-header {
+	border-bottom-color: var(--border);
+}
+
+.collapsible-header:hover {
+	background: linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%);
+}
+
+.collapsible-header h3 {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	margin: 0;
+	font-size: 16px;
+	font-weight: 600;
+	color: var(--gray-800);
+}
+
+.collapsible-header h3 svg {
+	color: var(--primary);
+}
+
+.collapse-icon {
+	color: var(--gray-400);
+	transition: transform 0.3s ease;
+}
+
+.collapse-icon.open {
+	transform: rotate(180deg);
+}
+
+.collapsible-content {
+	animation: slideDown 0.3s ease-out;
+}
+
+@keyframes slideDown {
+	from {
+		opacity: 0;
+		transform: translateY(-10px);
+	}
+	to {
+		opacity: 1;
+		transform: translateY(0);
+	}
+}
+
+/* ================================
    LOADING SPINNER
    ================================ */
 .loading-spinner {

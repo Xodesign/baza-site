@@ -530,6 +530,7 @@ function App() {
 	const [newFormData, setNewFormData] = useState(getEmptyObjectForm());
 	const [editingObject, setEditingObject] = useState(null);
 	const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+	const [isAddFormOpen, setIsAddFormOpen] = useState(false);
 
 	// Загрузка объектов из Excel при первом рендере
 	useEffect(() => {
@@ -551,23 +552,29 @@ function App() {
 						Подрядчик: row["Подрядчик"] || "",
 						"№ контр/дог": row["№ контр/дог"] || "",
 						"Начало действия договора": row["Начало действия договора"] || "",
-						"Окончание действия договора": row["Окончание действия договора"] || "",
+						"Окончание действия договора":
+							row["Окончание действия договора"] || "",
 						"Тип договора": row["Тип договора"] || "",
 						Продлеваемость: row["Продлеваемость"] || "",
-						"Письмо о повышении стоимости ТО": row["Письмо о повышении стоимость ТО"] || "",
-						"Свершившееся повышение цены ТО": row["Свершившееся повышение цены ТО"] || "",
+						"Письмо о повышении стоимости ТО":
+							row["Письмо о повышении стоимость ТО"] || "",
+						"Свершившееся повышение цены ТО":
+							row["Свершившееся повышение цены ТО"] || "",
 						"Доп соглашение": row["Доп соглашени"] || "",
 						Письма: row["Письма"] || "",
 						"Кто оплачивает ремонт": row["Кто оплачивает ремонт"] || "",
-						"Как оплачиваются доп.работы": row["Как оплачиваются доп.работы"] || "",
-						"К доп работам есть ли аванс": row["К доп работам есть ли аванс"] || "",
+						"Как оплачиваются доп.работы":
+							row["Как оплачиваются доп.работы"] || "",
+						"К доп работам есть ли аванс":
+							row["К доп работам есть ли аванс"] || "",
 						"Адрес полный объекта": row["Адрес полный объекта"] || "",
 						"Адрес сокращенный": row["Адрес сокращенный"] || "",
 						"Наименование объекта": row["Наименование объекта"] || "",
 						"РД ИД ПД": row["РД ИД ПД"] || "",
 						Арендатор: row["Арендатор"] || "",
 						Системы: row["Системы"] || "",
-						"Расчетное время на обслуживание": row["Расчетное время на обслуживание"] || "",
+						"Расчетное время на обслуживание":
+							row["Расчетное время на обслуживание"] || "",
 						Контакты: row["Контакты"] || "",
 						Заметки: row["Заметки"] || "",
 						"Инструмент на объекте": row["Инструмент на объекте"] || "",
@@ -2145,12 +2152,18 @@ function App() {
 					)}
 				</div>
 
-				{/* ФОРМА ДОБАВЛЕНИЯ ОБЪЕКТА - НАВЕРХУ */}
-				<div className="add-form-section add-form-full">
-					<h3>
-						<Plus size={20} />
-						Добавить объект
-					</h3>
+				{/* СЕКЦИЯ ДОБАВЛЕНИЯ */}
+				<div className="collapsible-section">
+					<div className="collapsible-header" onClick={() => setIsAddFormOpen(!isAddFormOpen)}>
+						<h3><Plus size={20} /> Добавить объект</h3>
+						<ChevronDown
+							size={20}
+							className={`collapse-icon ${isAddFormOpen ? "open" : ""}`}
+						/>
+					</div>
+					{isAddFormOpen && (
+						<div className="collapsible-content">
+							<div className="add-form-section add-form-full">
 					<div className="form-actions-row">
 						<form onSubmit={handleAddObject} className="add-form-inline">
 							<button type="submit" className="btn btn-primary">
@@ -2548,13 +2561,16 @@ function App() {
 							</div>
 						</div>
 						<button type="submit" className="btn btn-primary">
-							<Plus size={18} />
-							Добавить объект
-						</button>
-					</form>
-				</div>
+									<Plus size={18} />
+									Добавить объект
+								</button>
+							</form>
+						</div>
+						</div>
+					)}
+					</div>
 
-				{/* ТАБЛИЦА ОБЪЕКТОВ */}
+					{/* ТАБЛИЦА ОБЪЕКТОВ */}
 				<div className="table-container table-horizontal">
 					<table className="data-table">
 						<thead>

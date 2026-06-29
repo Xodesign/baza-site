@@ -24,7 +24,15 @@ class ErrorBoundary extends React.Component {
 					<h1 style={{ color: "#dc2626", marginBottom: "20px" }}>
 						Произошла ошибка
 					</h1>
-					<pre style={{ textAlign: "left", background: "#fee2e2", padding: "20px", borderRadius: "8px", overflow: "auto" }}>
+					<pre
+						style={{
+							textAlign: "left",
+							background: "#fee2e2",
+							padding: "20px",
+							borderRadius: "8px",
+							overflow: "auto",
+						}}
+					>
 						{this.state.error?.toString()}
 					</pre>
 				</div>
