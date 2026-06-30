@@ -31,7 +31,10 @@ import {
 	UserCheck,
 	Zap,
 	ChevronDown,
+	UserCog,
 } from "lucide-react";
+import { authApi, hasAccess } from "./api/auth";
+import UsersPanel from "./components/UsersPanel";
 import "./App.css";
 import EngineersCalendar from "./components/EngineersCalendar";
 import CallsForm from "./components/CallsForm";
@@ -57,6 +60,7 @@ const SECTION_ICONS = {
 	time: Clock,
 	wishes: Target,
 	extra: Zap,
+	users: UserCog,
 };
 
 // === МАППИНГ НАЗВАНИЙ ===
@@ -80,7 +84,26 @@ const SECTION_LABELS = {
 	time: "Время",
 	wishes: "Пожелания",
 	extra: "Доп. системы",
+	users: "Пользователи",
 };
+
+// === ВСЕ РАЗДЕЛЫ ===
+const ALL_SECTIONS = [
+	{ id: "objects", name: "Объекты", icon: "objects" },
+	{ id: "calls", name: "Вызовы", icon: "calls" },
+	{ id: "contacts", name: "Контакты", icon: "contacts" },
+	{ id: "staff", name: "Персонал", icon: "staff" },
+	{ id: "systems", name: "Системы", icon: "systems" },
+	{ id: "tools", name: "Инструменты", icon: "tools" },
+	{ id: "activation", name: "Актирование", icon: "activation" },
+	{ id: "costs", name: "Расходы", icon: "costs" },
+	{ id: "buy", name: "Закупки", icon: "buy" },
+	{ id: "invoices", name: "Счета", icon: "invoices" },
+	{ id: "transport", name: "Транспорт", icon: "transport" },
+	{ id: "time", name: "Время", icon: "time" },
+	{ id: "wishes", name: "Пожелания", icon: "wishes" },
+	{ id: "users", name: "Пользователи", icon: "users" },
+];
 
 // === ДАННЫЕ ОБЪЕКТОВ (загружаются из Excel) ===
 // Пустая заглушка - данные загружаются через useEffect
@@ -530,12 +553,13 @@ function App() {
 	console.log("App rendering...");
 	// --- СТЕЙТЫ АВТОРИЗАЦИИ ---
 	const [isAuthenticated, setIsAuthenticated] = useState(
-		() => localStorage.getItem("demo_isAuthenticated") === "true",
+		() => localStorage.getItem("authToken") !== null,
 	);
-	const [_authToken, setAuthToken] = useState(
+	const [authToken, setAuthToken] = useState(
 		() => localStorage.getItem("authToken") || null,
 	);
-	const [authEmail, setAuthEmail] = useState("");
+	const [currentUser, setCurrentUser] = useState(null);
+	const [authUsername, setAuthUsername] = useState("");
 	const [authPassword, setAuthPassword] = useState("");
 	const [authError, setAuthError] = useState("");
 	const [isAuthLoading, setIsAuthLoading] = useState(false);
@@ -698,7 +722,7 @@ function App() {
 		return saved ? JSON.parse(saved) : INITIAL_TIME;
 	});
 	const [newTimeData, setNewTimeData] = useState(getEmptyTimeForm());
-	
+
 	// States для систем времени
 	const [customTimeSystems, setCustomTimeSystems] = useState(() => {
 		const saved = localStorage.getItem("demo_custom_time_systems");
@@ -711,11 +735,11 @@ function App() {
 		quantity: "",
 		objectName: "",
 	});
-	
+
 	// Арендаторы для крупных объектов
 	const LARGE_OBJECT_TENANTS = {
 		"НПО экран": ["Арендатор 1", "Арендатор 2", "Арендатор 3"],
-		"Большевичка": ["Арендатор А", "Арендатор Б", "Арендатор В", "Арендатор Г"],
+		Большевичка: ["Арендатор А", "Арендатор Б", "Арендатор В", "Арендатор Г"],
 	};
 
 	// --- СТЕЙТЫ СВОДНАЯ ---
@@ -793,11 +817,15 @@ function App() {
 	];
 
 	// --- СПИСОК РАЗДЕЛОВ ---
-	const MENU_ITEMS = Object.keys(SECTION_LABELS).map((id) => ({
-		id,
-		label: SECTION_LABELS[id],
-		icon: SECTION_ICONS[id] || FileText,
-	}));
+	const getMenuItems = () => {
+		return ALL_SECTIONS.filter((section) =>
+			hasAccess(currentUser, section.id),
+		).map((item) => ({
+			...item,
+			icon: SECTION_ICONS[item.icon] || FileText,
+		}));
+	};
+	const MENU_ITEMS = getMenuItems();
 
 	useEffect(() => {
 		localStorage.setItem("demo_calls", JSON.stringify(calls));
@@ -1796,30 +1824,31 @@ function App() {
 	// === ЛОГИКА ВРЕМЯ ===
 	const handleAddTime = (e) => {
 		e?.preventDefault();
-		
+
 		// Валидация
 		if (!newTimeData.objectName?.trim()) {
 			alert("Выберите объект!");
 			return;
 		}
-		
+
 		// Расчёт разности
 		const calcTime = parseFloat(newTimeData.calculatedYearlyTime) || 0;
 		const factTime = parseFloat(newTimeData.actualYearlyTime) || 0;
 		const timeDifference = calcTime - factTime;
-		
+
 		// Формируем строку систем для отображения
-		const systemsDisplay = newTimeData.systems
-			?.map((s) => `${s.systemName}${s.quantity ? ` (${s.quantity})` : ""}`)
-			.join(", ") || "";
-		
+		const systemsDisplay =
+			newTimeData.systems
+				?.map((s) => `${s.systemName}${s.quantity ? ` (${s.quantity})` : ""}`)
+				.join(", ") || "";
+
 		const newTime = {
 			id: Date.now(),
 			...newTimeData,
 			systemsDisplay,
 			timeDifference: timeDifference.toFixed(1),
 		};
-		
+
 		setTimeEntries([newTime, ...timeEntries]);
 		setNewTimeData(getEmptyTimeForm());
 	};
@@ -1842,16 +1871,24 @@ function App() {
 			createdAt: new Date().toLocaleDateString("ru-RU"),
 		};
 		setCustomTimeSystems([newSystem, ...customTimeSystems]);
-		localStorage.setItem("demo_custom_time_systems", JSON.stringify([newSystem, ...customTimeSystems]));
-		
+		localStorage.setItem(
+			"demo_custom_time_systems",
+			JSON.stringify([newSystem, ...customTimeSystems]),
+		);
+
 		// Добавить в newTimeData
 		setNewTimeData({
 			...newTimeData,
 			systems: [...(newTimeData.systems || []), newSystem],
 			systemName: newSystem.systemName,
 		});
-		
-		setNewTimeSystemData({ systemName: "", systemType: "", quantity: "", objectName: "" });
+
+		setNewTimeSystemData({
+			systemName: "",
+			systemType: "",
+			quantity: "",
+			objectName: "",
+		});
 		setIsTimeSystemModalOpen(false);
 	};
 
@@ -1875,10 +1912,12 @@ function App() {
 				objectName: objectName,
 				fromExcel: true,
 			}));
-		
+
 		// Кастомные системы
-		const customForObject = customTimeSystems.filter((s) => s.objectName === objectName);
-		
+		const customForObject = customTimeSystems.filter(
+			(s) => s.objectName === objectName,
+		);
+
 		return [...excelSystems, ...customForObject];
 	};
 
@@ -2047,25 +2086,48 @@ function App() {
 		e.preventDefault();
 		setAuthError("");
 		setIsAuthLoading(true);
-		await new Promise((r) => setTimeout(r, 1000));
-		if (authEmail === "admin@baza.ru" && authPassword === "baza123") {
-			localStorage.setItem("authToken", "demo_token");
-			localStorage.setItem("demo_isAuthenticated", "true");
-			setAuthToken("demo_token");
+		try {
+			const result = await authApi.login(authUsername, authPassword);
+			localStorage.setItem("authToken", result.token);
+			setAuthToken(result.token);
+			setCurrentUser(result.user);
 			setIsAuthenticated(true);
-			setAuthEmail("");
+			setAuthUsername("");
 			setAuthPassword("");
-		} else {
-			setAuthError("Неверный email или пароль. admin@baza.ru / baza123");
+		} catch (error) {
+			setAuthError(error.message || "Ошибка авторизации");
+		} finally {
+			setIsAuthLoading(false);
 		}
-		setIsAuthLoading(false);
 	};
 
-	const handleLogout = () => {
+	const handleLogout = async () => {
+		try {
+			await authApi.logout();
+		} catch (e) {
+			// Ignore logout errors
+		}
 		localStorage.removeItem("authToken");
-		localStorage.removeItem("demo_isAuthenticated");
+		setAuthToken(null);
+		setCurrentUser(null);
 		setIsAuthenticated(false);
 	};
+
+	// Load current user on mount if token exists
+	useEffect(() => {
+		if (authToken) {
+			authApi.getCurrentUser().then((user) => {
+				if (user) {
+					setCurrentUser(user);
+				} else {
+					// Token invalid
+					localStorage.removeItem("authToken");
+					setAuthToken(null);
+					setIsAuthenticated(false);
+				}
+			});
+		}
+	}, [authToken]);
 
 	// === ЭКРАН ЛОГИНА ===
 	if (!isAuthenticated) {
@@ -2079,13 +2141,14 @@ function App() {
 					</div>
 					<form onSubmit={handleLogin} className="login-form">
 						<div className="form-group">
-							<label>Email</label>
+							<label>Логин</label>
 							<input
-								type="email"
-								value={authEmail}
-								onChange={(e) => setAuthEmail(e.target.value)}
-								placeholder="admin@baza.ru"
+								type="text"
+								value={authUsername}
+								onChange={(e) => setAuthUsername(e.target.value)}
+								placeholder="admin"
 								required
+								autocomplete="username"
 							/>
 						</div>
 						<div className="form-group">
@@ -2094,8 +2157,9 @@ function App() {
 								type="password"
 								value={authPassword}
 								onChange={(e) => setAuthPassword(e.target.value)}
-								placeholder="baza123"
+								placeholder="123456"
 								required
+								autocomplete="current-password"
 							/>
 						</div>
 						{authError && <div className="auth-error">{authError}</div>}
@@ -2111,11 +2175,6 @@ function App() {
 							)}
 						</button>
 					</form>
-					<div className="login-hint">
-						<p>
-							Демо: <code>admin@baza.ru</code> / <code>baza123</code>
-						</p>
-					</div>
 				</div>
 			</div>
 		);
@@ -2165,6 +2224,8 @@ function App() {
 			case "staff":
 				return renderStaffSection();
 			case "accounts":
+			case "users":
+				return <UsersPanel />;
 			default:
 				return renderPlaceholderSection();
 		}
@@ -4831,7 +4892,9 @@ function App() {
 			}
 		};
 
-		const uniqueObjects = [...new Set(objects.map((o) => o["Наименование объекта"]).filter(Boolean))];
+		const uniqueObjects = [
+			...new Set(objects.map((o) => o["Наименование объекта"]).filter(Boolean)),
+		];
 		const availableTenants = LARGE_OBJECT_TENANTS[newTimeData.objectName] || [];
 		const isLargeObject = newTimeData.objectName in LARGE_OBJECT_TENANTS;
 		const availableSystems = getSystemsForObject(newTimeData.objectName);
@@ -4875,14 +4938,24 @@ function App() {
 										<td>{t.contractor}</td>
 										<td>{t.contractNumber}</td>
 										<td>{t.objectName}</td>
-										<td>{t.shortAddress || <span className="text-muted">—</span>}</td>
-										<td>{t.fullAddress || <span className="text-muted">—</span>}</td>
+										<td>
+											{t.shortAddress || <span className="text-muted">—</span>}
+										</td>
+										<td>
+											{t.fullAddress || <span className="text-muted">—</span>}
+										</td>
 										<td>{t.tenant || <span className="text-muted">—</span>}</td>
-									<td>{t.systemsDisplay || t.systems || "—"}</td>
+										<td>{t.systemsDisplay || t.systems || "—"}</td>
 										<td>{t.calculatedYearlyTime} ч</td>
 										<td>{t.actualYearlyTime} ч</td>
 										<td>
-											<span className={parseFloat(t.timeDifference) >= 0 ? "text-success" : "text-danger"}>
+											<span
+												className={
+													parseFloat(t.timeDifference) >= 0
+														? "text-success"
+														: "text-danger"
+												}
+											>
 												{t.timeDifference} ч
 											</span>
 										</td>
@@ -4930,9 +5003,9 @@ function App() {
 									}
 								>
 									<option value="СБ">СБ</option>
-										<option value="СБ+">СБ+</option>
-										<option value="ВСТ">ВСТ</option>
-									</select>
+									<option value="СБ+">СБ+</option>
+									<option value="ВСТ">ВСТ</option>
+								</select>
 							</div>
 							<div className="form-group">
 								<label>№ договора</label>
@@ -4991,7 +5064,9 @@ function App() {
 								/>
 							</div>
 							<div className="form-group">
-								<label>Арендатор {isLargeObject ? "*" : "(для крупных объектов)"}</label>
+								<label>
+									Арендатор {isLargeObject ? "*" : "(для крупных объектов)"}
+								</label>
 								{isLargeObject ? (
 									<select
 										value={newTimeData.tenant}
@@ -5008,14 +5083,14 @@ function App() {
 									</select>
 								) : (
 									<input
-											type="text"
-											value={newTimeData.tenant}
-											placeholder="Не требуется"
-											disabled
-											onChange={(e) =>
-												setNewTimeData({ ...newTimeData, tenant: e.target.value })
-											}
-										/>
+										type="text"
+										value={newTimeData.tenant}
+										placeholder="Не требуется"
+										disabled
+										onChange={(e) =>
+											setNewTimeData({ ...newTimeData, tenant: e.target.value })
+										}
+									/>
 								)}
 							</div>
 							<div className="form-group form-group-full">
@@ -5037,27 +5112,37 @@ function App() {
 										))}
 									</div>
 								)}
-								<div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+								<div
+									style={{ display: "flex", gap: "8px", alignItems: "center" }}
+								>
 									<select
 										value=""
 										onChange={(e) => {
 											if (e.target.value === "__new__") {
 												setIsTimeSystemModalOpen(true);
 											} else if (e.target.value) {
-												const sys = availableSystems.find((s) => s.id === parseInt(e.target.value) || s.id === e.target.value);
-												if (sys && !newTimeData.systems?.find((s) => s.id === sys.id)) {
+												const sys = availableSystems.find(
+													(s) =>
+														s.id === parseInt(e.target.value) ||
+														s.id === e.target.value,
+												);
+												if (
+													sys &&
+													!newTimeData.systems?.find((s) => s.id === sys.id)
+												) {
 													setNewTimeData({
-													...newTimeData,
+														...newTimeData,
 														systems: [...(newTimeData.systems || []), sys],
 													});
-											}
+												}
 											}
 										}}
 									>
 										<option value="">Выберите систему...</option>
 										{availableSystems.map((sys) => (
 											<option key={sys.id} value={sys.id}>
-												{sys.systemName} {sys.quantity ? `(${sys.quantity})` : ""}
+												{sys.systemName}{" "}
+												{sys.quantity ? `(${sys.quantity})` : ""}
 												{sys.fromExcel ? " [из Excel]" : ""}
 											</option>
 										))}
@@ -5067,76 +5152,94 @@ function App() {
 							</div>
 							<div className="form-group">
 								<label>Расчётное время на ТО (ч/год)</label>
-								<div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+								<div
+									style={{ display: "flex", alignItems: "center", gap: "8px" }}
+								>
 									<input
-											type="range"
-											min="0"
-											max="2000"
-											value={parseFloat(newTimeData.calculatedYearlyTime) || 0}
-											onChange={(e) =>
-												setNewTimeData({
+										type="range"
+										min="0"
+										max="2000"
+										value={parseFloat(newTimeData.calculatedYearlyTime) || 0}
+										onChange={(e) =>
+											setNewTimeData({
 												...newTimeData,
 												calculatedYearlyTime: parseFloat(e.target.value),
-												})
-											}
-											style={{ flex: 1 }}
+											})
+										}
+										style={{ flex: 1 }}
 									/>
 									<input
-											type="number"
-											min="0"
-											value={parseFloat(newTimeData.calculatedYearlyTime) || 0}
-											onChange={(e) =>
-												setNewTimeData({
+										type="number"
+										min="0"
+										value={parseFloat(newTimeData.calculatedYearlyTime) || 0}
+										onChange={(e) =>
+											setNewTimeData({
 												...newTimeData,
 												calculatedYearlyTime: parseFloat(e.target.value) || 0,
-												})
-											}
-											style={{ width: "80px" }}
+											})
+										}
+										style={{ width: "80px" }}
 									/>
 									<span>ч</span>
 								</div>
 							</div>
 							<div className="form-group">
 								<label>Фактическое время на ТО (ч/год)</label>
-								<div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+								<div
+									style={{ display: "flex", alignItems: "center", gap: "8px" }}
+								>
 									<input
-											type="range"
-											min="0"
-											max="2000"
-											value={parseFloat(newTimeData.actualYearlyTime) || 0}
-											onChange={(e) =>
-												setNewTimeData({
+										type="range"
+										min="0"
+										max="2000"
+										value={parseFloat(newTimeData.actualYearlyTime) || 0}
+										onChange={(e) =>
+											setNewTimeData({
 												...newTimeData,
 												actualYearlyTime: parseFloat(e.target.value),
-												})
-											}
-											style={{ flex: 1 }}
-										/>
+											})
+										}
+										style={{ flex: 1 }}
+									/>
 									<input
-											type="number"
-											min="0"
-											value={parseFloat(newTimeData.actualYearlyTime) || 0}
-											onChange={(e) =>
-												setNewTimeData({
+										type="number"
+										min="0"
+										value={parseFloat(newTimeData.actualYearlyTime) || 0}
+										onChange={(e) =>
+											setNewTimeData({
 												...newTimeData,
 												actualYearlyTime: parseFloat(e.target.value) || 0,
-												})
-											}
-											style={{ width: "80px" }}
+											})
+										}
+										style={{ width: "80px" }}
 									/>
 									<span>ч</span>
 								</div>
 							</div>
 							<div className="form-group">
 								<label>Разность (расчётное − фактическое)</label>
-								<div style={{
-									padding: "10px 16px",
-									background: (parseFloat(newTimeData.calculatedYearlyTime) || 0) >= (parseFloat(newTimeData.actualYearlyTime) || 0) ? "#e8f5e9" : "#ffebee",
-									borderRadius: "8px",
-									fontWeight: "bold",
-									color: (parseFloat(newTimeData.calculatedYearlyTime) || 0) >= (parseFloat(newTimeData.actualYearlyTime) || 0) ? "#2e7d32" : "#c62828",
-								}}>
-									{((parseFloat(newTimeData.calculatedYearlyTime) || 0) - (parseFloat(newTimeData.actualYearlyTime) || 0)).toFixed(1)} ч
+								<div
+									style={{
+										padding: "10px 16px",
+										background:
+											(parseFloat(newTimeData.calculatedYearlyTime) || 0) >=
+											(parseFloat(newTimeData.actualYearlyTime) || 0)
+												? "#e8f5e9"
+												: "#ffebee",
+										borderRadius: "8px",
+										fontWeight: "bold",
+										color:
+											(parseFloat(newTimeData.calculatedYearlyTime) || 0) >=
+											(parseFloat(newTimeData.actualYearlyTime) || 0)
+												? "#2e7d32"
+												: "#c62828",
+									}}
+								>
+									{(
+										(parseFloat(newTimeData.calculatedYearlyTime) || 0) -
+										(parseFloat(newTimeData.actualYearlyTime) || 0)
+									).toFixed(1)}{" "}
+									ч
 								</div>
 							</div>
 						</div>
@@ -5149,11 +5252,17 @@ function App() {
 
 				{/* МОДАЛКА НОВОЙ СИСТЕМЫ */}
 				{isTimeSystemModalOpen && (
-					<div className="modal-overlay" onClick={() => setIsTimeSystemModalOpen(false)}>
+					<div
+						className="modal-overlay"
+						onClick={() => setIsTimeSystemModalOpen(false)}
+					>
 						<div className="modal" onClick={(e) => e.stopPropagation()}>
 							<div className="modal-header">
 								<h3>Новая система</h3>
-								<button className="modal-close" onClick={() => setIsTimeSystemModalOpen(false)}>
+								<button
+									className="modal-close"
+									onClick={() => setIsTimeSystemModalOpen(false)}
+								>
 									&times;
 								</button>
 							</div>
@@ -5167,13 +5276,13 @@ function App() {
 											placeholder="Например: АПС, СОУЭ, ПС"
 											onChange={(e) =>
 												setNewTimeSystemData({
-												...newTimeSystemData,
+													...newTimeSystemData,
 													systemName: e.target.value,
 													objectName: newTimeData.objectName,
 												})
-												}
-											/>
-										</div>
+											}
+										/>
+									</div>
 									<div className="form-group">
 										<label>Тип оборудования</label>
 										<input
@@ -5182,12 +5291,12 @@ function App() {
 											placeholder="Например: рукава, датчики, огнетушители"
 											onChange={(e) =>
 												setNewTimeSystemData({
-												...newTimeSystemData,
+													...newTimeSystemData,
 													systemType: e.target.value,
 												})
-												}
-											/>
-										</div>
+											}
+										/>
+									</div>
 									<div className="form-group">
 										<label>Количество</label>
 										<input
@@ -5196,14 +5305,18 @@ function App() {
 											value={newTimeSystemData.quantity}
 											onChange={(e) =>
 												setNewTimeSystemData({
-												...newTimeSystemData,
+													...newTimeSystemData,
 													quantity: e.target.value,
 												})
-												}
-											/>
-										</div>
+											}
+										/>
+									</div>
 									<div className="form-actions">
-										<button type="button" className="btn btn-secondary" onClick={() => setIsTimeSystemModalOpen(false)}>
+										<button
+											type="button"
+											className="btn btn-secondary"
+											onClick={() => setIsTimeSystemModalOpen(false)}
+										>
 											Отмена
 										</button>
 										<button type="submit" className="btn btn-primary">

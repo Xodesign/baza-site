@@ -4,6 +4,7 @@ import bodyParser from "body-parser";
 import dotenv from "dotenv";
 
 // Routes
+import usersRouter from "./routes/users.js";
 import objectsRouter from "./routes/objects.js";
 import callsRouter from "./routes/calls.js";
 import staffRouter from "./routes/staff.js";
@@ -36,6 +37,7 @@ app.use((_req, _res, next) => {
 });
 
 // API Routes
+app.use("/api/users", usersRouter);
 app.use("/api/objects", objectsRouter);
 app.use("/api/calls", callsRouter);
 app.use("/api/staff", staffRouter);
@@ -62,7 +64,7 @@ app.get("/api", (_req, res) => {
 		name: "CRM Backend API",
 		version: "1.0.0",
 		endpoints: [
-			"/api/objects",
+			"/api/users",
 			"/api/calls",
 			"/api/staff",
 			"/api/costs",
