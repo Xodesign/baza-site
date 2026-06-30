@@ -19,6 +19,7 @@ import activationsRouter from "./routes/activations.js";
 import timeRouter from "./routes/time.js";
 import wishesRouter from "./routes/wishes.js";
 import sectionsRouter from "./routes/sections.js";
+import workScheduleRouter from "./routes/work_schedule.js";
 
 dotenv.config();
 
@@ -52,10 +53,36 @@ app.use("/api/activations", activationsRouter);
 app.use("/api/time", timeRouter);
 app.use("/api/wishes", wishesRouter);
 app.use("/api/sections", sectionsRouter);
+app.use("/api/work-schedule", workScheduleRouter);
 
 // Health check
 app.get("/api/health", (_req, res) => {
 	res.json({ status: "ok", timestamp: new Date().toISOString() });
+});
+
+// Migration endpoint
+app.post("/api/migrate", async (_req, res) => {
+	try {
+		// Create work_schedule table if not exists
+		await query(`
+			CREATE TABLE IF NOT EXISTS work_schedule (
+				id SERIAL PRIMARY KEY,
+				user_id INTEGER,
+				work_date DATE NOT NULL,
+				working BOOLEAN DEFAULT true,
+				start_time TIME,
+				end_time TIME,
+				note TEXT,
+				created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+				updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+				UNIQUE(user_id, work_date)
+			)
+		`);
+		res.json({ message: "Migration completed", tables: ["work_schedule"] });
+	} catch (error) {
+		console.error("Migration error:", error);
+		res.status(500).json({ error: error.message });
+	}
 });
 
 // API Info

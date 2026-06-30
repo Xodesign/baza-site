@@ -822,6 +822,7 @@ function App() {
 			hasAccess(currentUser, section.id),
 		).map((item) => ({
 			...item,
+				label: item.name,
 			icon: SECTION_ICONS[item.icon] || FileText,
 		}));
 	};
