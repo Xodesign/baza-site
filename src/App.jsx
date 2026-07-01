@@ -882,10 +882,11 @@ function App() {
 	// --- СТЕЙТЫ СТРАНИЦЫ ДЕТАЛЕЙ СИСТЕМЫ ---
 	const [systemDetail, setSystemDetail] = useState(null); // { objectId, objectName, shortAddress, systemName, brand, type, quantity, link }
 	const [systemFormData, setSystemFormData] = useState({
-		sensors: { otcl: "", qty: "", type: "", brand: "", link: "" },
-		speakers: { otcl: "", qty: "", type: "", brand: "", link: "" },
-		hoses: { otcl: "", qty: "", type: "", brand: "", link: "" },
-		sprinklers: { otcl: "", qty: "", type: "", brand: "", link: "" },
+		sps: { brand: "", type: "", qty: "", link: "", alarm: "" },
+		soue: { brand: "", type: "", qty: "", link: "", alarm: "" },
+		vpv: { brand: "", type: "", qty: "", link: "", alarm: "" },
+		aspt: { brand: "", type: "", qty: "", link: "", alarm: "" },
+		name: { brand: "", type: "", qty: "", link: "", alarm: "" },
 	});
 
 	// Открытие страницы системы
@@ -903,10 +904,11 @@ function App() {
 			setSystemFormData(JSON.parse(saved));
 		} else {
 			setSystemFormData({
-				sensors: { otcl: "", qty: "", type: "", brand: "", link: "" },
-				speakers: { otcl: "", qty: "", type: "", brand: "", link: "" },
-				hoses: { otcl: "", qty: "", type: "", brand: "", link: "" },
-				sprinklers: { otcl: "", qty: "", type: "", brand: "", link: "" },
+				sps: { brand: "", type: "", qty: "", link: "", alarm: "" },
+				soue: { brand: "", type: "", qty: "", link: "", alarm: "" },
+				vpv: { brand: "", type: "", qty: "", link: "", alarm: "" },
+				aspt: { brand: "", type: "", qty: "", link: "", alarm: "" },
+				name: { brand: "", type: "", qty: "", link: "", alarm: "" },
 			});
 		}
 	};
@@ -933,10 +935,11 @@ function App() {
 	// Сброс формы
 	const resetSystemForm = () => {
 		setSystemFormData({
-			sensors: { otcl: "", qty: "", type: "", brand: "", link: "" },
-			speakers: { otcl: "", qty: "", type: "", brand: "", link: "" },
-			hoses: { otcl: "", qty: "", type: "", brand: "", link: "" },
-			sprinklers: { otcl: "", qty: "", type: "", brand: "", link: "" },
+			sps: { brand: "", type: "", qty: "", link: "", alarm: "" },
+			soue: { brand: "", type: "", qty: "", link: "", alarm: "" },
+			vpv: { brand: "", type: "", qty: "", link: "", alarm: "" },
+			aspt: { brand: "", type: "", qty: "", link: "", alarm: "" },
+			name: { brand: "", type: "", qty: "", link: "", alarm: "" },
 		});
 	};
 
@@ -2407,10 +2410,11 @@ function App() {
 		if (!systemDetail) return null;
 
 		const eqTypes = [
-			{ key: "sensors", label: "Датчики" },
-			{ key: "speakers", label: "Оповещатели" },
-			{ key: "hoses", label: "Шланги" },
-			{ key: "sprinklers", label: "Оросители" },
+			{ key: "sps", label: "СПС" },
+			{ key: "soue", label: "СОУЭ" },
+			{ key: "vpv", label: "ВПВ" },
+			{ key: "aspt", label: "АСПТ" },
+			{ key: "name", label: "НАЗВАНИЕ" },
 		];
 
 		return (
@@ -2433,85 +2437,89 @@ function App() {
 					<table className="system-excel-table">
 						<thead>
 							<tr>
-								<th className="excel-row-header">Вид оборудования</th>
-								<th className="excel-col-label">Отсл</th>
-								<th className="excel-col-label">Кол-во</th>
-								<th className="excel-col-label">Тип / Наим</th>
+								<th className="excel-row-header">Вид</th>
 								<th className="excel-col-label">Бренд</th>
-								<th className="excel-col-label">Ссылка</th>
+								<th className="excel-col-label">Тип</th>
+								<th className="excel-col-label">Кол-во</th>
+								<th className="excel-col-label">Ссылка на перечень</th>
+								<th className="excel-col-label">Аларм (№)</th>
 							</tr>
 						</thead>
 						<tbody>
-							{eqTypes.map((eq) => (
-								<tr key={eq.key}>
-									<td className="excel-row-header">{eq.label}</td>
-									<td className="col-otcl">
-										<input
-											type="text"
-											value={systemFormData[eq.key]?.otcl || ""}
-											onChange={(e) =>
-												setSystemFormData((prev) => ({
-													...prev,
-													[eq.key]: { ...(prev[eq.key] || {}), otcl: e.target.value },
-												}))
-											}
-											placeholder="-"
-										/>
-									</td>
-									<td className="col-qty">
-										<input
-											type="text"
-											value={systemFormData[eq.key]?.qty || ""}
-											onChange={(e) =>
-												setSystemFormData((prev) => ({
-													...prev,
-													[eq.key]: { ...(prev[eq.key] || {}), qty: e.target.value },
-												}))
-											}
-											placeholder="-"
-										/>
-									</td>
-									<td className="col-type">
-										<input
-											type="text"
-											value={systemFormData[eq.key]?.type || ""}
-											onChange={(e) =>
-												setSystemFormData((prev) => ({
-													...prev,
-													[eq.key]: { ...(prev[eq.key] || {}), type: e.target.value },
-												}))
-											}
-											placeholder="-"
-										/>
-									</td>
-									<td className="col-brand">
-										<input
-											type="text"
-											value={systemFormData[eq.key]?.brand || ""}
-											onChange={(e) =>
-												setSystemFormData((prev) => ({
-													...prev,
-													[eq.key]: { ...(prev[eq.key] || {}), brand: e.target.value },
-												}))
-											}
-											placeholder="-"
-										/>
-									</td>
-									<td className="col-link">
-										<input
-											type="text"
-											value={systemFormData[eq.key]?.link || ""}
-											onChange={(e) =>
-												setSystemFormData((prev) => ({
-													...prev,
-													[eq.key]: { ...(prev[eq.key] || {}), link: e.target.value },
-												}))
-											}
-											placeholder="-"
-										/>
-									</td>
-								</tr>
-							))}
+							{eqTypes.map((eq) => {
+									const row = systemFormData[eq.key] || {};
+									const linkEmpty = !row.link;
+									return (
+									<tr key={eq.key}>
+										<td className="excel-row-header excel-row-header-bold">{eq.label}</td>
+										<td>
+											<input
+												type="text"
+												value={row.brand || ""}
+												onChange={(e) =>
+													setSystemFormData((prev) => ({
+														...prev,
+														[eq.key]: { ...(prev[eq.key] || {}), brand: e.target.value },
+													}))
+													}
+												placeholder="-"
+												/>
+											</td>
+										<td>
+											<input
+												type="text"
+												value={row.type || ""}
+												onChange={(e) =>
+													setSystemFormData((prev) => ({
+														...prev,
+														[eq.key]: { ...(prev[eq.key] || {}), type: e.target.value },
+													}))
+													}
+												placeholder="-"
+												/>
+											</td>
+										<td>
+											<input
+												type="text"
+												value={row.qty || ""}
+												onChange={(e) =>
+													setSystemFormData((prev) => ({
+														...prev,
+														[eq.key]: { ...(prev[eq.key] || {}), qty: e.target.value },
+													}))
+													}
+												placeholder="-"
+												/>
+											</td>
+										<td className={linkEmpty ? "cell-link-empty" : ""}>
+											<input
+												type="text"
+												value={row.link || ""}
+												onChange={(e) =>
+													setSystemFormData((prev) => ({
+														...prev,
+														[eq.key]: { ...(prev[eq.key] || {}), link: e.target.value },
+													}))
+													}
+												placeholder="-"
+												/>
+											</td>
+										<td>
+											<input
+												type="text"
+												value={row.alarm || ""}
+												onChange={(e) =>
+													setSystemFormData((prev) => ({
+														...prev,
+													[eq.key]: { ...(prev[eq.key] || {}), alarm: e.target.value },
+													}))
+													}
+												placeholder="-"
+												/>
+											</td>
+									</tr>
+								);
+								})}
 						</tbody>
 					</table>
 					<div className="system-detail-actions">

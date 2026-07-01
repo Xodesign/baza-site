@@ -4132,16 +4132,41 @@ input[type="date"]:focus {
 .system-excel-table input::placeholder {
 	color: #a0a0a0;
 }
-.system-excel-table .col-qty { width: 80px; text-align: center; }
-.system-excel-table .col-type { width: 140px; }
-.system-excel-table .col-brand { width: 140px; }
-.system-excel-table .col-link { min-width: 200px; }
-.system-excel-table .col-otcl { width: 50px; text-align: center; }
-.system-excel-table .col-group { width: 120px; }
-.system-excel-table .col-vid { width: 120px; }
-.system-excel-table .col-norm { width: 80px; text-align: center; }
-.system-excel-table .col-srok { width: 80px; text-align: center; }
-.system-excel-table .col-srok2 { width: 80px; text-align: center; }
+.system-excel-table .col-qty {
+	width: 80px;
+	text-align: center;
+}
+.system-excel-table .col-type {
+	width: 140px;
+}
+.system-excel-table .col-brand {
+	width: 140px;
+}
+.system-excel-table .col-link {
+	min-width: 200px;
+}
+.system-excel-table .col-otcl {
+	width: 50px;
+	text-align: center;
+}
+.system-excel-table .col-group {
+	width: 120px;
+}
+.system-excel-table .col-vid {
+	width: 120px;
+}
+.system-excel-table .col-norm {
+	width: 80px;
+	text-align: center;
+}
+.system-excel-table .col-srok {
+	width: 80px;
+	text-align: center;
+}
+.system-excel-table .col-srok2 {
+	width: 80px;
+	text-align: center;
+}
 /* Подзаголовки строк */
 .system-excel-table .sub-header td {
 	background: #f8f8f8;
@@ -4212,4 +4237,20 @@ input[type="date"]:focus {
 .system-chip:hover {
 	background: var(--primary, #4f46e5);
 	color: white;
+}
+
+/* Красная ячейка — нет ссылки */
+.cell-link-empty input {
+	background: #ffcccc !important;
+	color: #cc0000 !important;
+	font-weight: 600;
+}
+.cell-link-empty input::placeholder {
+	color: #ff6666 !important;
+}
+/* Жирный заголовок строки */
+.excel-row-header-bold {
+	font-weight: 700 !important;
+	background: #d9e1f2;
+	font-size: 12px !important;
 }
