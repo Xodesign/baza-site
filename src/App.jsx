@@ -2111,9 +2111,9 @@ function App() {
 		// Фильтр по продлеваемости
 		const objExtendable = o["Продлеваемость"] || o["Продлеваемость "] || "";
 		const matchesExtendable =
-			!objectFilters.extendable ||
-			objectFilters.extendable === "all" ||
-			objectFilters.extendable === "undefined"
+			!objectFilters.extendable || objectFilters.extendable === "all"
+				? true
+				: objectFilters.extendable === "undefined"
 				? !objExtendable
 				: objExtendable === objectFilters.extendable;
 
@@ -2208,8 +2208,10 @@ function App() {
 							<button key={item.id} className="nav-item" onClick={() => {}}>
 								<item.icon size={20} />
 								<span>{item.label}</span>
-								{item.id === 'rd' && rdFolderCount > 0 && (
-										<span className="sidebar-badge">{rdFolderCount > 99 ? '99+' : rdFolderCount}</span>
+								{item.id === "rd" && rdFolderCount > 0 && (
+									<span className="sidebar-badge">
+										{rdFolderCount > 99 ? "99+" : rdFolderCount}
+									</span>
 								)}
 							</button>
 						))}
