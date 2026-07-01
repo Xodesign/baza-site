@@ -2298,7 +2298,7 @@ function App() {
 			case "users":
 				return <UsersPanel />;
 			case "rd":
-				return renderRDSection();
+				return <RenderRDSection />;
 			default:
 				return renderPlaceholderSection();
 		}
@@ -5409,7 +5409,7 @@ function App() {
 	}
 
 	
-function renderRDSection() {
+function RenderRDSection() {
 	const [rdFolders, setRDFolders] = useState([]);
 	const [rdFiles, setRDFiles] = useState([]);
 	const [currentFolder, setCurrentFolder] = useState(null);
@@ -5425,8 +5425,8 @@ function renderRDSection() {
 		setLoading(true);
 		try {
 			const [foldersRes, filesRes] = await Promise.all([
-				fetch(`${apiBase}/mobile/rd/folders`),
-				fetch(`${apiBase}/mobile/rd/files`),
+				fetch(`${apiBase}/rd/folders`),
+				fetch(`${apiBase}/rd/files`),
 			]);
 			if (foldersRes.ok) {
 				const folders = await foldersRes.json();
@@ -5460,7 +5460,7 @@ function renderRDSection() {
 	const createFolder = async () => {
 		if (!newFolderName.trim()) return;
 		try {
-			const res = await fetch(`${apiBase}/mobile/rd/folders`, {
+			const res = await fetch(`${apiBase}/rd/folders`, {
 				method: "POST",
 				headers: { "Content-Type": "application/json" },
 				body: JSON.stringify({ name: newFolderName.trim(), parentId: currentFolder ? currentFolder.id : null }),
@@ -5474,7 +5474,7 @@ function renderRDSection() {
 	const deleteFolder = async (folderId) => {
 		if (!confirm("Удалить папку и все вложения?")) return;
 		try {
-			const res = await fetch(`${apiBase}/mobile/rd/folders/${folderId}`, { method: "DELETE" });
+			const res = await fetch(`${apiBase}/rd/folders/${folderId}`, { method: "DELETE" });
 			if (res.ok) {
 				await loadData();
 			}
@@ -5488,7 +5488,7 @@ function renderRDSection() {
 			formData.append("file", file);
 			if (currentFolder) formData.append("folderId", String(currentFolder.id));
 			try {
-				await fetch(`${apiBase}/mobile/rd/files`, { method: "POST", body: formData });
+				await fetch(`${apiBase}/rd/files`, { method: "POST", body: formData });
 			} catch (err) { console.error("Upload error:", err); }
 		}
 		e.target.value = "";
@@ -5496,13 +5496,13 @@ function renderRDSection() {
 	};
 
 	const downloadFile = (file) => {
-		window.open(`${apiBase}/mobile/rd/files/${file.id}/download`, "_blank");
+		window.open(`${apiBase}/rd/files/${file.id}/download`, "_blank");
 	};
 
 	const deleteFile = async (fileId) => {
 		if (!confirm("Удалить файл?")) return;
 		try {
-			const res = await fetch(`${apiBase}/mobile/rd/files/${fileId}`, { method: "DELETE" });
+			const res = await fetch(`${apiBase}/rd/files/${fileId}`, { method: "DELETE" });
 			if (res.ok) await loadData();
 		} catch (err) { console.error("Delete file error:", err); }
 	};
