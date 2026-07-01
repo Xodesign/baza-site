@@ -3810,38 +3810,38 @@ input[type="date"]:focus {
 
 /* Explicit nav text styles to ensure visibility */
 .nav-item {
-  color: #4b5563 !important;
+	color: #4b5563 !important;
 }
 
 .nav-item span {
-  color: #4b5563 !important;
-  font-weight: 500;
-  font-size: 15px;
+	color: #4b5563 !important;
+	font-weight: 500;
+	font-size: 15px;
 }
 
 .nav-item:hover {
-  background: #f3f4f6 !important;
-  color: #1f2937 !important;
+	background: #f3f4f6 !important;
+	color: #1f2937 !important;
 }
 
 .nav-item:hover span {
-  color: #1f2937 !important;
+	color: #1f2937 !important;
 }
 
 .nav-item.active {
-  background: #2563eb !important;
-  color: #ffffff !important;
+	background: #2563eb !important;
+	color: #ffffff !important;
 }
 
 .nav-item.active span {
-  color: #ffffff !important;
+	color: #ffffff !important;
 }
 
 /* Sidebar text */
 .sidebar {
-  color-scheme: light;
+	color-scheme: light;
 }
 
 .sidebar-nav {
-  color: #374151;
+	color: #374151;
 }

@@ -2421,23 +2421,27 @@ function App() {
 							<X size={14} /> Сбросить фильтры
 						</button>
 					)}
+
+				<div className="header-actions">
+					<button
+						className="btn btn-secondary"
+						onClick={() => handleAddRandomObjects(5)}
+					>
+						<Zap size={16} />
+						Добавить 5 рандомных
+					</button>
+					<button
+						className="btn btn-primary"
+						onClick={() => setIsAddFormOpen(!isAddFormOpen)}
+					>
+						<Plus size={16} />
+						Добавить объект
+					</button>
+				</div>
 				</div>
 
 				{/* СЕКЦИЯ ДОБАВЛЕНИЯ */}
-				<div className="collapsible-section">
-					<div
-						className="collapsible-header"
-						onClick={() => setIsAddFormOpen(!isAddFormOpen)}
-					>
-						<h3>
-							<Plus size={20} /> Добавить объект
-						</h3>
-						<ChevronDown
-							size={20}
-							className={`collapse-icon ${isAddFormOpen ? "open" : ""}`}
-						/>
-					</div>
-					{isAddFormOpen && (
+				{isAddFormOpen && (
 						<div className="collapsible-content">
 							<div className="add-form-section add-form-full">
 								<div className="form-actions-row">
@@ -2877,7 +2881,6 @@ function App() {
 							</div>
 						</div>
 					)}
-				</div>
 
 				{/* ТАБЛИЦА ОБЪЕКТОВ */}
 				<div className="table-container table-horizontal">
