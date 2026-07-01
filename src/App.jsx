@@ -893,7 +893,8 @@ function App() {
 		setSystemDetail({
 			objectId: obj.id,
 			objectName: obj["Наименование объекта"] || "",
-			shortAddress: obj["Адрес сокращенный"] || obj["Адрес полный объекта"] || "",
+			shortAddress:
+				obj["Адрес сокращенный"] || obj["Адрес полный объекта"] || "",
 			systemName: systemName,
 		});
 		// Загружаем сохранённые данные или пустую форму
@@ -2418,7 +2419,10 @@ function App() {
 								type="text"
 								value={systemFormData.brand}
 								onChange={(e) =>
-									setSystemFormData({ ...systemFormData, brand: e.target.value })
+									setSystemFormData({
+										...systemFormData,
+										brand: e.target.value,
+									})
 								}
 								placeholder="Например: Болид, Рубеж, STS..."
 							/>
@@ -2440,7 +2444,10 @@ function App() {
 								type="text"
 								value={systemFormData.quantity}
 								onChange={(e) =>
-									setSystemFormData({ ...systemFormData, quantity: e.target.value })
+									setSystemFormData({
+										...systemFormData,
+										quantity: e.target.value,
+									})
 								}
 								placeholder="Например: 120 шт."
 							/>
@@ -2464,7 +2471,7 @@ function App() {
 								🔄 Сбросить
 							</button>
 							<button className="btn btn-secondary" onClick={closeSystemDetail}>
-							🏠 На главную
+								🏠 На главную
 							</button>
 						</div>
 					</div>
@@ -3239,32 +3246,36 @@ function App() {
 										<td>{obj["Наименование объекта"]}</td>
 										<td>{obj["РД ИД ПД"]}</td>
 										<td>{obj["Арендатор"]}</td>
-									<td className="cell-systems">
-										<div className="systems-list">
-											{(obj["Системы"] || "")
-												.split(",")
-												.map((s) => s.trim())
-												.filter((s) => s)
-												.map((systemName) => (
-												<span
-													key={systemName}
-													className="system-chip"
-													onClick={() => openSystemDetail(obj, systemName)}
-													title={`Открыть детали системы ${systemName}`}
-												>
-													{systemName}
-											</span>
-											))}
-											{!obj["Системы"] && (
-											<em
-												style={{ fontSize: "12px", color: "#9ca3af", cursor: "pointer" }}
-												onClick={(e) => openSystemPicker(obj, e)}
-											>
-												Нажмите для выбора
-										</em>
-										)}
-									</div>
-									</td>
+										<td className="cell-systems">
+											<div className="systems-list">
+												{(obj["Системы"] || "")
+													.split(",")
+													.map((s) => s.trim())
+													.filter((s) => s)
+													.map((systemName) => (
+														<span
+															key={systemName}
+															className="system-chip"
+															onClick={() => openSystemDetail(obj, systemName)}
+															title={`Открыть детали системы ${systemName}`}
+														>
+															{systemName}
+														</span>
+													))}
+												{!obj["Системы"] && (
+													<em
+														style={{
+															fontSize: "12px",
+															color: "#9ca3af",
+															cursor: "pointer",
+														}}
+														onClick={(e) => openSystemPicker(obj, e)}
+													>
+														Нажмите для выбора
+													</em>
+												)}
+											</div>
+										</td>
 										<td>{obj["Расчетное время на обслуживание"]}</td>
 										<td>{obj["Контакты"]}</td>
 										<td>{obj["Инструмент на объекте"]}</td>

@@ -689,7 +689,8 @@ export default function CallsForm({
 				objectName: obj["Наименование объекта"] || prev.objectName,
 				shortAddress: obj["Адрес сокращенный"] || prev.shortAddress,
 				tenant: obj["Арендатор"] || prev.tenant,
-				system: systemsStr ? systemsStr.split(",")[0].trim() : prev.system,
+				// Подтягиваем ВСЕ системы из объекта
+				system: systemsStr.trim(),
 			}));
 		};
 
