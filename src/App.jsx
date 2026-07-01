@@ -603,85 +603,135 @@ function App() {
 			console.warn("baza_objects save error:", err);
 		}
 	};
+
+	// Синхронизация с сервером для объектов
+	const syncObjectToServer = async (obj, action) => {
+		try {
+			const { id, _serverId, ...data } = obj;
+			if (action === 'create') {
+				const res = await fetch('http://37.252.17.205:3001/api/objects', {
+					method: 'POST',
+					headers: { 'Content-Type': 'application/json' },
+					body: JSON.stringify(data),
+				});
+				if (res.ok) {
+					const saved = await res.json();
+					return saved._serverId || saved.id;
+				}
+			} else if (action === 'update' && _serverId) {
+				await fetch(`http://37.252.17.205:3001/api/objects/${_serverId}`, {
+					method: 'PUT',
+					headers: { 'Content-Type': 'application/json' },
+					body: JSON.stringify(data),
+				});
+			}
+		} catch (err) {
+			console.warn('syncObjectToServer error:', err);
+		}
+		return null;
+	};
+
+	const deleteObjectFromServer = async (_serverId) => {
+		if (!_serverId) return;
+		try {
+			await fetch(`http://37.252.17.205:3001/api/objects/${_serverId}`, {
+				method: 'DELETE',
+			});
+		} catch (err) {
+			console.warn('deleteObjectFromServer error:', err);
+		}
+	};
 	const [editingObject, setEditingObject] = useState(null);
 	const [isEditModalOpen, setIsEditModalOpen] = useState(false);
 	const [isAddFormOpen, setIsAddFormOpen] = useState(false);
 
-	// Загрузка объектов из Excel или из localStorage
+	// Загрузка объектов: сервер → localStorage → Excel
 	useEffect(() => {
-		// Если уже загружали — не перезаписываем из Excel
-		const saved = localStorage.getItem("baza_objects");
-		if (saved) {
+		const loadObjects = async () => {
+			// 1. Пробуем сервер
 			try {
-				const parsed = JSON.parse(saved);
-				if (parsed.length > 0) {
-					setObjects(parsed);
-					setInitialObjectsLoaded(true);
-					setIsLoading(false);
-					return;
+				const res = await fetch('http://37.252.17.205:3001/api/objects');
+				if (res.ok) {
+					const serverObjs = await res.json();
+					if (serverObjs.length > 0) {
+						saveObjects(serverObjs);
+						setInitialObjectsLoaded(true);
+						setIsLoading(false);
+						return;
+					}
 				}
 			} catch (err) {
-				console.warn("baza_objects parse error:", err);
+				console.warn('Server objects fetch failed:', err);
 			}
-		}
-		// Фоллбэк на Excel
-		fetch("/excel_data.json")
-			.then((r) => r.json())
-			.then((data) => {
-				const rows = data["Объекты"]?.rows || [];
+
+			// 2. Фоллбэк на localStorage
+			const saved = localStorage.getItem('baza_objects');
+			if (saved) {
+				try {
+					const parsed = JSON.parse(saved);
+					if (parsed.length > 0) {
+						setObjects(parsed);
+						setInitialObjectsLoaded(true);
+						setIsLoading(false);
+						return;
+					}
+				} catch (err) {
+					console.warn('baza_objects parse error:', err);
+				}
+			}
+
+			// 3. Фоллбэк на Excel
+			try {
+				const r = await fetch('/excel_data.json');
+				const data = await r.json();
+				const rows = data['Объекты']?.rows || [];
 				const parsed = rows
 					.filter(
 						(row) =>
-							row["Наименование объекта"] &&
-							row["Наименование объекта"] !== "Наименование объекта",
+							owner['Наименование объекта'] &&
+							owner['Наименование объекта'] !== 'Наименование объекта',
 					)
 					.map((row, idx) => ({
 						id: idx + 1,
 						objectNumber: idx + 1,
-						"№": row["№"] || "",
-						Заказчик: row["Заказчик"] || "",
-						Подрядчик: row["Подрядчик"] || "",
-						"№ контр/дог": row["№ контр/дог"] || "",
-						"Начало действия договора": row["Начало действия договора"] || "",
-						"Окончание действия договора":
-							row["Окончание действия договора"] || "",
-						"Тип договора": row["Тип договора"] || "",
-						Продлеваемость: row["Продлеваемость"] || "",
-						"Письмо о повышении стоимости ТО":
-							row["Письмо о повышении стоимость ТО"] || "",
-						"Свершившееся повышение цены ТО":
-							row["Свершившееся повышение цены ТО"] || "",
-						"Доп соглашение": row["Доп соглашени"] || "",
-						Письма: row["Письма"] || "",
-						"Кто оплачивает ремонт": row["Кто оплачивает ремонт"] || "",
-						"Как оплачиваются доп.работы":
-							row["Как оплачиваются доп.работы"] || "",
-						"К доп работам есть ли аванс":
-							row["К доп работам есть ли аванс"] || "",
-						"Адрес полный объекта": row["Адрес полный объекта"] || "",
-						"Адрес сокращенный": row["Адрес сокращенный"] || "",
-						"Наименование объекта": row["Наименование объекта"] || "",
-						"РД ИД ПД": row["РД ИД ПД"] || "",
-						Арендатор: row["Арендатор"] || "",
-						Системы: row["Системы"] || "",
-						"Расчетное время на обслуживание":
-							row["Расчетное время на обслуживание"] || "",
-						Контакты: row["Контакты"] || "",
-						Заметки: row["Заметки"] || "",
-						"Инструмент на объекте": row["Инструмент на объекте"] || "",
+						'№': row['№'] || '',
+						Заказчик: row['Заказчик'] || '',
+						Подрядчик: row['Подрядчик'] || '',
+						'№ контр/дог': row['№ контр/дог'] || '',
+						'Начало действия договора': row['Начало действия договора'] || '',
+						'Окончание действия договора': row['Окончание действия договора'] || '',
+						'Тип договора': row['Тип договора'] || '',
+						Продлеваемость: row['Продлеваемость'] || '',
+						'Письмо о повышении стоимости ТО': row['Письмо о повышении стоимость ТО'] || '',
+						'Свершившееся повышение цены ТО': row['Свершившееся повышение цены ТО'] || '',
+						'Доп соглашение': row['Доп соглашени'] || '',
+						Письма: row['Письма'] || '',
+						'Кто оплачивает ремонт': row['Кто оплачивает ремонт'] || '',
+						'Как оплачиваются доп.работы': row['Как оплачиваются доп.работы'] || '',
+						'К доп работам есть ли аванс': row['К доп работам есть ли аванс'] || '',
+						'Адрес полный объекта': row['Адрес полный объекта'] || '',
+						'Адрес сокращенный': row['Адрес сокращенный'] || '',
+						'Наименование объекта': row['Наименование объекта'] || '',
+						'РД ИД ПД': row['РД ИД ПД'] || '',
+						Арендатор: row['Арендатор'] || '',
+						Системы: row['Системы'] || '',
+						'Расчетное время на обслуживание': row['Расчетное время на обслуживание'] || '',
+						Контакты: row['Контакты'] || '',
+						Заметки: row['Заметки'] || '',
+						'Инструмент на объекте': row['Инструмент на объекте'] || '',
 					}));
 				if (parsed.length > 0) {
-					localStorage.setItem("baza_objects", JSON.stringify(parsed));
+					saveObjects(parsed);
 				}
-				setObjects(parsed);
 				setInitialObjectsLoaded(true);
 				setIsLoading(false);
-			})
-			.catch((err) => {
-				console.error("Ошибка загрузки данных:", err);
+			} catch (err) {
+				console.error('Ошибка загрузки данных:', err);
 				setInitialObjectsLoaded(true);
 				setIsLoading(false);
-			});
+			}
+		};
+		loadObjects();
 	}, []);
 
 	// --- СТЕЙТЫ ВЫЗОВОВ ---
@@ -1173,6 +1223,14 @@ function App() {
 		objectContactsSyncRef.current = true;
 		saveObjects([newObj, ...objects]);
 		setNewFormData(getEmptyObjectForm());
+		// Синхронизация с сервером
+		syncObjectToServer(newObj, 'create').then((serverId) => {
+			if (serverId) {
+				setObjects((prev) =>
+					prev.map((o) => (o.id === newObj.id ? { ...o, _serverId: serverId } : o)),
+				);
+			}
+		});
 	};
 
 	// Генерация рандомного объекта
@@ -1288,12 +1346,15 @@ function App() {
 			generateRandomObject(),
 		);
 		saveObjects([...newObjects, ...objects]);
+		newObjects.forEach((obj) => syncObjectToServer(obj, 'create'));
 	};
 
 	const handleDeleteObject = (id) => {
 		if (confirm("Удалить объект?")) {
 			objectContactsSyncRef.current = true;
+			const obj = objects.find((o) => o.id === id);
 			saveObjects(objects.filter((o) => o.id !== id));
+			deleteObjectFromServer(obj?._serverId);
 		}
 	};
 
@@ -1471,6 +1532,8 @@ function App() {
 
 		setIsEditModalOpen(false);
 		setEditingObject(null);
+		// Синхронизация с сервером
+		syncObjectToServer(editingObject, 'update');
 	};
 
 	// === ЛОГИКА ВЫЗОВОВ ===
@@ -2114,8 +2177,8 @@ function App() {
 			!objectFilters.extendable || objectFilters.extendable === "all"
 				? true
 				: objectFilters.extendable === "undefined"
-				? !objExtendable
-				: objExtendable === objectFilters.extendable;
+					? !objExtendable
+					: objExtendable === objectFilters.extendable;
 
 		// Фильтр по наличию инструмента
 		const matchesTool =
