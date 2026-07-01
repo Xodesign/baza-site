@@ -571,15 +571,48 @@ function App() {
 	const [isExporting, setIsExporting] = useState(false);
 
 	// --- СТЕЙТЫ ОБЪЕКТОВ ---
-	const [objects, setObjects] = useState([]);
+	const [objects, setObjects] = useState(() => {
+		const saved = localStorage.getItem("baza_objects");
+		if (saved) {
+			try { return JSON.parse(saved); } catch {}
+		}
+		return [];
+	});
 	const [isLoading, setIsLoading] = useState(true);
+	const [initialObjectsLoaded, setInitialObjectsLoaded] = useState(false);
 	const [newFormData, setNewFormData] = useState(getEmptyObjectForm());
+
+	// Обёртка над setObjects — сохраняет в localStorage
+	const saveObjects = (newObjects) => {
+		setObjects(newObjects);
+		try {
+			localStorage.setItem("baza_objects", JSON.stringify(newObjects));
+		} catch (err) {
+			console.warn("baza_objects save error:", err);
+		}
+	};
 	const [editingObject, setEditingObject] = useState(null);
 	const [isEditModalOpen, setIsEditModalOpen] = useState(false);
 	const [isAddFormOpen, setIsAddFormOpen] = useState(false);
 
-	// Загрузка объектов из Excel при первом рендере
+	// Загрузка объектов из Excel или из localStorage
 	useEffect(() => {
+		// Если уже загружали — не перезаписываем из Excel
+		const saved = localStorage.getItem("baza_objects");
+		if (saved) {
+			try {
+				const parsed = JSON.parse(saved);
+				if (parsed.length > 0) {
+					setObjects(parsed);
+					setInitialObjectsLoaded(true);
+					setIsLoading(false);
+					return;
+				}
+			} catch (err) {
+				console.warn("baza_objects parse error:", err);
+			}
+		}
+		// Фоллбэк на Excel
 		fetch("/excel_data.json")
 			.then((r) => r.json())
 			.then((data) => {
@@ -591,48 +624,54 @@ function App() {
 							row["Наименование объекта"] !== "Наименование объекта",
 					)
 					.map((row, idx) => ({
-						id: idx + 1,
-						objectNumber: idx + 1,
-						"№": row["№"] || "",
-						Заказчик: row["Заказчик"] || "",
-						Подрядчик: row["Подрядчик"] || "",
-						"№ контр/дог": row["№ контр/дог"] || "",
-						"Начало действия договора": row["Начало действия договора"] || "",
-						"Окончание действия договора":
-							row["Окончание действия договора"] || "",
-						"Тип договора": row["Тип договора"] || "",
-						Продлеваемость: row["Продлеваемость"] || "",
-						"Письмо о повышении стоимости ТО":
-							row["Письмо о повышении стоимость ТО"] || "",
-						"Свершившееся повышение цены ТО":
-							row["Свершившееся повышение цены ТО"] || "",
-						"Доп соглашение": row["Доп соглашени"] || "",
-						Письма: row["Письма"] || "",
-						"Кто оплачивает ремонт": row["Кто оплачивает ремонт"] || "",
-						"Как оплачиваются доп.работы":
-							row["Как оплачиваются доп.работы"] || "",
-						"К доп работам есть ли аванс":
-							row["К доп работам есть ли аванс"] || "",
-						"Адрес полный объекта": row["Адрес полный объекта"] || "",
-						"Адрес сокращенный": row["Адрес сокращенный"] || "",
-						"Наименование объекта": row["Наименование объекта"] || "",
-						"РД ИД ПД": row["РД ИД ПД"] || "",
-						Арендатор: row["Арендатор"] || "",
-						Системы: row["Системы"] || "",
-						"Расчетное время на обслуживание":
-							row["Расчетное время на обслуживание"] || "",
-						Контакты: row["Контакты"] || "",
-						Заметки: row["Заметки"] || "",
-						"Инструмент на объекте": row["Инструмент на объекте"] || "",
-					}));
+							id: idx + 1,
+							objectNumber: idx + 1,
+							"№": row["№"] || "",
+							Заказчик: row["Заказчик"] || "",
+							Подрядчик: row["Подрядчик"] || "",
+							"№ контр/дог": row["№ контр/дог"] || "",
+							"Начало действия договора": row["Начало действия договора"] || "",
+							"Окончание действия договора":
+								row["Окончание действия договора"] || "",
+							"Тип договора": row["Тип договора"] || "",
+							Продлеваемость: row["Продлеваемость"] || "",
+							"Письмо о повышении стоимости ТО":
+								row["Письмо о повышении стоимость ТО"] || "",
+							"Свершившееся повышение цены ТО":
+								row["Свершившееся повышение цены ТО"] || "",
+							"Доп соглашение": row["Доп соглашени"] || "",
+							Письма: row["Письма"] || "",
+							"Кто оплачивает ремонт": row["Кто оплачивает ремонт"] || "",
+							"Как оплачиваются доп.работы":
+								row["Как оплачиваются доп.работы"] || "",
+							"К доп работам есть ли аванс":
+								row["К доп работам есть ли аванс"] || "",
+							"Адрес полный объекта": row["Адрес полный объекта"] || "",
+							"Адрес сокращенный": row["Адрес сокращенный"] || "",
+							"Наименование объекта": row["Наименование объекта"] || "",
+							"РД ИД ПД": row["РД ИД ПД"] || "",
+							Арендатор: row["Арендатор"] || "",
+							Системы: row["Системы"] || "",
+							"Расчетное время на обслуживание":
+								row["Расчетное время на обслуживание"] || "",
+							Контакты: row["Контакты"] || "",
+							Заметки: row["Заметки"] || "",
+							"Инструмент на объекте": row["Инструмент на объекте"] || "",
+						}));
+				if (parsed.length > 0) {
+					localStorage.setItem("baza_objects", JSON.stringify(parsed));
+				}
 				setObjects(parsed);
+				setInitialObjectsLoaded(true);
 				setIsLoading(false);
 			})
 			.catch((err) => {
 				console.error("Ошибка загрузки данных:", err);
+				setInitialObjectsLoaded(true);
 				setIsLoading(false);
 			});
 	}, []);
+
 
 	// --- СТЕЙТЫ ВЫЗОВОВ ---
 	const [calls, setCalls] = useState(() => {
@@ -1107,13 +1146,7 @@ function App() {
 			...newFormData,
 		};
 		objectContactsSyncRef.current = true;
-		setObjects([newObj, ...objects]);
-		// Сохраняем в localStorage
-		try {
-			const saved = JSON.parse(localStorage.getItem("baza_objects") || "[]");
-			saved.unshift(newObj);
-			localStorage.setItem("baza_objects", JSON.stringify(saved));
-		} catch (err) {}
+		saveObjects([newObj, ...objects]);
 		setNewFormData(getEmptyObjectForm());
 	};
 
@@ -1229,18 +1262,13 @@ function App() {
 		const newObjects = Array.from({ length: count }, () =>
 			generateRandomObject(),
 		);
-		setObjects([...newObjects, ...objects]);
+		saveObjects([...newObjects, ...objects]);
 	};
 
 	const handleDeleteObject = (id) => {
 		if (confirm("Удалить объект?")) {
 			objectContactsSyncRef.current = true;
-			setObjects(objects.filter((o) => o.id !== id));
-			try {
-				const saved = JSON.parse(localStorage.getItem("baza_objects") || "[]");
-				saved = saved.filter((o) => o.id !== id);
-				localStorage.setItem("baza_objects", JSON.stringify(saved));
-			} catch (err) {}
+			saveObjects(objects.filter((o) => o.id !== id));
 		}
 	};
 
@@ -1254,18 +1282,6 @@ function App() {
 		const oldObject = objects.find((o) => o.id === editingObject.id);
 		const newObject = editingObject;
 
-		// Сохранение в localStorage
-		try {
-			const saved = JSON.parse(localStorage.getItem("baza_objects") || "[]");
-			const updated = saved.map((o) => (o.id === editingObject.id ? editingObject : o));
-			if (!updated.find((o) => o.id === editingObject.id)) {
-				updated.push(editingObject);
-			}
-			localStorage.setItem("baza_objects", JSON.stringify(updated));
-		} catch (err) {
-			console.warn("localStorage save error:", err);
-		}
-
 		// Синхронизация данных объекта во всех связанных разделах
 		const oldName = oldObject ? oldObject["Наименование объекта"] : "";
 		const newName = newObject["Наименование объекта"] || "";
@@ -1273,7 +1289,7 @@ function App() {
 		const newTenant = newObject["Арендатор"] || "";
 
 		objectContactsSyncRef.current = true;
-		setObjects(
+		saveObjects(
 			objects.map((o) => (o.id === editingObject.id ? editingObject : o)),
 		);
 
@@ -2306,7 +2322,7 @@ function App() {
 
 			const newSystemsString = selectedSystemsForObject.join(", ");
 			objectContactsSyncRef.current = true;
-			setObjects(
+			saveObjects(
 				objects.map((o) =>
 					o.id === systemPickerObject.id
 						? { ...o, Системы: newSystemsString }
