@@ -49,7 +49,6 @@ import CallsForm from "./components/CallsForm";
 const SECTION_ICONS = {
 	objects: Building2,
 	costs: DollarSign,
-	systems: Settings,
 	contacts: Users,
 	tools: Wrench,
 	tree: ClipboardList,
@@ -74,7 +73,6 @@ const SECTION_ICONS = {
 const SECTION_LABELS = {
 	objects: "Объекты",
 	costs: "Затраты",
-	systems: "Системы",
 	contacts: "Контакты",
 	tools: "Инструмент",
 	tree: "Дерево",
@@ -101,7 +99,6 @@ const ALL_SECTIONS = [
 	{ id: "calls", name: "Вызовы", icon: "calls" },
 	{ id: "contacts", name: "Контакты", icon: "contacts" },
 	{ id: "staff", name: "Персонал", icon: "staff" },
-	{ id: "systems", name: "Системы", icon: "systems" },
 	{ id: "tools", name: "Инструменты", icon: "tools" },
 	{ id: "activation", name: "Актирование", icon: "activation" },
 	{ id: "costs", name: "Расходы", icon: "costs" },
@@ -881,6 +878,61 @@ function App() {
 	const [systemPickerObject, setSystemPickerObject] = useState(null);
 	const [systemPickerSearch, setSystemPickerSearch] = useState("");
 	const [selectedSystemsForObject, setSelectedSystemsForObject] = useState([]);
+
+	// --- СТЕЙТЫ СТРАНИЦЫ ДЕТАЛЕЙ СИСТЕМЫ ---
+	const [systemDetail, setSystemDetail] = useState(null); // { objectId, objectName, shortAddress, systemName, brand, type, quantity, link }
+	const [systemFormData, setSystemFormData] = useState({
+		brand: "",
+		type: "",
+		quantity: "",
+		link: "",
+	});
+
+	// Открытие страницы системы
+	const openSystemDetail = (obj, systemName) => {
+		setSystemDetail({
+			objectId: obj.id,
+			objectName: obj["Наименование объекта"] || "",
+			shortAddress: obj["Адрес сокращенный"] || obj["Адрес полный объекта"] || "",
+			systemName: systemName,
+		});
+		// Загружаем сохранённые данные или пустую форму
+		const saved = localStorage.getItem(`system_${obj.id}_${systemName}`);
+		if (saved) {
+			setSystemFormData(JSON.parse(saved));
+		} else {
+			setSystemFormData({ brand: "", type: "", quantity: "", link: "" });
+		}
+	};
+
+	// Сохранение данных системы
+	const saveSystemDetail = () => {
+		if (!systemDetail) return;
+		localStorage.setItem(
+			`system_${systemDetail.objectId}_${systemDetail.systemName}`,
+			JSON.stringify(systemFormData),
+		);
+		// Также сохраняем в объект
+		const systemKey = `system_${systemDetail.systemName}`;
+		objectContactsSyncRef.current = true;
+		saveObjects(
+			objects.map((o) =>
+				o.id === systemDetail.objectId
+					? { ...o, [systemKey]: systemFormData }
+					: o,
+			),
+		);
+	};
+
+	// Сброс формы
+	const resetSystemForm = () => {
+		setSystemFormData({ brand: "", type: "", quantity: "", link: "" });
+	};
+
+	// Закрытие страницы системы
+	const closeSystemDetail = () => {
+		setSystemDetail(null);
+	};
 
 	// --- СТЕЙТЫ ФИЛЬТРОВ ОБЪЕКТОВ ---
 	const [objectFilters, setObjectFilters] = useState({
@@ -2339,15 +2391,99 @@ function App() {
 		);
 	}
 
+	// === СТРАНИЦА ДЕТАЛЕЙ СИСТЕМЫ ===
+	function renderSystemDetailPage() {
+		if (!systemDetail) return null;
+		return (
+			<div className="section">
+				<div className="content-header">
+					<div className="content-header-left">
+						<button className="btn btn-secondary" onClick={closeSystemDetail}>
+							← Назад к объектам
+						</button>
+					</div>
+				</div>
+				<div className="system-detail-page">
+					<div className="system-detail-header">
+						<h2>Система: {systemDetail.systemName}</h2>
+						<p className="system-detail-object">
+							{systemDetail.objectName}
+							{systemDetail.shortAddress && ` — ${systemDetail.shortAddress}`}
+						</p>
+					</div>
+					<div className="system-detail-form">
+						<div className="form-group">
+							<label>Бренд</label>
+							<input
+								type="text"
+								value={systemFormData.brand}
+								onChange={(e) =>
+									setSystemFormData({ ...systemFormData, brand: e.target.value })
+								}
+								placeholder="Например: Болид, Рубеж, STS..."
+							/>
+						</div>
+						<div className="form-group">
+							<label>Тип</label>
+							<input
+								type="text"
+								value={systemFormData.type}
+								onChange={(e) =>
+									setSystemFormData({ ...systemFormData, type: e.target.value })
+								}
+								placeholder="Например: адресный, аналоговый..."
+							/>
+						</div>
+						<div className="form-group">
+							<label>Количество</label>
+							<input
+								type="text"
+								value={systemFormData.quantity}
+								onChange={(e) =>
+									setSystemFormData({ ...systemFormData, quantity: e.target.value })
+								}
+								placeholder="Например: 120 шт."
+							/>
+						</div>
+						<div className="form-group">
+							<label>Ссылка на перечень</label>
+							<input
+								type="text"
+								value={systemFormData.link}
+								onChange={(e) =>
+									setSystemFormData({ ...systemFormData, link: e.target.value })
+								}
+								placeholder="Ссылка на документацию или перечень"
+							/>
+						</div>
+						<div className="system-detail-actions">
+							<button className="btn btn-primary" onClick={saveSystemDetail}>
+								💾 Сохранить
+							</button>
+							<button className="btn btn-secondary" onClick={resetSystemForm}>
+								🔄 Сбросить
+							</button>
+							<button className="btn btn-secondary" onClick={closeSystemDetail}>
+							🏠 На главную
+							</button>
+						</div>
+					</div>
+				</div>
+			</div>
+		);
+	}
+
 	// === РЕНДЕР РАЗДЕЛОВ ===
 	const renderSection = () => {
+		// Если открыта страница деталей системы — показываем её
+		if (systemDetail) {
+			return renderSystemDetailPage();
+		}
 		switch (activeTab) {
 			case "objects":
 				return renderObjectsSection();
 			case "calls":
 				return renderCallsSection();
-			case "systems":
-				return renderSystemsSection();
 			case "costs":
 				return renderCostsSection();
 			case "tools":
@@ -3103,15 +3239,32 @@ function App() {
 										<td>{obj["Наименование объекта"]}</td>
 										<td>{obj["РД ИД ПД"]}</td>
 										<td>{obj["Арендатор"]}</td>
-										<td
-											className="cell-systems"
-											onClick={(e) => openSystemPicker(obj, e)}
-											title="Нажмите для выбора систем"
-										>
-											<span className="systems-link">
-												{obj["Системы"] || <em>Нажмите для выбора</em>}
+									<td className="cell-systems">
+										<div className="systems-list">
+											{(obj["Системы"] || "")
+												.split(",")
+												.map((s) => s.trim())
+												.filter((s) => s)
+												.map((systemName) => (
+												<span
+													key={systemName}
+													className="system-chip"
+													onClick={() => openSystemDetail(obj, systemName)}
+													title={`Открыть детали системы ${systemName}`}
+												>
+													{systemName}
 											</span>
-										</td>
+											))}
+											{!obj["Системы"] && (
+											<em
+												style={{ fontSize: "12px", color: "#9ca3af", cursor: "pointer" }}
+												onClick={(e) => openSystemPicker(obj, e)}
+											>
+												Нажмите для выбора
+										</em>
+										)}
+									</div>
+									</td>
 										<td>{obj["Расчетное время на обслуживание"]}</td>
 										<td>{obj["Контакты"]}</td>
 										<td>{obj["Инструмент на объекте"]}</td>
