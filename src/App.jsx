@@ -882,10 +882,10 @@ function App() {
 	// --- СТЕЙТЫ СТРАНИЦЫ ДЕТАЛЕЙ СИСТЕМЫ ---
 	const [systemDetail, setSystemDetail] = useState(null); // { objectId, objectName, shortAddress, systemName, brand, type, quantity, link }
 	const [systemFormData, setSystemFormData] = useState({
-		brand: "",
-		type: "",
-		quantity: "",
-		link: "",
+		sensors: { otcl: "", qty: "", type: "", brand: "", link: "" },
+		speakers: { otcl: "", qty: "", type: "", brand: "", link: "" },
+		hoses: { otcl: "", qty: "", type: "", brand: "", link: "" },
+		sprinklers: { otcl: "", qty: "", type: "", brand: "", link: "" },
 	});
 
 	// Открытие страницы системы
@@ -902,7 +902,12 @@ function App() {
 		if (saved) {
 			setSystemFormData(JSON.parse(saved));
 		} else {
-			setSystemFormData({ brand: "", type: "", quantity: "", link: "" });
+			setSystemFormData({
+				sensors: { otcl: "", qty: "", type: "", brand: "", link: "" },
+				speakers: { otcl: "", qty: "", type: "", brand: "", link: "" },
+				hoses: { otcl: "", qty: "", type: "", brand: "", link: "" },
+				sprinklers: { otcl: "", qty: "", type: "", brand: "", link: "" },
+			});
 		}
 	};
 
@@ -927,7 +932,12 @@ function App() {
 
 	// Сброс формы
 	const resetSystemForm = () => {
-		setSystemFormData({ brand: "", type: "", quantity: "", link: "" });
+		setSystemFormData({
+			sensors: { otcl: "", qty: "", type: "", brand: "", link: "" },
+			speakers: { otcl: "", qty: "", type: "", brand: "", link: "" },
+			hoses: { otcl: "", qty: "", type: "", brand: "", link: "" },
+			sprinklers: { otcl: "", qty: "", type: "", brand: "", link: "" },
+		});
 	};
 
 	// Закрытие страницы системы
@@ -2395,6 +2405,14 @@ function App() {
 	// === СТРАНИЦА ДЕТАЛЕЙ СИСТЕМЫ ===
 	function renderSystemDetailPage() {
 		if (!systemDetail) return null;
+
+		const eqTypes = [
+			{ key: "sensors", label: "Датчики" },
+			{ key: "speakers", label: "Оповещатели" },
+			{ key: "hoses", label: "Шланги" },
+			{ key: "sprinklers", label: "Оросители" },
+		];
+
 		return (
 			<div className="section">
 				<div className="content-header">
@@ -2406,74 +2424,106 @@ function App() {
 				</div>
 				<div className="system-detail-page">
 					<div className="system-detail-header">
-						<h2>Система: {systemDetail.systemName}</h2>
-						<p className="system-detail-object">
+						<h2>{systemDetail.systemName}</h2>
+						<span className="system-detail-object">
 							{systemDetail.objectName}
 							{systemDetail.shortAddress && ` — ${systemDetail.shortAddress}`}
-						</p>
+						</span>
 					</div>
-					<div className="system-detail-form">
-						<div className="form-group">
-							<label>Бренд</label>
-							<input
-								type="text"
-								value={systemFormData.brand}
-								onChange={(e) =>
-									setSystemFormData({
-										...systemFormData,
-										brand: e.target.value,
-									})
-								}
-								placeholder="Например: Болид, Рубеж, STS..."
-							/>
-						</div>
-						<div className="form-group">
-							<label>Тип</label>
-							<input
-								type="text"
-								value={systemFormData.type}
-								onChange={(e) =>
-									setSystemFormData({ ...systemFormData, type: e.target.value })
-								}
-								placeholder="Например: адресный, аналоговый..."
-							/>
-						</div>
-						<div className="form-group">
-							<label>Количество</label>
-							<input
-								type="text"
-								value={systemFormData.quantity}
-								onChange={(e) =>
-									setSystemFormData({
-										...systemFormData,
-										quantity: e.target.value,
-									})
-								}
-								placeholder="Например: 120 шт."
-							/>
-						</div>
-						<div className="form-group">
-							<label>Ссылка на перечень</label>
-							<input
-								type="text"
-								value={systemFormData.link}
-								onChange={(e) =>
-									setSystemFormData({ ...systemFormData, link: e.target.value })
-								}
-								placeholder="Ссылка на документацию или перечень"
-							/>
-						</div>
-						<div className="system-detail-actions">
-							<button className="btn btn-primary" onClick={saveSystemDetail}>
-								💾 Сохранить
-							</button>
-							<button className="btn btn-secondary" onClick={resetSystemForm}>
-								🔄 Сбросить
-							</button>
-							<button className="btn btn-secondary" onClick={closeSystemDetail}>
-								🏠 На главную
-							</button>
-						</div>
+					<table className="system-excel-table">
+						<thead>
+							<tr>
+								<th className="excel-row-header">Вид оборудования</th>
+								<th className="excel-col-label">Отсл</th>
+								<th className="excel-col-label">Кол-во</th>
+								<th className="excel-col-label">Тип / Наим</th>
+								<th className="excel-col-label">Бренд</th>
+								<th className="excel-col-label">Ссылка</th>
+							</tr>
+						</thead>
+						<tbody>
+							{eqTypes.map((eq) => (
+								<tr key={eq.key}>
+									<td className="excel-row-header">{eq.label}</td>
+									<td className="col-otcl">
+										<input
+											type="text"
+											value={systemFormData[eq.key]?.otcl || ""}
+											onChange={(e) =>
+												setSystemFormData((prev) => ({
+													...prev,
+													[eq.key]: { ...(prev[eq.key] || {}), otcl: e.target.value },
+												}))
+											}
+											placeholder="-"
+										/>
+									</td>
+									<td className="col-qty">
+										<input
+											type="text"
+											value={systemFormData[eq.key]?.qty || ""}
+											onChange={(e) =>
+												setSystemFormData((prev) => ({
+													...prev,
+													[eq.key]: { ...(prev[eq.key] || {}), qty: e.target.value },
+												}))
+											}
+											placeholder="-"
+										/>
+									</td>
+									<td className="col-type">
+										<input
+											type="text"
+											value={systemFormData[eq.key]?.type || ""}
+											onChange={(e) =>
+												setSystemFormData((prev) => ({
+													...prev,
+													[eq.key]: { ...(prev[eq.key] || {}), type: e.target.value },
+												}))
+											}
+											placeholder="-"
+										/>
+									</td>
+									<td className="col-brand">
+										<input
+											type="text"
+											value={systemFormData[eq.key]?.brand || ""}
+											onChange={(e) =>
+												setSystemFormData((prev) => ({
+													...prev,
+													[eq.key]: { ...(prev[eq.key] || {}), brand: e.target.value },
+												}))
+											}
+											placeholder="-"
+										/>
+									</td>
+									<td className="col-link">
+										<input
+											type="text"
+											value={systemFormData[eq.key]?.link || ""}
+											onChange={(e) =>
+												setSystemFormData((prev) => ({
+													...prev,
+													[eq.key]: { ...(prev[eq.key] || {}), link: e.target.value },
+												}))
+											}
+											placeholder="-"
+										/>
+									</td>
+								</tr>
+							))}
+						</tbody>
+					</table>
+					<div className="system-detail-actions">
+						<button className="btn btn-primary" onClick={saveSystemDetail}>
+							Сохранить
+						</button>
+						<button className="btn btn-secondary" onClick={resetSystemForm}>
+							Сбросить
+						</button>
+						<button className="btn btn-secondary" onClick={closeSystemDetail}>
+							На главную
+						</button>
 					</div>
 				</div>
 			</div>
