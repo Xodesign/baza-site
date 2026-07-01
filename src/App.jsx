@@ -2447,11 +2447,13 @@ function App() {
 						</thead>
 						<tbody>
 							{eqTypes.map((eq) => {
-									const row = systemFormData[eq.key] || {};
-									const linkEmpty = !row.link;
-									return (
+								const row = systemFormData[eq.key] || {};
+								const linkEmpty = !row.link;
+								return (
 									<tr key={eq.key}>
-										<td className="excel-row-header excel-row-header-bold">{eq.label}</td>
+										<td className="excel-row-header excel-row-header-bold">
+											{eq.label}
+										</td>
 										<td>
 											<input
 												type="text"
@@ -2459,12 +2461,15 @@ function App() {
 												onChange={(e) =>
 													setSystemFormData((prev) => ({
 														...prev,
-														[eq.key]: { ...(prev[eq.key] || {}), brand: e.target.value },
+														[eq.key]: {
+															...(prev[eq.key] || {}),
+															brand: e.target.value,
+														},
 													}))
-													}
+												}
 												placeholder="-"
-												/>
-											</td>
+											/>
+										</td>
 										<td>
 											<input
 												type="text"
@@ -2472,12 +2477,15 @@ function App() {
 												onChange={(e) =>
 													setSystemFormData((prev) => ({
 														...prev,
-														[eq.key]: { ...(prev[eq.key] || {}), type: e.target.value },
+														[eq.key]: {
+															...(prev[eq.key] || {}),
+															type: e.target.value,
+														},
 													}))
-													}
+												}
 												placeholder="-"
-												/>
-											</td>
+											/>
+										</td>
 										<td>
 											<input
 												type="text"
@@ -2485,12 +2493,15 @@ function App() {
 												onChange={(e) =>
 													setSystemFormData((prev) => ({
 														...prev,
-														[eq.key]: { ...(prev[eq.key] || {}), qty: e.target.value },
+														[eq.key]: {
+															...(prev[eq.key] || {}),
+															qty: e.target.value,
+														},
 													}))
-													}
+												}
 												placeholder="-"
-												/>
-											</td>
+											/>
+										</td>
 										<td className={linkEmpty ? "cell-link-empty" : ""}>
 											<input
 												type="text"
@@ -2498,12 +2509,15 @@ function App() {
 												onChange={(e) =>
 													setSystemFormData((prev) => ({
 														...prev,
-														[eq.key]: { ...(prev[eq.key] || {}), link: e.target.value },
+														[eq.key]: {
+															...(prev[eq.key] || {}),
+															link: e.target.value,
+														},
 													}))
-													}
+												}
 												placeholder="-"
-												/>
-											</td>
+											/>
+										</td>
 										<td>
 											<input
 												type="text"
@@ -2511,15 +2525,18 @@ function App() {
 												onChange={(e) =>
 													setSystemFormData((prev) => ({
 														...prev,
-													[eq.key]: { ...(prev[eq.key] || {}), alarm: e.target.value },
+														[eq.key]: {
+															...(prev[eq.key] || {}),
+															alarm: e.target.value,
+														},
 													}))
-													}
+												}
 												placeholder="-"
-												/>
-											</td>
+											/>
+										</td>
 									</tr>
 								);
-								})}
+							})}
 						</tbody>
 					</table>
 					<div className="system-detail-actions">

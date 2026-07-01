@@ -4067,7 +4067,7 @@ input[type="date"]:focus {
 	align-items: center;
 	gap: 16px;
 	padding: 10px 16px;
-	background: #217346;
+	background: #4f46e5;
 	color: white;
 	border-radius: 4px 4px 0 0;
 	margin-bottom: 0;
@@ -4197,12 +4197,12 @@ input[type="date"]:focus {
 	font-family: Calibri, Arial, sans-serif;
 }
 .system-detail-actions .btn-primary {
-	background: #217346;
+	background: #4f46e5;
 	color: white;
-	border: 1px solid #1e5631;
+	border: 1px solid #4338ca;
 }
 .system-detail-actions .btn-primary:hover {
-	background: #2e8b57;
+	background: #6366f1;
 }
 .system-detail-actions .btn-secondary {
 	background: white;
@@ -4225,18 +4225,20 @@ input[type="date"]:focus {
 .system-chip {
 	display: inline-block;
 	padding: 4px 10px;
-	background: var(--primary-light, #e0e7ff);
+	background: transparent;
 	color: var(--primary, #4f46e5);
 	border-radius: 12px;
 	font-size: 12px;
 	font-weight: 500;
 	cursor: pointer;
-	transition: all 0.2s;
+	transition: color 0.2s;
 	text-decoration: none;
+	border: none;
+	outline: none;
 }
 .system-chip:hover {
-	background: var(--primary, #4f46e5);
-	color: white;
+	color: var(--primary-dark, #4338ca);
+	text-decoration: underline;
 }
 
 /* Красная ячейка — нет ссылки */
