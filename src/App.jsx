@@ -5410,88 +5410,125 @@ function App() {
 
 	
 function renderRDSection() {
-	const [rdFolders, setRDFolders] = useState(() => {
-		try { return JSON.parse(localStorage.getItem("baza_rd_folders")) || []; } catch { return []; }
-	});
-	const [rdFiles, setRDFiles] = useState(() => {
-		try { return JSON.parse(localStorage.getItem("baza_rd_files")) || []; } catch { return []; }
-	});
+	const [rdFolders, setRDFolders] = useState([]);
+	const [rdFiles, setRDFiles] = useState([]);
 	const [currentFolder, setCurrentFolder] = useState(null);
 	const [isCreatingFolder, setIsCreatingFolder] = useState(false);
 	const [newFolderName, setNewFolderName] = useState("");
 	const [searchQ, setSearchQ] = useState("");
+	const [loading, setLoading] = useState(true);
 	const fileInputRef = useRef(null);
+	const apiBase = "http://37.252.17.205:3001/api";
 
-	const saveFolders = (f) => { setRDFolders(f); localStorage.setItem("baza_rd_folders", JSON.stringify(f)); };
-	const saveFiles = (f) => { setRDFiles(f); localStorage.setItem("baza_rd_files", JSON.stringify(f)); };
+	// Загрузка данных с сервера
+	const loadData = async () => {
+		setLoading(true);
+		try {
+			const [foldersRes, filesRes] = await Promise.all([
+				fetch(`${apiBase}/mobile/rd/folders`),
+				fetch(`${apiBase}/mobile/rd/files`),
+			]);
+			if (foldersRes.ok) {
+				const folders = await foldersRes.json();
+				setRDFolders(Array.isArray(folders) ? folders : []);
+			}
+			if (filesRes.ok) {
+				const files = await filesRes.json();
+				setRDFiles(Array.isArray(files) ? files : []);
+			}
+		} catch (err) {
+			console.error("RD load error:", err);
+		}
+		setLoading(false);
+	};
+
+	useEffect(() => { loadData(); }, []);
 
 	const breadcrumbs = [];
 	let parent = currentFolder;
 	while (parent) {
 		breadcrumbs.unshift(parent);
-		parent = rdFolders.find((f) => f.id === parent.parentId);
+		parent = rdFolders.find((f) => f.id === parent.parent_id);
 	}
 
-	const currentFolders = rdFolders.filter((f) => f.parentId === (currentFolder ? currentFolder.id : null));
-	const currentFiles = rdFiles.filter((f) => f.folderId === (currentFolder ? currentFolder.id : null));
+	const currentFolders = rdFolders.filter((f) => f.parent_id === (currentFolder ? currentFolder.id : null));
+	const currentFiles = rdFiles.filter((f) => f.folder_id === (currentFolder ? currentFolder.id : null));
 
-	const filteredFolders = currentFolders.filter((f) => !searchQ || f.name.toLowerCase().includes(searchQ.toLowerCase()));
-	const filteredFiles = currentFiles.filter((f) => !searchQ || f.name.toLowerCase().includes(searchQ.toLowerCase()));
+	const filteredFolders = currentFolders.filter((f) => !searchQ || (f.name || "").toLowerCase().includes(searchQ.toLowerCase()));
+	const filteredFiles = currentFiles.filter((f) => !searchQ || (f.name || "").toLowerCase().includes(searchQ.toLowerCase()));
 
-	const createFolder = () => {
+	const createFolder = async () => {
 		if (!newFolderName.trim()) return;
-		const newFolder = { id: Date.now(), name: newFolderName.trim(), parentId: currentFolder ? currentFolder.id : null, createdAt: new Date().toISOString() };
-		saveFolders([...rdFolders, newFolder]);
+		try {
+			const res = await fetch(`${apiBase}/mobile/rd/folders`, {
+				method: "POST",
+				headers: { "Content-Type": "application/json" },
+				body: JSON.stringify({ name: newFolderName.trim(), parentId: currentFolder ? currentFolder.id : null }),
+			});
+			if (res.ok) await loadData();
+		} catch (err) { console.error("Create folder error:", err); }
 		setNewFolderName("");
 		setIsCreatingFolder(false);
 	};
 
-	const deleteFolder = (folderId) => {
+	const deleteFolder = async (folderId) => {
 		if (!confirm("Удалить папку и все вложения?")) return;
-		const idsToDelete = new Set([folderId]);
-		let changed = true;
-		while (changed) {
-			changed = false;
-			rdFolders.forEach((f) => { if (f.parentId && idsToDelete.has(f.parentId) && !idsToDelete.has(f.id)) { idsToDelete.add(f.id); changed = true; } });
-		}
-		saveFolders(rdFolders.filter((f) => !idsToDelete.has(f.id)));
-		saveFiles(rdFiles.filter((f) => !idsToDelete.has(f.folderId)));
+		try {
+			const res = await fetch(`${apiBase}/mobile/rd/folders/${folderId}`, { method: "DELETE" });
+			if (res.ok) {
+				await loadData();
+			}
+		} catch (err) { console.error("Delete folder error:", err); }
 	};
 
-	const handleFileUpload = (e) => {
+	const handleFileUpload = async (e) => {
 		const files = Array.from(e.target.files || []);
-		files.forEach((file) => {
-			const reader = new FileReader();
-			reader.onload = () => {
-				const record = { id: Date.now() + Math.random(), name: file.name, folderId: currentFolder ? currentFolder.id : null, type: file.type, size: file.size, data: reader.result, createdAt: new Date().toISOString() };
-				saveFiles([...rdFiles, record]);
-			};
-			reader.readAsDataURL(file);
-		});
+		for (const file of files) {
+			const formData = new FormData();
+			formData.append("file", file);
+			if (currentFolder) formData.append("folderId", String(currentFolder.id));
+			try {
+				await fetch(`${apiBase}/mobile/rd/files`, { method: "POST", body: formData });
+			} catch (err) { console.error("Upload error:", err); }
+		}
 		e.target.value = "";
+		await loadData();
 	};
 
 	const downloadFile = (file) => {
-		const a = document.createElement("a");
-		a.href = file.data;
-		a.download = file.name;
-		a.click();
+		window.open(`${apiBase}/mobile/rd/files/${file.id}/download`, "_blank");
 	};
 
-	const deleteFile = (fileId) => {
+	const deleteFile = async (fileId) => {
 		if (!confirm("Удалить файл?")) return;
-		saveFiles(rdFiles.filter((f) => f.id !== fileId));
+		try {
+			const res = await fetch(`${apiBase}/mobile/rd/files/${fileId}`, { method: "DELETE" });
+			if (res.ok) await loadData();
+		} catch (err) { console.error("Delete file error:", err); }
 	};
 
 	const formatSize = (bytes) => {
+		if (!bytes) return "—";
 		if (bytes < 1024) return bytes + " B";
 		if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + " KB";
 		return (bytes / (1024 * 1024)).toFixed(1) + " MB";
 	};
 
-	const formatDate = (iso) => new Date(iso).toLocaleDateString("ru-RU");
+	const formatDate = (iso) => {
+		if (!iso) return "—";
+		return new Date(iso).toLocaleDateString("ru-RU");
+	};
 
-	 return (
+	if (loading) {
+		return (
+			<div className="section">
+				<div className="content-header"><h2>РД — Рабочая документация</h2></div>
+				<div className="loading">Загрузка данных...</div>
+			</div>
+		);
+	}
+
+	return (
 		<div className="section">
 			<div className="content-header">
 				<div className="content-header-left">
@@ -5508,7 +5545,6 @@ function renderRDSection() {
 				</div>
 			</div>
 
-			{/* Хлебные крошки */}
 			{currentFolder && (
 				<div className="rd-breadcrumbs">
 					<button className="rd-crumb" onClick={() => setCurrentFolder(null)}>РД</button>
@@ -5520,14 +5556,12 @@ function renderRDSection() {
 				</div>
 			)}
 
-			{/* Поиск */}
 			<div className="rd-search">
 				<Search size={16} className="rd-search-icon" />
 				<input type="text" placeholder="Поиск..." value={searchQ} onChange={(e) => setSearchQ(e.target.value)} className="rd-search-input" />
 			</div>
 
 			<div className="rd-content">
-				{/* Создание папки */}
 				{isCreatingFolder && (
 					<div className="rd-create-folder">
 						<FolderPlus size={16} />
@@ -5537,7 +5571,6 @@ function renderRDSection() {
 					</div>
 				)}
 
-				{/* Папки */}
 				{filteredFolders.length > 0 && (
 					<div className="rd-section">
 						<h3 className="rd-section-title">Папки</h3>
@@ -5549,7 +5582,7 @@ function renderRDSection() {
 									</div>
 									<div className="rd-item-info">
 										<span className="rd-item-name" onClick={() => setCurrentFolder(folder)}>{folder.name}</span>
-										<span className="rd-item-meta">{formatDate(folder.createdAt)}</span>
+										<span className="rd-item-meta">{formatDate(folder.created_at)}</span>
 									</div>
 									<div className="rd-item-actions">
 										<button className="btn btn-icon" title="Удалить" onClick={() => deleteFolder(folder.id)}>
@@ -5562,7 +5595,6 @@ function renderRDSection() {
 					</div>
 				)}
 
-				{/* Файлы */}
 				{filteredFiles.length > 0 && (
 					<div className="rd-section">
 						<h3 className="rd-section-title">Файлы</h3>
@@ -5574,14 +5606,14 @@ function renderRDSection() {
 									</div>
 									<div className="rd-item-info">
 										<span className="rd-item-name" onClick={() => downloadFile(file)}>{file.name}</span>
-										<span className="rd-item-meta">{formatSize(file.size)} · {formatDate(file.createdAt)}</span>
+										<span className="rd-item-meta">{formatSize(file.size)} · {formatDate(file.created_at)}</span>
 									</div>
 									<div className="rd-item-actions">
 										<button className="btn btn-icon" title="Скачать" onClick={() => downloadFile(file)}>
 											<Download size={16} />
 										</button>
 										<button className="btn btn-icon" title="Удалить" onClick={() => deleteFile(file.id)}>
-												<Trash size={16} />
+											<Trash size={16} />
 										</button>
 									</div>
 								</div>
@@ -5590,7 +5622,6 @@ function renderRDSection() {
 					</div>
 				)}
 
-				{/* Пусто */}
 				{filteredFolders.length === 0 && filteredFiles.length === 0 && !isCreatingFolder && (
 					<div className="rd-empty">
 						<Folder size={64} />
@@ -5602,6 +5633,7 @@ function renderRDSection() {
 		</div>
 	);
 }
+
 
 function renderActivationSection() {
 		return (

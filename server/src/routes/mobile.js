@@ -523,3 +523,232 @@ router.delete("/objects/:id", async (req, res) => {
 		res.status(500).json({ error: error.message });
 	}
 });
+
+// === RD — РАБОЧАЯ ДОКУМЕНТАЦИЯ ===
+
+// Создаём таблицы при первом запросе
+let rdTablesInitialized = false;
+async function initRDtables() {
+	if (rdTablesInitialized) return;
+	try {
+		await query(`
+			CREATE TABLE IF NOT EXISTS rd_folders (
+				id SERIAL PRIMARY KEY,
+				name TEXT NOT NULL,
+				parent_id INTEGER REFERENCES rd_folders(id) ON DELETE CASCADE,
+				created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+			)
+		`);
+		await query(`
+			CREATE TABLE IF NOT EXISTS rd_files (
+				id SERIAL PRIMARY KEY,
+				name TEXT NOT NULL,
+				folder_id INTEGER REFERENCES rd_folders(id) ON DELETE CASCADE,
+				file_path TEXT NOT NULL,
+				size BIGINT DEFAULT 0,
+				mime_type TEXT DEFAULT 'application/octet-stream',
+				created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+			)
+		`);
+		// Создаём директорию для файлов
+		const uploadDir = path.join(process.cwd(), "uploads", "rd");
+		if (!fs.existsSync(uploadDir)) {
+			fs.mkdirSync(uploadDir, { recursive: true });
+		}
+		rdTablesInitialized = true;
+	} catch (err) {
+		console.error("initRDtables error:", err.message);
+	}
+}
+
+// Multer storage для RD файлов
+const rdStorage = multer.diskStorage({
+	destination: (req, file, cb) => {
+		const uploadDir = path.join(process.cwd(), "uploads", "rd");
+		if (!fs.existsSync(uploadDir)) {
+			fs.mkdirSync(uploadDir, { recursive: true });
+		}
+		cb(null, uploadDir);
+	},
+	filename: (req, file, cb) => {
+		const uniqueSuffix = Date.now() + "-" + Math.round(Math.random() * 1e9);
+		const ext = path.extname(file.originalname);
+		cb(null, uniqueSuffix + ext);
+	},
+});
+const rdUpload = multer({
+	storage: rdStorage,
+	limits: { fileSize: 100 * 1024 * 1024 },
+});
+
+// GET /api/mobile/rd/folders — список папок
+router.get("/rd/folders", async (req, res) => {
+	try {
+		await initRDtables();
+		const result = await query("SELECT * FROM rd_folders ORDER BY id");
+		res.json(result.rows);
+	} catch (error) {
+		console.error("Get folders error:", error.message);
+		res.status(500).json({ error: error.message });
+	}
+});
+
+// POST /api/mobile/rd/folders — создать папку
+router.post("/rd/folders", async (req, res) => {
+	try {
+		await initRDtables();
+		const { name, parentId } = req.body;
+		if (!name || !name.trim()) {
+			return res.status(400).json({ error: "Название папки обязательно" });
+		}
+		const result = await query(
+			"INSERT INTO rd_folders (name, parent_id) VALUES ($1, $2) RETURNING *",
+			[name.trim(), parentId || null],
+		);
+		res.json(result.rows[0]);
+	} catch (error) {
+		console.error("Create folder error:", error.message);
+		res.status(500).json({ error: error.message });
+	}
+});
+
+// DELETE /api/mobile/rd/folders/:id — удалить папку (каскадно)
+router.delete("/rd/folders/:id", async (req, res) => {
+	try {
+		await initRDtables();
+		const folderId = parseInt(req.params.id);
+		// Рекурсивно собираем id всех вложенных папок
+		const collectChildIds = async (parentId) => {
+			const children = await query(
+				"SELECT id FROM rd_folders WHERE parent_id = $1",
+				[parentId],
+			);
+			const ids = [];
+			for (const child of children.rows) {
+				ids.push(child.id);
+				const grandChildren = await collectChildIds(child.id);
+				ids.push(...grandChildren);
+			}
+			return ids;
+		};
+		const childIds = await collectChildIds(folderId);
+		const allIds = [folderId, ...childIds];
+		// Удаляем файлы из всех папок
+		for (const id of allIds) {
+			const files = await query(
+				"SELECT file_path FROM rd_files WHERE folder_id = $1",
+				[id],
+			);
+			for (const f of files.rows) {
+				const fullPath = path.join(process.cwd(), "uploads", "rd", f.file_path);
+				if (fs.existsSync(fullPath)) fs.unlinkSync(fullPath);
+			}
+			await query("DELETE FROM rd_files WHERE folder_id = $1", [id]);
+		}
+		// Удаляем папки
+		for (const id of allIds.reverse()) {
+			await query("DELETE FROM rd_folders WHERE id = $1", [id]);
+		}
+		res.json({ success: true, deletedFolders: allIds.length });
+	} catch (error) {
+		console.error("Delete folder error:", error.message);
+		res.status(500).json({ error: error.message });
+	}
+});
+
+// GET /api/mobile/rd/files — список файлов (опционально фильтр по folderId)
+router.get("/rd/files", async (req, res) => {
+	try {
+		await initRDtables();
+		const { folderId } = req.query;
+		let result;
+		if (folderId === "null" || folderId === "" || folderId === undefined) {
+			result = await query(
+				"SELECT id, name, folder_id, size, mime_type, created_at FROM rd_files ORDER BY id DESC",
+			);
+		} else {
+			result = await query(
+				"SELECT id, name, folder_id, size, mime_type, created_at FROM rd_files WHERE folder_id = $1 ORDER BY id DESC",
+				[folderId],
+			);
+		}
+		res.json(result.rows);
+	} catch (error) {
+		console.error("Get files error:", error.message);
+		res.status(500).json({ error: error.message });
+	}
+});
+
+// POST /api/mobile/rd/files — загрузить файл
+router.post("/rd/files", rdUpload.single("file"), async (req, res) => {
+	try {
+		await initRDtables();
+		if (!req.file) {
+			return res.status(400).json({ error: "Файл не загружен" });
+		}
+		const { folderId } = req.body;
+		const result = await query(
+			"INSERT INTO rd_files (name, folder_id, file_path, size, mime_type) VALUES ($1, $2, $3, $4, $5) RETURNING id, name, folder_id, size, mime_type, created_at",
+			[
+				req.file.originalname,
+				folderId && folderId !== "null" && folderId !== "" ? folderId : null,
+				req.file.filename,
+				req.file.size,
+				req.file.mimetype,
+			],
+		);
+		res.json(result.rows[0]);
+	} catch (error) {
+		console.error("Upload file error:", error.message);
+		res.status(500).json({ error: error.message });
+	}
+});
+
+// GET /api/mobile/rd/files/:id/download — скачать файл
+router.get("/rd/files/:id/download", async (req, res) => {
+	try {
+		await initRDtables();
+		const result = await query("SELECT * FROM rd_files WHERE id = $1", [
+			req.params.id,
+		]);
+		if (result.rows.length === 0) {
+			return res.status(404).json({ error: "Файл не найден" });
+		}
+		const file = result.rows[0];
+		const filePath = path.join(process.cwd(), "uploads", "rd", file.file_path);
+		if (!fs.existsSync(filePath)) {
+			return res.status(404).json({ error: "Файл не найден на диске" });
+		}
+		res.download(filePath, file.name);
+	} catch (error) {
+		console.error("Download file error:", error.message);
+		res.status(500).json({ error: error.message });
+	}
+});
+
+// DELETE /api/mobile/rd/files/:id — удалить файл
+router.delete("/rd/files/:id", async (req, res) => {
+	try {
+		await initRDtables();
+		const result = await query("SELECT file_path FROM rd_files WHERE id = $1", [
+			req.params.id,
+		]);
+		if (result.rows.length === 0) {
+			return res.status(404).json({ error: "Файл не найден" });
+		}
+		const filePath = path.join(
+			process.cwd(),
+			"uploads",
+			"rd",
+			result.rows[0].file_path,
+		);
+		if (fs.existsSync(filePath)) {
+			fs.unlinkSync(filePath);
+		}
+		await query("DELETE FROM rd_files WHERE id = $1", [req.params.id]);
+		res.json({ success: true });
+	} catch (error) {
+		console.error("Delete file error:", error.message);
+		res.status(500).json({ error: error.message });
+	}
+});

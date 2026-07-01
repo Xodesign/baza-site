@@ -20,6 +20,7 @@ import timeRouter from "./routes/time.js";
 import wishesRouter from "./routes/wishes.js";
 import sectionsRouter from "./routes/sections.js";
 import workScheduleRouter from "./routes/work_schedule.js";
+import mobileRouter from "./routes/mobile.js";
 
 dotenv.config();
 
@@ -54,6 +55,7 @@ app.use("/api/time", timeRouter);
 app.use("/api/wishes", wishesRouter);
 app.use("/api/sections", sectionsRouter);
 app.use("/api/work-schedule", workScheduleRouter);
+app.use("/api/mobile", mobileRouter);
 
 // Health check
 app.get("/api/health", (_req, res) => {

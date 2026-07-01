@@ -376,6 +376,42 @@ class ApiClient {
 			method: "DELETE",
 		});
 	}
+
+	// RD — Рабочая документация
+	async getRDFolders() {
+		return this.request("/mobile/rd/folders");
+	}
+	async createRDFolder(name, parentId) {
+		return this.request("/mobile/rd/folders", {
+			method: "POST",
+			body: JSON.stringify({ name, parentId }),
+		});
+	}
+	async deleteRDFolder(id) {
+		return this.request(`/mobile/rd/folders/${id}`, {
+			method: "DELETE",
+		});
+	}
+	async getRDFiles(folderId) {
+		return this.request(`/mobile/rd/files${folderId ? `?folderId=${folderId}` : ""}`);
+	}
+	async uploadRDFile(file, folderId) {
+		const formData = new FormData();
+		formData.append("file", file);
+		if (folderId) formData.append("folderId", folderId);
+		return fetch(`${this.baseUrl}/mobile/rd/files`, {
+			method: "POST",
+			body: formData,
+		}).then((r) => r.json());
+	}
+	async deleteRDFile(id) {
+		return this.request(`/mobile/rd/files/${id}`, {
+			method: "DELETE",
+		});
+	}
+	getRDFilesUrl(id) {
+		return `${this.baseUrl}/mobile/rd/files/${id}/download`;
+	}
 }
 
 export const api = new ApiClient(API_BASE_URL);
