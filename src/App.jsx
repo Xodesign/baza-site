@@ -818,11 +818,11 @@ function App() {
 
 	// --- СПИСОК РАЗДЕЛОВ ---
 	const getMenuItems = () => {
-		return ALL_SECTIONS.filter((section) =>
-			hasAccess(currentUser, section.id),
-		).map((item) => ({
+		// Показываем все разделы — фильтр по доступу убран,
+		// т.к. авторизация optional для просмотра объектов
+		return ALL_SECTIONS.map((item) => ({
 			...item,
-				label: item.name,
+			label: item.name,
 			icon: SECTION_ICONS[item.icon] || FileText,
 		}));
 	};
@@ -2133,50 +2133,72 @@ function App() {
 	// === ЭКРАН ЛОГИНА ===
 	if (!isAuthenticated) {
 		return (
-			<div className="login-container">
-				<div className="login-card">
-					<div className="login-header">
-						<Building2 size={48} />
-						<h1>База CRM</h1>
-						<p>Управление объектами и заявками</p>
+			<div className="app-layout">
+				<aside className="sidebar">
+					<div className="sidebar-header">
+						<Building2 size={22} />
+						<span>База CRM</span>
 					</div>
-					<form onSubmit={handleLogin} className="login-form">
-						<div className="form-group">
-							<label>Логин</label>
-							<input
-								type="text"
-								value={authUsername}
-								onChange={(e) => setAuthUsername(e.target.value)}
-								placeholder="admin"
-								required
-								autocomplete="username"
-							/>
+					<nav className="sidebar-nav">
+						{MENU_ITEMS.map((item) => (
+							<button
+								key={item.id}
+								className="nav-item"
+								onClick={() => {}}
+							>
+								<item.icon size={20} />
+								<span>{item.label}</span>
+							</button>
+						))}
+					</nav>
+				</aside>
+				<main className="content">
+					<div className="login-overlay">
+						<div className="login-card">
+							<div className="login-header">
+								<Building2 size={48} />
+								<h1>База CRM</h1>
+								<p>Управление объектами и заявками</p>
+							</div>
+							<form onSubmit={handleLogin} className="login-form">
+								<div className="form-group">
+									<label>Логин</label>
+									<input
+										type="text"
+										value={authUsername}
+										onChange={(e) => setAuthUsername(e.target.value)}
+										placeholder="admin"
+										required
+										autocomplete="username"
+									/>
+								</div>
+								<div className="form-group">
+									<label>Пароль</label>
+									<input
+										type="password"
+										value={authPassword}
+										onChange={(e) => setAuthPassword(e.target.value)}
+										placeholder="123456"
+										required
+										autocomplete="current-password"
+									/>
+								</div>
+								{authError && <div className="auth-error">{authError}</div>}
+								<button
+									type="submit"
+									className="btn btn-primary btn-full"
+									disabled={isAuthLoading}
+								>
+									{isAuthLoading ? (
+										<span className="loading-spinner"></span>
+									) : (
+										"Войти"
+									)}
+								</button>
+							</form>
 						</div>
-						<div className="form-group">
-							<label>Пароль</label>
-							<input
-								type="password"
-								value={authPassword}
-								onChange={(e) => setAuthPassword(e.target.value)}
-								placeholder="123456"
-								required
-								autocomplete="current-password"
-							/>
-						</div>
-						{authError && <div className="auth-error">{authError}</div>}
-						<button
-							type="submit"
-							className="btn btn-primary btn-full"
-							disabled={isAuthLoading}
-						>
-							{isAuthLoading ? (
-								<span className="loading-spinner"></span>
-							) : (
-								"Войти"
-							)}
-						</button>
-					</form>
-				</div>
+					</div>
+				</main>
 			</div>
 		);
 	}

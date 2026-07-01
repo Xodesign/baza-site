@@ -152,7 +152,7 @@ function AddressSelect({ value, onChange, objects, onSelectObject }) {
 	const [inputValue, setInputValue] = useState(value || "");
 	const [showDropdown, setShowDropdown] = useState(false);
 	const [filteredObjects, setFilteredObjects] = useState([]);
-	const inputRef = useState(null);
+	const _inputRef = useState(null);
 
 	useEffect(() => {
 		if (inputValue.length >= 1) {
@@ -422,7 +422,7 @@ function StaffSelect({ value, onChange, staff, placeholder }) {
 	const [isOpen, setIsOpen] = useState(false);
 	const [inputValue, setInputValue] = useState(value || "");
 
-	const selectedStaff = staff.find((s) => s.fullName === value);
+	const _selectedStaff = staff.find((s) => s.fullName === value);
 
 	return (
 		<div className="staff-select-wrapper">
@@ -586,8 +586,6 @@ export default function CallsForm({
 	onAddCall,
 	onCreateTransport,
 	onCreateBuy,
-	callStatus,
-	onStatusChange,
 }) {
 	const [formData, setFormData] = useState({
 		createdAt: new Date().toISOString().split("T")[0],
@@ -661,7 +659,7 @@ export default function CallsForm({
 	};
 
 	// Валидация
-	const validate = () => {
+	const _validate = () => {
 		const errs = {};
 
 		// Наименование объекта - обязательно
@@ -682,36 +680,34 @@ export default function CallsForm({
 		setFormData({ ...formData, [field]: value });
 		setTouched({ ...touched, [field]: true });
 
-		// Автозаполнение при выборе адреса
-		if (field === "shortAddress" && !isObjectSelected) {
+		// Универсальная функция заполнения данных объекта
+		const fillFromObject = (obj) => {
+			if (!obj) return;
+			const systemsStr = obj["Системы"] || "";
+			setFormData((prev) => ({
+				...prev,
+				objectName: obj["Наименование объекта"] || prev.objectName,
+				shortAddress: obj["Адрес сокращенный"] || prev.shortAddress,
+				tenant: obj["Арендатор"] || prev.tenant,
+				system: systemsStr ? systemsStr.split(",")[0].trim() : prev.system,
+			}));
+		};
+
+		// При вводе в поле адреса — ищем объект и заполняем всё
+		if (field === "shortAddress") {
 			const obj = objects.find((o) => o["Адрес сокращенный"] === value);
-			if (obj) {
-				setFormData({
-					...formData,
-					shortAddress: value,
-					objectName: obj["Наименование объекта"],
-					tenant: obj["Арендатор"] || "",
-				});
-				setTouched({ ...touched, [field]: true, objectName: true });
-			}
+			if (obj) fillFromObject(obj);
 		}
 
-		// При выборе объекта заполняем связанные данные
+		// При вводе в поле объекта — ищем по названию ИЛИ по адресу
 		if (field === "objectName") {
 			const obj = objects.find(
 				(o) =>
 					o["Наименование объекта"] === value ||
+					o["Адрес сокращенный"] === value ||
 					`${o.objectNumber || o.id}. ${o["Наименование объекта"]}` === value,
 			);
-			if (obj) {
-				setFormData({
-					...formData,
-					objectName: obj["Наименование объекта"],
-					shortAddress: obj["Адрес сокращенный"] || "",
-					tenant: obj["Арендатор"] || "",
-					[field]: value,
-				});
-			}
+			if (obj) fillFromObject(obj);
 		}
 	};
 
@@ -924,18 +920,18 @@ export default function CallsForm({
 						</select>
 					</div>
 
-					{/* НАИМЕНОВАНИЕ ОБЪЕКТА - ПЕРВИЧНОЕ ПОЛЕ */}
+					{/* ОБЪЕКТ — поиск по названию или адресу */}
 					<div className="form-group">
 						<label className="required-label">
-							Наименование объекта *
-							<span className="field-hint">(заполняется первым)</span>
+							Объект или адрес *
+							<span className="field-hint">(поиск по названию или адресу)</span>
 						</label>
 						<input
 							type="text"
 							value={formData.objectName}
 							onChange={(e) => handleChange("objectName", e.target.value)}
 							list="objects-list"
-							placeholder="Введите или выберите объект"
+							placeholder="Введите название или адрес"
 							className={
 								errors.objectName && touched.objectName ? "input-error" : ""
 							}
@@ -943,9 +939,12 @@ export default function CallsForm({
 						/>
 						<datalist id="objects-list">
 							{objects.map((obj) => (
+								<option key={obj.id} value={obj["Наименование объекта"]} />
+							))}
+							{objects.map((obj) => (
 								<option
-									key={obj.id}
-									value={`${obj.objectNumber || obj.id}. ${obj["Наименование объекта"]}`}
+									key={`addr-${obj.id}`}
+									value={obj["Адрес сокращенный"]}
 								/>
 							))}
 						</datalist>
@@ -954,24 +953,17 @@ export default function CallsForm({
 						)}
 					</div>
 
-					{/* СОКРАЩЕННЫЙ АДРЕС - с автозаполнением наименования */}
+					{/* СОКРАЩЕННЫЙ АДРЕС */}
 					<div className="form-group">
 						<label>Сокращенный адрес</label>
 						<AddressSelect
 							value={formData.shortAddress}
 							onChange={(val) => handleChange("shortAddress", val)}
 							objects={objects}
-							onSelectObject={(obj) => {
-								if (!isObjectSelected) {
-									handleChange("objectName", obj["Наименование объекта"]);
-								}
-							}}
+							onSelectObject={(obj) =>
+								handleChange("objectName", obj["Наименование объекта"])
+							}
 						/>
-						{!isObjectSelected && (
-							<div className="field-hint address-hint">
-								Если заполнить первым — наименование заполнится автоматически
-							</div>
-						)}
 					</div>
 
 					{/* Арендатор - заполняется автоматически */}
