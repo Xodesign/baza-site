@@ -578,12 +578,15 @@ function App() {
 	const [searchQuery, setSearchQuery] = useState("");
 	const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 	const [isExporting, setIsExporting] = useState(false);
+	const [rdFolderCount, setRDFolderCount] = useState(0);
 
 	// --- СТЕЙТЫ ОБЪЕКТОВ ---
 	const [objects, setObjects] = useState(() => {
 		const saved = localStorage.getItem("baza_objects");
 		if (saved) {
-			try { return JSON.parse(saved); } catch {}
+			try {
+				return JSON.parse(saved);
+			} catch {}
 		}
 		return [];
 	});
@@ -633,40 +636,40 @@ function App() {
 							row["Наименование объекта"] !== "Наименование объекта",
 					)
 					.map((row, idx) => ({
-							id: idx + 1,
-							objectNumber: idx + 1,
-							"№": row["№"] || "",
-							Заказчик: row["Заказчик"] || "",
-							Подрядчик: row["Подрядчик"] || "",
-							"№ контр/дог": row["№ контр/дог"] || "",
-							"Начало действия договора": row["Начало действия договора"] || "",
-							"Окончание действия договора":
-								row["Окончание действия договора"] || "",
-							"Тип договора": row["Тип договора"] || "",
-							Продлеваемость: row["Продлеваемость"] || "",
-							"Письмо о повышении стоимости ТО":
-								row["Письмо о повышении стоимость ТО"] || "",
-							"Свершившееся повышение цены ТО":
-								row["Свершившееся повышение цены ТО"] || "",
-							"Доп соглашение": row["Доп соглашени"] || "",
-							Письма: row["Письма"] || "",
-							"Кто оплачивает ремонт": row["Кто оплачивает ремонт"] || "",
-							"Как оплачиваются доп.работы":
-								row["Как оплачиваются доп.работы"] || "",
-							"К доп работам есть ли аванс":
-								row["К доп работам есть ли аванс"] || "",
-							"Адрес полный объекта": row["Адрес полный объекта"] || "",
-							"Адрес сокращенный": row["Адрес сокращенный"] || "",
-							"Наименование объекта": row["Наименование объекта"] || "",
-							"РД ИД ПД": row["РД ИД ПД"] || "",
-							Арендатор: row["Арендатор"] || "",
-							Системы: row["Системы"] || "",
-							"Расчетное время на обслуживание":
-								row["Расчетное время на обслуживание"] || "",
-							Контакты: row["Контакты"] || "",
-							Заметки: row["Заметки"] || "",
-							"Инструмент на объекте": row["Инструмент на объекте"] || "",
-						}));
+						id: idx + 1,
+						objectNumber: idx + 1,
+						"№": row["№"] || "",
+						Заказчик: row["Заказчик"] || "",
+						Подрядчик: row["Подрядчик"] || "",
+						"№ контр/дог": row["№ контр/дог"] || "",
+						"Начало действия договора": row["Начало действия договора"] || "",
+						"Окончание действия договора":
+							row["Окончание действия договора"] || "",
+						"Тип договора": row["Тип договора"] || "",
+						Продлеваемость: row["Продлеваемость"] || "",
+						"Письмо о повышении стоимости ТО":
+							row["Письмо о повышении стоимость ТО"] || "",
+						"Свершившееся повышение цены ТО":
+							row["Свершившееся повышение цены ТО"] || "",
+						"Доп соглашение": row["Доп соглашени"] || "",
+						Письма: row["Письма"] || "",
+						"Кто оплачивает ремонт": row["Кто оплачивает ремонт"] || "",
+						"Как оплачиваются доп.работы":
+							row["Как оплачиваются доп.работы"] || "",
+						"К доп работам есть ли аванс":
+							row["К доп работам есть ли аванс"] || "",
+						"Адрес полный объекта": row["Адрес полный объекта"] || "",
+						"Адрес сокращенный": row["Адрес сокращенный"] || "",
+						"Наименование объекта": row["Наименование объекта"] || "",
+						"РД ИД ПД": row["РД ИД ПД"] || "",
+						Арендатор: row["Арендатор"] || "",
+						Системы: row["Системы"] || "",
+						"Расчетное время на обслуживание":
+							row["Расчетное время на обслуживание"] || "",
+						Контакты: row["Контакты"] || "",
+						Заметки: row["Заметки"] || "",
+						"Инструмент на объекте": row["Инструмент на объекте"] || "",
+					}));
 				if (parsed.length > 0) {
 					localStorage.setItem("baza_objects", JSON.stringify(parsed));
 				}
@@ -680,7 +683,6 @@ function App() {
 				setIsLoading(false);
 			});
 	}, []);
-
 
 	// --- СТЕЙТЫ ВЫЗОВОВ ---
 	const [calls, setCalls] = useState(() => {
@@ -875,6 +877,20 @@ function App() {
 		}));
 	};
 	const MENU_ITEMS = getMenuItems();
+
+	// Счётчик папок РД в сайдбаре
+	useEffect(() => {
+		const fetchCount = async () => {
+			try {
+				const res = await fetch("http://37.252.17.205:3001/api/rd/folders");
+				if (res.ok) {
+					const data = await res.json();
+					setRDFolderCount(Array.isArray(data) ? data.length : 0);
+				}
+			} catch {}
+		};
+		fetchCount();
+	}, []);
 
 	useEffect(() => {
 		localStorage.setItem("demo_calls", JSON.stringify(calls));
@@ -2189,13 +2205,12 @@ function App() {
 					</div>
 					<nav className="sidebar-nav">
 						{MENU_ITEMS.map((item) => (
-							<button
-								key={item.id}
-								className="nav-item"
-								onClick={() => {}}
-							>
+							<button key={item.id} className="nav-item" onClick={() => {}}>
 								<item.icon size={20} />
 								<span>{item.label}</span>
+								{item.id === 'rd' && rdFolderCount > 0 && (
+										<span className="sidebar-badge">{rdFolderCount > 99 ? '99+' : rdFolderCount}</span>
+								)}
 							</button>
 						))}
 					</nav>
@@ -2298,7 +2313,7 @@ function App() {
 			case "users":
 				return <UsersPanel />;
 			case "rd":
-				return <RenderRDSection />;
+				return <RenderRDSection onFolderCountChange={setRDFolderCount} />;
 			default:
 				return renderPlaceholderSection();
 		}
@@ -2472,465 +2487,459 @@ function App() {
 						</button>
 					)}
 
-				<div className="header-actions">
-					<button
-						className="btn btn-secondary"
-						onClick={() => handleAddRandomObjects(5)}
-					>
-						<Zap size={16} />
-						Добавить 5 рандомных
-					</button>
-					<button
-						className="btn btn-primary"
-						onClick={() => setIsAddFormOpen(!isAddFormOpen)}
-					>
-						<Plus size={16} />
-						Добавить объект
-					</button>
-				</div>
+					<div className="header-actions">
+						<button
+							className="btn btn-secondary"
+							onClick={() => handleAddRandomObjects(5)}
+						>
+							<Zap size={16} />
+							Добавить 5 рандомных
+						</button>
+						<button
+							className="btn btn-primary"
+							onClick={() => setIsAddFormOpen(!isAddFormOpen)}
+						>
+							<Plus size={16} />
+							Добавить объект
+						</button>
+					</div>
 				</div>
 
 				{/* СЕКЦИЯ ДОБАВЛЕНИЯ */}
 				{isAddFormOpen && (
-						<div className="collapsible-content">
-							<div className="add-form-section add-form-full">
-								<div className="form-actions-row">
-									<form onSubmit={handleAddObject} className="add-form-inline">
-										<button type="submit" className="btn btn-primary">
-											<Plus size={18} />
-											Добавить объект
-										</button>
-									</form>
-									<button
-										type="button"
-										className="btn btn-secondary"
-										onClick={() => handleAddRandomObjects(5)}
-									>
-										<Zap size={18} />
-										Добавить 5 рандомных
-									</button>
-								</div>
-								<form onSubmit={handleAddObject} className="add-form">
-									<div className="form-grid">
-										<div className="form-group">
-											<label>Заказчик</label>
-											<input
-												type="text"
-												value={newFormData["Заказчик"] || ""}
-												onChange={(e) =>
-													setNewFormData({
-														...newFormData,
-														Заказчик: e.target.value,
-													})
-												}
-												placeholder="Заказчик"
-											/>
-										</div>
-										<div className="form-group">
-											<label>Подрядчик</label>
-											<select
-												value={newFormData["Подрядчик"] || "СБ"}
-												onChange={(e) =>
-													setNewFormData({
-														...newFormData,
-														Подрядчик: e.target.value,
-													})
-												}
-											>
-												<option value="СБ">СБ</option>
-												<option value="СБ+">СБ+</option>
-												<option value="ВСТ">ВСТ</option>
-												<option value="ИП">ИП</option>
-											</select>
-										</div>
-										<div className="form-group">
-											<label>№ контр/дог</label>
-											<input
-												type="text"
-												value={newFormData["№ контр/дог"] || ""}
-												onChange={(e) =>
-													setNewFormData({
-														...newFormData,
-														"№ контр/дог": e.target.value,
-													})
-												}
-												placeholder="№ 1-2024-РБ"
-											/>
-										</div>
-										<div className="form-group">
-											<label>Начало действия договора</label>
-											<input
-												type="date"
-												value={newFormData["Начало действия договора"] || ""}
-												onChange={(e) =>
-													setNewFormData({
-														...newFormData,
-														"Начало действия договора": e.target.value,
-													})
-												}
-											/>
-										</div>
-										<div className="form-group">
-											<label>Окончание действия договора</label>
-											<input
-												type="date"
-												value={newFormData["Окончание действия договора"] || ""}
-												onChange={(e) =>
-													setNewFormData({
-														...newFormData,
-														"Окончание действия договора": e.target.value,
-													})
-												}
-											/>
-										</div>
-										<div className="form-group">
-											<label>Тип договора</label>
-											<select
-												value={newFormData["Тип договора"] || "ТО"}
-												onChange={(e) =>
-													setNewFormData({
-														...newFormData,
-														"Тип договора": e.target.value,
-													})
-												}
-											>
-												<option value="ТО">ТО</option>
-												<option value="СМР">СМР</option>
-												<option value="ПИР">ПИР</option>
-											</select>
-										</div>
-										<div className="form-group">
-											<label>Продлеваемость</label>
-											<select
-												value={newFormData["Продлеваемость"] || ""}
-												onChange={(e) =>
-													setNewFormData({
-														...newFormData,
-														Продлеваемость: e.target.value,
-													})
-												}
-											>
-												<option value="">—</option>
-												<option value="Продлеваемый автоматически">
-													Продлеваемый автоматически
-												</option>
-												<option value="Не продлеваемый">Не продлеваемый</option>
-												<option value="Продлеваемый доп соглашением">
-													Продлеваемый доп соглашением
-												</option>
-												<option value="Конкурсный">Конкурсный</option>
-											</select>
-										</div>
-										<div className="form-group">
-											<label>Письмо о повышении стоимости ТО</label>
-											<input
-												type="text"
-												value={
-													newFormData["Письмо о повышении стоимости ТО"] || ""
-												}
-												onChange={(e) =>
-													setNewFormData({
-														...newFormData,
-														"Письмо о повышении стоимости ТО": e.target.value,
-													})
-												}
-											/>
-										</div>
-										<div className="form-group">
-											<label>Свершившееся повышение цены ТО</label>
-											<input
-												type="text"
-												value={
-													newFormData["Свершившееся повышение цены ТО"] || ""
-												}
-												onChange={(e) =>
-													setNewFormData({
-														...newFormData,
-														"Свершившееся повышение цены ТО": e.target.value,
-													})
-												}
-											/>
-										</div>
-										<div className="form-group">
-											<label>Доп соглашение</label>
-											<input
-												type="text"
-												value={newFormData["Доп соглашение"] || ""}
-												onChange={(e) =>
-													setNewFormData({
-														...newFormData,
-														"Доп соглашение": e.target.value,
-													})
-												}
-											/>
-										</div>
-										<div className="form-group">
-											<label>Письма</label>
-											<input
-												type="text"
-												value={newFormData["Письма"] || ""}
-												onChange={(e) =>
-													setNewFormData({
-														...newFormData,
-														Письма: e.target.value,
-													})
-												}
-											/>
-										</div>
-										<div className="form-group">
-											<label>Кто оплачивает ремонт</label>
-											<select
-												value={newFormData["Кто оплачивает ремонт"] || ""}
-												onChange={(e) =>
-													setNewFormData({
-														...newFormData,
-														"Кто оплачивает ремонт": e.target.value,
-													})
-												}
-											>
-												<option value="">—</option>
-												<option value="Заказчик">Заказчик</option>
-												<option value="Наш счёт">За наш счёт</option>
-											</select>
-										</div>
-										<div className="form-group">
-											<label>Как оплачиваются доп.работы</label>
-											<input
-												type="text"
-												value={newFormData["Как оплачиваются доп.работы"] || ""}
-												onChange={(e) =>
-													setNewFormData({
-														...newFormData,
-														"Как оплачиваются доп.работы": e.target.value,
-													})
-												}
-												placeholder="Сметы / КП / По договору"
-											/>
-										</div>
-										<div className="form-group">
-											<label>К доп работам есть ли аванс</label>
-											<select
-												value={newFormData["К доп работам есть ли аванс"] || ""}
-												onChange={(e) =>
-													setNewFormData({
-														...newFormData,
-														"К доп работам есть ли аванс": e.target.value,
-													})
-												}
-											>
-												<option value="">—</option>
-												<option value="Аванс">Аванс</option>
-												<option value="Без аванса">Без аванса</option>
-											</select>
-										</div>
-										<div className="form-group form-group-full">
-											<label>Адрес полный объекта</label>
-											<input
-												type="text"
-												value={newFormData["Адрес полный объекта"] || ""}
-												onChange={(e) =>
-													setNewFormData({
-														...newFormData,
-														"Адрес полный объекта": e.target.value,
-													})
-												}
-												placeholder="г. Москва, ул. Примерная, д. 1"
-											/>
-										</div>
-										<div className="form-group">
-											<label>Адрес сокращенный</label>
-											<input
-												type="text"
-												value={newFormData["Адрес сокращенный"] || ""}
-												onChange={(e) =>
-													setNewFormData({
-														...newFormData,
-														"Адрес сокращенный": e.target.value,
-													})
-												}
-												placeholder="Примерная, 1"
-											/>
-										</div>
-										<div className="form-group">
-											<label>Наименование объекта</label>
-											<input
-												type="text"
-												value={newFormData["Наименование объекта"] || ""}
-												onChange={(e) =>
-													setNewFormData({
-														...newFormData,
-														"Наименование объекта": e.target.value,
-													})
-												}
-												placeholder="Название объекта"
-											/>
-										</div>
-										<div className="form-group">
-											<label>РД ИД ПД</label>
-											<div className="checkbox-group">
-												<label className="checkbox-label">
-													<input
-														type="checkbox"
-														checked={(newFormData["РД ИД ПД"] || "").includes(
-															"РД",
-														)}
-														onChange={(e) => {
-															const current = newFormData["РД ИД ПД"] || "";
-															const values = current
-																.split(", ")
-																.filter(Boolean);
-															const newValues = e.target.checked
-																? [...values, "РД"]
-																: values.filter((v) => v !== "РД");
-															setNewFormData({
-																...newFormData,
-																"РД ИД ПД": newValues.join(", "),
-															});
-														}}
-													/>
-													<span>РД</span>
-												</label>
-												<label className="checkbox-label">
-													<input
-														type="checkbox"
-														checked={(newFormData["РД ИД ПД"] || "").includes(
-															"ИД",
-														)}
-														onChange={(e) => {
-															const current = newFormData["РД ИД ПД"] || "";
-															const values = current
-																.split(", ")
-																.filter(Boolean);
-															const newValues = e.target.checked
-																? [...values, "ИД"]
-																: values.filter((v) => v !== "ИД");
-															setNewFormData({
-																...newFormData,
-																"РД ИД ПД": newValues.join(", "),
-															});
-														}}
-													/>
-													<span>ИД</span>
-												</label>
-												<label className="checkbox-label">
-													<input
-														type="checkbox"
-														checked={(newFormData["РД ИД ПД"] || "").includes(
-															"ПД",
-														)}
-														onChange={(e) => {
-															const current = newFormData["РД ИД ПД"] || "";
-															const values = current
-																.split(", ")
-																.filter(Boolean);
-															const newValues = e.target.checked
-																? [...values, "ПД"]
-																: values.filter((v) => v !== "ПД");
-															setNewFormData({
-																...newFormData,
-																"РД ИД ПД": newValues.join(", "),
-															});
-														}}
-													/>
-													<span>ПД</span>
-												</label>
-											</div>
-										</div>
-										<div className="form-group">
-											<label>Арендатор</label>
-											<input
-												type="text"
-												value={newFormData["Арендатор"] || ""}
-												onChange={(e) =>
-													setNewFormData({
-														...newFormData,
-														Арендатор: e.target.value,
-													})
-												}
-											/>
-										</div>
-										<div className="form-group">
-											<label>Системы</label>
-											<input
-												type="text"
-												value={newFormData["Системы"] || ""}
-												onChange={(e) =>
-													setNewFormData({
-														...newFormData,
-														Системы: e.target.value,
-													})
-												}
-												placeholder="АПС, СОУЭ, ВПВ"
-											/>
-										</div>
-										<div className="form-group">
-											<label>Расчетное время на обслуживание</label>
-											<input
-												type="text"
-												value={
-													newFormData["Расчетное время на обслуживание"] || ""
-												}
-												onChange={(e) =>
-													setNewFormData({
-														...newFormData,
-														"Расчетное время на обслуживание": e.target.value,
-													})
-												}
-												placeholder="2 часа"
-											/>
-										</div>
-										<div className="form-group">
-											<label>Контакты</label>
-											<input
-												type="text"
-												value={newFormData["Контакты"] || ""}
-												onChange={(e) =>
-													setNewFormData({
-														...newFormData,
-														Контакты: e.target.value,
-													})
-												}
-												placeholder="Иванов Иван +79991234567"
-											/>
-										</div>
-										<div className="form-group">
-											<label>Инструмент на объекте</label>
-											<select
-												value={newFormData["Инструмент на объекте"] || "нет"}
-												onChange={(e) =>
-													setNewFormData({
-														...newFormData,
-														"Инструмент на объекте": e.target.value,
-													})
-												}
-											>
-												<option value="нет">Нет</option>
-												<option value="есть">Есть</option>
-											</select>
-										</div>
-										<div className="form-group form-group-full">
-											<label>Заметки</label>
-											<textarea
-												value={newFormData["Заметки"] || ""}
-												onChange={(e) =>
-													setNewFormData({
-														...newFormData,
-														Заметки: e.target.value,
-													})
-												}
-												rows={3}
-												placeholder="Дополнительная информация..."
-											/>
-										</div>
-									</div>
+					<div className="collapsible-content">
+						<div className="add-form-section add-form-full">
+							<div className="form-actions-row">
+								<form onSubmit={handleAddObject} className="add-form-inline">
 									<button type="submit" className="btn btn-primary">
 										<Plus size={18} />
 										Добавить объект
 									</button>
 								</form>
+								<button
+									type="button"
+									className="btn btn-secondary"
+									onClick={() => handleAddRandomObjects(5)}
+								>
+									<Zap size={18} />
+									Добавить 5 рандомных
+								</button>
 							</div>
+							<form onSubmit={handleAddObject} className="add-form">
+								<div className="form-grid">
+									<div className="form-group">
+										<label>Заказчик</label>
+										<input
+											type="text"
+											value={newFormData["Заказчик"] || ""}
+											onChange={(e) =>
+												setNewFormData({
+													...newFormData,
+													Заказчик: e.target.value,
+												})
+											}
+											placeholder="Заказчик"
+										/>
+									</div>
+									<div className="form-group">
+										<label>Подрядчик</label>
+										<select
+											value={newFormData["Подрядчик"] || "СБ"}
+											onChange={(e) =>
+												setNewFormData({
+													...newFormData,
+													Подрядчик: e.target.value,
+												})
+											}
+										>
+											<option value="СБ">СБ</option>
+											<option value="СБ+">СБ+</option>
+											<option value="ВСТ">ВСТ</option>
+											<option value="ИП">ИП</option>
+										</select>
+									</div>
+									<div className="form-group">
+										<label>№ контр/дог</label>
+										<input
+											type="text"
+											value={newFormData["№ контр/дог"] || ""}
+											onChange={(e) =>
+												setNewFormData({
+													...newFormData,
+													"№ контр/дог": e.target.value,
+												})
+											}
+											placeholder="№ 1-2024-РБ"
+										/>
+									</div>
+									<div className="form-group">
+										<label>Начало действия договора</label>
+										<input
+											type="date"
+											value={newFormData["Начало действия договора"] || ""}
+											onChange={(e) =>
+												setNewFormData({
+													...newFormData,
+													"Начало действия договора": e.target.value,
+												})
+											}
+										/>
+									</div>
+									<div className="form-group">
+										<label>Окончание действия договора</label>
+										<input
+											type="date"
+											value={newFormData["Окончание действия договора"] || ""}
+											onChange={(e) =>
+												setNewFormData({
+													...newFormData,
+													"Окончание действия договора": e.target.value,
+												})
+											}
+										/>
+									</div>
+									<div className="form-group">
+										<label>Тип договора</label>
+										<select
+											value={newFormData["Тип договора"] || "ТО"}
+											onChange={(e) =>
+												setNewFormData({
+													...newFormData,
+													"Тип договора": e.target.value,
+												})
+											}
+										>
+											<option value="ТО">ТО</option>
+											<option value="СМР">СМР</option>
+											<option value="ПИР">ПИР</option>
+										</select>
+									</div>
+									<div className="form-group">
+										<label>Продлеваемость</label>
+										<select
+											value={newFormData["Продлеваемость"] || ""}
+											onChange={(e) =>
+												setNewFormData({
+													...newFormData,
+													Продлеваемость: e.target.value,
+												})
+											}
+										>
+											<option value="">—</option>
+											<option value="Продлеваемый автоматически">
+												Продлеваемый автоматически
+											</option>
+											<option value="Не продлеваемый">Не продлеваемый</option>
+											<option value="Продлеваемый доп соглашением">
+												Продлеваемый доп соглашением
+											</option>
+											<option value="Конкурсный">Конкурсный</option>
+										</select>
+									</div>
+									<div className="form-group">
+										<label>Письмо о повышении стоимости ТО</label>
+										<input
+											type="text"
+											value={
+												newFormData["Письмо о повышении стоимости ТО"] || ""
+											}
+											onChange={(e) =>
+												setNewFormData({
+													...newFormData,
+													"Письмо о повышении стоимости ТО": e.target.value,
+												})
+											}
+										/>
+									</div>
+									<div className="form-group">
+										<label>Свершившееся повышение цены ТО</label>
+										<input
+											type="text"
+											value={
+												newFormData["Свершившееся повышение цены ТО"] || ""
+											}
+											onChange={(e) =>
+												setNewFormData({
+													...newFormData,
+													"Свершившееся повышение цены ТО": e.target.value,
+												})
+											}
+										/>
+									</div>
+									<div className="form-group">
+										<label>Доп соглашение</label>
+										<input
+											type="text"
+											value={newFormData["Доп соглашение"] || ""}
+											onChange={(e) =>
+												setNewFormData({
+													...newFormData,
+													"Доп соглашение": e.target.value,
+												})
+											}
+										/>
+									</div>
+									<div className="form-group">
+										<label>Письма</label>
+										<input
+											type="text"
+											value={newFormData["Письма"] || ""}
+											onChange={(e) =>
+												setNewFormData({
+													...newFormData,
+													Письма: e.target.value,
+												})
+											}
+										/>
+									</div>
+									<div className="form-group">
+										<label>Кто оплачивает ремонт</label>
+										<select
+											value={newFormData["Кто оплачивает ремонт"] || ""}
+											onChange={(e) =>
+												setNewFormData({
+													...newFormData,
+													"Кто оплачивает ремонт": e.target.value,
+												})
+											}
+										>
+											<option value="">—</option>
+											<option value="Заказчик">Заказчик</option>
+											<option value="Наш счёт">За наш счёт</option>
+										</select>
+									</div>
+									<div className="form-group">
+										<label>Как оплачиваются доп.работы</label>
+										<input
+											type="text"
+											value={newFormData["Как оплачиваются доп.работы"] || ""}
+											onChange={(e) =>
+												setNewFormData({
+													...newFormData,
+													"Как оплачиваются доп.работы": e.target.value,
+												})
+											}
+											placeholder="Сметы / КП / По договору"
+										/>
+									</div>
+									<div className="form-group">
+										<label>К доп работам есть ли аванс</label>
+										<select
+											value={newFormData["К доп работам есть ли аванс"] || ""}
+											onChange={(e) =>
+												setNewFormData({
+													...newFormData,
+													"К доп работам есть ли аванс": e.target.value,
+												})
+											}
+										>
+											<option value="">—</option>
+											<option value="Аванс">Аванс</option>
+											<option value="Без аванса">Без аванса</option>
+										</select>
+									</div>
+									<div className="form-group form-group-full">
+										<label>Адрес полный объекта</label>
+										<input
+											type="text"
+											value={newFormData["Адрес полный объекта"] || ""}
+											onChange={(e) =>
+												setNewFormData({
+													...newFormData,
+													"Адрес полный объекта": e.target.value,
+												})
+											}
+											placeholder="г. Москва, ул. Примерная, д. 1"
+										/>
+									</div>
+									<div className="form-group">
+										<label>Адрес сокращенный</label>
+										<input
+											type="text"
+											value={newFormData["Адрес сокращенный"] || ""}
+											onChange={(e) =>
+												setNewFormData({
+													...newFormData,
+													"Адрес сокращенный": e.target.value,
+												})
+											}
+											placeholder="Примерная, 1"
+										/>
+									</div>
+									<div className="form-group">
+										<label>Наименование объекта</label>
+										<input
+											type="text"
+											value={newFormData["Наименование объекта"] || ""}
+											onChange={(e) =>
+												setNewFormData({
+													...newFormData,
+													"Наименование объекта": e.target.value,
+												})
+											}
+											placeholder="Название объекта"
+										/>
+									</div>
+									<div className="form-group">
+										<label>РД ИД ПД</label>
+										<div className="checkbox-group">
+											<label className="checkbox-label">
+												<input
+													type="checkbox"
+													checked={(newFormData["РД ИД ПД"] || "").includes(
+														"РД",
+													)}
+													onChange={(e) => {
+														const current = newFormData["РД ИД ПД"] || "";
+														const values = current.split(", ").filter(Boolean);
+														const newValues = e.target.checked
+															? [...values, "РД"]
+															: values.filter((v) => v !== "РД");
+														setNewFormData({
+															...newFormData,
+															"РД ИД ПД": newValues.join(", "),
+														});
+													}}
+												/>
+												<span>РД</span>
+											</label>
+											<label className="checkbox-label">
+												<input
+													type="checkbox"
+													checked={(newFormData["РД ИД ПД"] || "").includes(
+														"ИД",
+													)}
+													onChange={(e) => {
+														const current = newFormData["РД ИД ПД"] || "";
+														const values = current.split(", ").filter(Boolean);
+														const newValues = e.target.checked
+															? [...values, "ИД"]
+															: values.filter((v) => v !== "ИД");
+														setNewFormData({
+															...newFormData,
+															"РД ИД ПД": newValues.join(", "),
+														});
+													}}
+												/>
+												<span>ИД</span>
+											</label>
+											<label className="checkbox-label">
+												<input
+													type="checkbox"
+													checked={(newFormData["РД ИД ПД"] || "").includes(
+														"ПД",
+													)}
+													onChange={(e) => {
+														const current = newFormData["РД ИД ПД"] || "";
+														const values = current.split(", ").filter(Boolean);
+														const newValues = e.target.checked
+															? [...values, "ПД"]
+															: values.filter((v) => v !== "ПД");
+														setNewFormData({
+															...newFormData,
+															"РД ИД ПД": newValues.join(", "),
+														});
+													}}
+												/>
+												<span>ПД</span>
+											</label>
+										</div>
+									</div>
+									<div className="form-group">
+										<label>Арендатор</label>
+										<input
+											type="text"
+											value={newFormData["Арендатор"] || ""}
+											onChange={(e) =>
+												setNewFormData({
+													...newFormData,
+													Арендатор: e.target.value,
+												})
+											}
+										/>
+									</div>
+									<div className="form-group">
+										<label>Системы</label>
+										<input
+											type="text"
+											value={newFormData["Системы"] || ""}
+											onChange={(e) =>
+												setNewFormData({
+													...newFormData,
+													Системы: e.target.value,
+												})
+											}
+											placeholder="АПС, СОУЭ, ВПВ"
+										/>
+									</div>
+									<div className="form-group">
+										<label>Расчетное время на обслуживание</label>
+										<input
+											type="text"
+											value={
+												newFormData["Расчетное время на обслуживание"] || ""
+											}
+											onChange={(e) =>
+												setNewFormData({
+													...newFormData,
+													"Расчетное время на обслуживание": e.target.value,
+												})
+											}
+											placeholder="2 часа"
+										/>
+									</div>
+									<div className="form-group">
+										<label>Контакты</label>
+										<input
+											type="text"
+											value={newFormData["Контакты"] || ""}
+											onChange={(e) =>
+												setNewFormData({
+													...newFormData,
+													Контакты: e.target.value,
+												})
+											}
+											placeholder="Иванов Иван +79991234567"
+										/>
+									</div>
+									<div className="form-group">
+										<label>Инструмент на объекте</label>
+										<select
+											value={newFormData["Инструмент на объекте"] || "нет"}
+											onChange={(e) =>
+												setNewFormData({
+													...newFormData,
+													"Инструмент на объекте": e.target.value,
+												})
+											}
+										>
+											<option value="нет">Нет</option>
+											<option value="есть">Есть</option>
+										</select>
+									</div>
+									<div className="form-group form-group-full">
+										<label>Заметки</label>
+										<textarea
+											value={newFormData["Заметки"] || ""}
+											onChange={(e) =>
+												setNewFormData({
+													...newFormData,
+													Заметки: e.target.value,
+												})
+											}
+											rows={3}
+											placeholder="Дополнительная информация..."
+										/>
+									</div>
+								</div>
+								<button type="submit" className="btn btn-primary">
+									<Plus size={18} />
+									Добавить объект
+								</button>
+							</form>
 						</div>
-					)}
+					</div>
+				)}
 
 				{/* ТАБЛИЦА ОБЪЕКТОВ */}
 				<div className="table-container table-horizontal">
@@ -5408,234 +5417,343 @@ function App() {
 		);
 	}
 
-	
-function RenderRDSection() {
-	const [rdFolders, setRDFolders] = useState([]);
-	const [rdFiles, setRDFiles] = useState([]);
-	const [currentFolder, setCurrentFolder] = useState(null);
-	const [isCreatingFolder, setIsCreatingFolder] = useState(false);
-	const [newFolderName, setNewFolderName] = useState("");
-	const [searchQ, setSearchQ] = useState("");
-	const [loading, setLoading] = useState(true);
-	const fileInputRef = useRef(null);
-	const apiBase = "http://37.252.17.205:3001/api";
+	function RenderRDSection({ onFolderCountChange }) {
+		const [rdFolders, setRDFolders] = useState([]);
+		const [rdFiles, setRDFiles] = useState([]);
+		const [currentFolder, setCurrentFolder] = useState(null);
+		const [isCreatingFolder, setIsCreatingFolder] = useState(false);
+		const [newFolderName, setNewFolderName] = useState("");
+		const [searchQ, setSearchQ] = useState("");
+		const [loading, setLoading] = useState(true);
+		const fileInputRef = useRef(null);
+		const apiBase = "http://37.252.17.205:3001/api";
 
-	// Загрузка данных с сервера
-	const loadData = async () => {
-		setLoading(true);
-		try {
-			const [foldersRes, filesRes] = await Promise.all([
-				fetch(`${apiBase}/rd/folders`),
-				fetch(`${apiBase}/rd/files`),
-			]);
-			if (foldersRes.ok) {
-				const folders = await foldersRes.json();
-				setRDFolders(Array.isArray(folders) ? folders : []);
-			}
-			if (filesRes.ok) {
-				const files = await filesRes.json();
-				setRDFiles(Array.isArray(files) ? files : []);
-			}
-		} catch (err) {
-			console.error("RD load error:", err);
-		}
-		setLoading(false);
-	};
-
-	useEffect(() => { loadData(); }, []);
-
-	const breadcrumbs = [];
-	let parent = currentFolder;
-	while (parent) {
-		breadcrumbs.unshift(parent);
-		parent = rdFolders.find((f) => f.id === parent.parent_id);
-	}
-
-	const currentFolders = rdFolders.filter((f) => f.parent_id === (currentFolder ? currentFolder.id : null));
-	const currentFiles = rdFiles.filter((f) => f.folder_id === (currentFolder ? currentFolder.id : null));
-
-	const filteredFolders = currentFolders.filter((f) => !searchQ || (f.name || "").toLowerCase().includes(searchQ.toLowerCase()));
-	const filteredFiles = currentFiles.filter((f) => !searchQ || (f.name || "").toLowerCase().includes(searchQ.toLowerCase()));
-
-	const createFolder = async () => {
-		if (!newFolderName.trim()) return;
-		try {
-			const res = await fetch(`${apiBase}/rd/folders`, {
-				method: "POST",
-				headers: { "Content-Type": "application/json" },
-				body: JSON.stringify({ name: newFolderName.trim(), parentId: currentFolder ? currentFolder.id : null }),
-			});
-			if (res.ok) await loadData();
-		} catch (err) { console.error("Create folder error:", err); }
-		setNewFolderName("");
-		setIsCreatingFolder(false);
-	};
-
-	const deleteFolder = async (folderId) => {
-		if (!confirm("Удалить папку и все вложения?")) return;
-		try {
-			const res = await fetch(`${apiBase}/rd/folders/${folderId}`, { method: "DELETE" });
-			if (res.ok) {
-				await loadData();
-			}
-		} catch (err) { console.error("Delete folder error:", err); }
-	};
-
-	const handleFileUpload = async (e) => {
-		const files = Array.from(e.target.files || []);
-		for (const file of files) {
-			const formData = new FormData();
-			formData.append("file", file);
-			if (currentFolder) formData.append("folderId", String(currentFolder.id));
+		// Загрузка данных с сервера
+		const loadData = async () => {
+			setLoading(true);
 			try {
-				await fetch(`${apiBase}/rd/files`, { method: "POST", body: formData });
-			} catch (err) { console.error("Upload error:", err); }
+				const [foldersRes, filesRes] = await Promise.all([
+					fetch(`${apiBase}/rd/folders`),
+					fetch(`${apiBase}/rd/files`),
+				]);
+				if (foldersRes.ok) {
+					const folders = await foldersRes.json();
+					setRDFolders(Array.isArray(folders) ? folders : []);
+					onFolderCountChange?.(Array.isArray(folders) ? folders.length : 0);
+				}
+				if (filesRes.ok) {
+					const files = await filesRes.json();
+					setRDFiles(Array.isArray(files) ? files : []);
+				}
+			} catch (err) {
+				console.error("RD load error:", err);
+			}
+			setLoading(false);
+		};
+
+		useEffect(() => {
+			loadData();
+		}, []);
+
+		const breadcrumbs = [];
+		let parent = currentFolder;
+		while (parent) {
+			breadcrumbs.unshift(parent);
+			parent = rdFolders.find((f) => f.id === parent.parent_id);
 		}
-		e.target.value = "";
-		await loadData();
-	};
 
-	const downloadFile = (file) => {
-		window.open(`${apiBase}/rd/files/${file.id}/download`, "_blank");
-	};
+		const currentFolders = rdFolders.filter(
+			(f) => f.parent_id === (currentFolder ? currentFolder.id : null),
+		);
+		const currentFiles = rdFiles.filter(
+			(f) => f.folder_id === (currentFolder ? currentFolder.id : null),
+		);
 
-	const deleteFile = async (fileId) => {
-		if (!confirm("Удалить файл?")) return;
-		try {
-			const res = await fetch(`${apiBase}/rd/files/${fileId}`, { method: "DELETE" });
-			if (res.ok) await loadData();
-		} catch (err) { console.error("Delete file error:", err); }
-	};
+		const filteredFolders = currentFolders.filter(
+			(f) =>
+				!searchQ ||
+				(f.name || "").toLowerCase().includes(searchQ.toLowerCase()),
+		);
+		const filteredFiles = currentFiles.filter(
+			(f) =>
+				!searchQ ||
+				(f.name || "").toLowerCase().includes(searchQ.toLowerCase()),
+		);
 
-	const formatSize = (bytes) => {
-		if (!bytes) return "—";
-		if (bytes < 1024) return bytes + " B";
-		if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + " KB";
-		return (bytes / (1024 * 1024)).toFixed(1) + " MB";
-	};
+		const createFolder = async () => {
+			if (!newFolderName.trim()) return;
+			try {
+				const res = await fetch(`${apiBase}/rd/folders`, {
+					method: "POST",
+					headers: { "Content-Type": "application/json" },
+					body: JSON.stringify({
+						name: newFolderName.trim(),
+						parentId: currentFolder ? currentFolder.id : null,
+					}),
+				});
+				if (res.ok) await loadData();
+			} catch (err) {
+				console.error("Create folder error:", err);
+			}
+			setNewFolderName("");
+			setIsCreatingFolder(false);
+		};
 
-	const formatDate = (iso) => {
-		if (!iso) return "—";
-		return new Date(iso).toLocaleDateString("ru-RU");
-	};
+		const deleteFolder = async (folderId) => {
+			if (!confirm("Удалить папку и все вложения?")) return;
+			try {
+				const res = await fetch(`${apiBase}/rd/folders/${folderId}`, {
+					method: "DELETE",
+				});
+				if (res.ok) {
+					await loadData();
+				}
+			} catch (err) {
+				console.error("Delete folder error:", err);
+			}
+		};
 
-	if (loading) {
+		const handleFileUpload = async (e) => {
+			const files = Array.from(e.target.files || []);
+			for (const file of files) {
+				const formData = new FormData();
+				formData.append("file", file);
+				if (currentFolder)
+					formData.append("folderId", String(currentFolder.id));
+				try {
+					await fetch(`${apiBase}/rd/files`, {
+						method: "POST",
+						body: formData,
+					});
+				} catch (err) {
+					console.error("Upload error:", err);
+				}
+			}
+			e.target.value = "";
+			await loadData();
+		};
+
+		const downloadFile = (file) => {
+			window.open(`${apiBase}/rd/files/${file.id}/download`, "_blank");
+		};
+
+		const deleteFile = async (fileId) => {
+			if (!confirm("Удалить файл?")) return;
+			try {
+				const res = await fetch(`${apiBase}/rd/files/${fileId}`, {
+					method: "DELETE",
+				});
+				if (res.ok) await loadData();
+			} catch (err) {
+				console.error("Delete file error:", err);
+			}
+		};
+
+		const formatSize = (bytes) => {
+			if (!bytes) return "—";
+			if (bytes < 1024) return bytes + " B";
+			if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + " KB";
+			return (bytes / (1024 * 1024)).toFixed(1) + " MB";
+		};
+
+		const formatDate = (iso) => {
+			if (!iso) return "—";
+			return new Date(iso).toLocaleDateString("ru-RU");
+		};
+
+		if (loading) {
+			return (
+				<div className="section">
+					<div className="content-header">
+						<h2>РД — Рабочая документация</h2>
+					</div>
+					<div className="loading">Загрузка данных...</div>
+				</div>
+			);
+		}
+
 		return (
 			<div className="section">
-				<div className="content-header"><h2>РД — Рабочая документация</h2></div>
-				<div className="loading">Загрузка данных...</div>
+				<div className="content-header">
+					<div className="content-header-left">
+						<h2>РД — Рабочая документация</h2>
+					</div>
+					<div className="content-header-right">
+						<button
+							className="btn btn-secondary"
+							onClick={() => setIsCreatingFolder(true)}
+						>
+							<FolderPlus size={16} /> Создать папку
+						</button>
+						<button
+							className="btn btn-primary"
+							onClick={() => fileInputRef.current?.click()}
+						>
+							<Upload size={16} /> Загрузить файл
+						</button>
+						<input
+							ref={fileInputRef}
+							type="file"
+							multiple
+							style={{ display: "none" }}
+							onChange={handleFileUpload}
+						/>
+					</div>
+				</div>
+
+				{currentFolder && (
+					<div className="rd-breadcrumbs">
+						<button className="rd-crumb" onClick={() => setCurrentFolder(null)}>
+							РД
+						</button>
+						{breadcrumbs.map((f) => (
+							<button
+								key={f.id}
+								className="rd-crumb"
+								onClick={() => setCurrentFolder(f)}
+							>
+								<span className="rd-crumb-sep">/</span> {f.name}
+							</button>
+						))}
+					</div>
+				)}
+
+				<div className="rd-search">
+					<Search size={16} className="rd-search-icon" />
+					<input
+						type="text"
+						placeholder="Поиск..."
+						value={searchQ}
+						onChange={(e) => setSearchQ(e.target.value)}
+						className="rd-search-input"
+					/>
+				</div>
+
+				<div className="rd-content">
+					{isCreatingFolder && (
+						<div className="rd-create-folder">
+							<FolderPlus size={16} />
+							<input
+								autoFocus
+								type="text"
+								value={newFolderName}
+								onChange={(e) => setNewFolderName(e.target.value)}
+								placeholder="Название папки..."
+								onKeyDown={(e) => {
+									if (e.key === "Enter") createFolder();
+									if (e.key === "Escape") setIsCreatingFolder(false);
+								}}
+							/>
+							<button className="btn btn-primary btn-sm" onClick={createFolder}>
+								Создать
+							</button>
+							<button
+								className="btn btn-secondary btn-sm"
+								onClick={() => setIsCreatingFolder(false)}
+							>
+								Отмена
+							</button>
+						</div>
+					)}
+
+					{filteredFolders.length > 0 && (
+						<div className="rd-section">
+							<h3 className="rd-section-title">Папки</h3>
+							<div className="rd-grid">
+								{filteredFolders.map((folder) => (
+									<div key={folder.id} className="rd-item rd-folder">
+										<div
+											className="rd-item-icon"
+											onClick={() => setCurrentFolder(folder)}
+										>
+											<Folder size={40} />
+										</div>
+										<div className="rd-item-info">
+											<span
+												className="rd-item-name"
+												onClick={() => setCurrentFolder(folder)}
+											>
+												{folder.name}
+											</span>
+											<span className="rd-item-meta">
+												{formatDate(folder.created_at)}
+											</span>
+										</div>
+										<div className="rd-item-actions">
+											<button
+												className="btn btn-icon"
+												title="Удалить"
+												onClick={() => deleteFolder(folder.id)}
+											>
+												<Trash size={16} />
+											</button>
+										</div>
+									</div>
+								))}
+							</div>
+						</div>
+					)}
+
+					{filteredFiles.length > 0 && (
+						<div className="rd-section">
+							<h3 className="rd-section-title">Файлы</h3>
+							<div className="rd-grid">
+								{filteredFiles.map((file) => (
+									<div key={file.id} className="rd-item rd-file">
+										<div
+											className="rd-item-icon"
+											onClick={() => downloadFile(file)}
+										>
+											<File size={40} />
+										</div>
+										<div className="rd-item-info">
+											<span
+												className="rd-item-name"
+												onClick={() => downloadFile(file)}
+											>
+												{file.name}
+											</span>
+											<span className="rd-item-meta">
+												{formatSize(file.size)} · {formatDate(file.created_at)}
+											</span>
+										</div>
+										<div className="rd-item-actions">
+											<button
+												className="btn btn-icon"
+												title="Скачать"
+												onClick={() => downloadFile(file)}
+											>
+												<Download size={16} />
+											</button>
+											<button
+												className="btn btn-icon"
+												title="Удалить"
+												onClick={() => deleteFile(file.id)}
+											>
+												<Trash size={16} />
+											</button>
+										</div>
+									</div>
+								))}
+							</div>
+						</div>
+					)}
+
+					{filteredFolders.length === 0 &&
+						filteredFiles.length === 0 &&
+						!isCreatingFolder && (
+							<div className="rd-empty">
+								<Folder size={64} />
+								<p>Папка пуста</p>
+								<span>Создайте папку или загрузите файлы</span>
+							</div>
+						)}
+				</div>
 			</div>
 		);
 	}
 
-	return (
-		<div className="section">
-			<div className="content-header">
-				<div className="content-header-left">
-					<h2>РД — Рабочая документация</h2>
-				</div>
-				<div className="content-header-right">
-					<button className="btn btn-secondary" onClick={() => setIsCreatingFolder(true)}>
-						<FolderPlus size={16} /> Создать папку
-					</button>
-					<button className="btn btn-primary" onClick={() => fileInputRef.current?.click()}>
-						<Upload size={16} /> Загрузить файл
-					</button>
-					<input ref={fileInputRef} type="file" multiple style={{ display: "none" }} onChange={handleFileUpload} />
-				</div>
-			</div>
-
-			{currentFolder && (
-				<div className="rd-breadcrumbs">
-					<button className="rd-crumb" onClick={() => setCurrentFolder(null)}>РД</button>
-					{breadcrumbs.map((f) => (
-						<button key={f.id} className="rd-crumb" onClick={() => setCurrentFolder(f)}>
-							<span className="rd-crumb-sep">/</span> {f.name}
-						</button>
-					))}
-				</div>
-			)}
-
-			<div className="rd-search">
-				<Search size={16} className="rd-search-icon" />
-				<input type="text" placeholder="Поиск..." value={searchQ} onChange={(e) => setSearchQ(e.target.value)} className="rd-search-input" />
-			</div>
-
-			<div className="rd-content">
-				{isCreatingFolder && (
-					<div className="rd-create-folder">
-						<FolderPlus size={16} />
-						<input autoFocus type="text" value={newFolderName} onChange={(e) => setNewFolderName(e.target.value)} placeholder="Название папки..." onKeyDown={(e) => { if (e.key === "Enter") createFolder(); if (e.key === "Escape") setIsCreatingFolder(false); }} />
-						<button className="btn btn-primary btn-sm" onClick={createFolder}>Создать</button>
-						<button className="btn btn-secondary btn-sm" onClick={() => setIsCreatingFolder(false)}>Отмена</button>
-					</div>
-				)}
-
-				{filteredFolders.length > 0 && (
-					<div className="rd-section">
-						<h3 className="rd-section-title">Папки</h3>
-						<div className="rd-grid">
-							{filteredFolders.map((folder) => (
-								<div key={folder.id} className="rd-item rd-folder">
-									<div className="rd-item-icon" onClick={() => setCurrentFolder(folder)}>
-										<Folder size={40} />
-									</div>
-									<div className="rd-item-info">
-										<span className="rd-item-name" onClick={() => setCurrentFolder(folder)}>{folder.name}</span>
-										<span className="rd-item-meta">{formatDate(folder.created_at)}</span>
-									</div>
-									<div className="rd-item-actions">
-										<button className="btn btn-icon" title="Удалить" onClick={() => deleteFolder(folder.id)}>
-											<Trash size={16} />
-										</button>
-									</div>
-								</div>
-							))}
-						</div>
-					</div>
-				)}
-
-				{filteredFiles.length > 0 && (
-					<div className="rd-section">
-						<h3 className="rd-section-title">Файлы</h3>
-						<div className="rd-grid">
-							{filteredFiles.map((file) => (
-								<div key={file.id} className="rd-item rd-file">
-									<div className="rd-item-icon" onClick={() => downloadFile(file)}>
-										<File size={40} />
-									</div>
-									<div className="rd-item-info">
-										<span className="rd-item-name" onClick={() => downloadFile(file)}>{file.name}</span>
-										<span className="rd-item-meta">{formatSize(file.size)} · {formatDate(file.created_at)}</span>
-									</div>
-									<div className="rd-item-actions">
-										<button className="btn btn-icon" title="Скачать" onClick={() => downloadFile(file)}>
-											<Download size={16} />
-										</button>
-										<button className="btn btn-icon" title="Удалить" onClick={() => deleteFile(file.id)}>
-											<Trash size={16} />
-										</button>
-									</div>
-								</div>
-							))}
-						</div>
-					</div>
-				)}
-
-				{filteredFolders.length === 0 && filteredFiles.length === 0 && !isCreatingFolder && (
-					<div className="rd-empty">
-						<Folder size={64} />
-						<p>Папка пуста</p>
-						<span>Создайте папку или загрузите файлы</span>
-					</div>
-				)}
-			</div>
-		</div>
-	);
-}
-
-
-function renderActivationSection() {
+	function renderActivationSection() {
 		return (
 			<>
 				<div className="content-header">
@@ -6480,162 +6598,394 @@ function renderActivationSection() {
 					className="modal-overlay"
 					onClick={() => setIsEditModalOpen(false)}
 				>
-					<div className="modal modal-object-edit" onClick={(e) => e.stopPropagation()}>
+					<div
+						className="modal modal-object-edit"
+						onClick={(e) => e.stopPropagation()}
+					>
 						<div className="modal-header">
 							<h2>Редактирование объекта</h2>
-							<span className="modal-subtitle">{editingObject["Наименование объекта"] || ""}</span>
+							<span className="modal-subtitle">
+								{editingObject["Наименование объекта"] || ""}
+							</span>
 							<button
-							className="modal-close"
-							onClick={() => setIsEditModalOpen(false)}
-						>
-							<X size={24} />
-						</button>
-					</div>
-					<form onSubmit={handleSaveEdit} className="modal-body">
-						<div className="form-grid">
-							<div className="form-group">
-								<label>Заказчик</label>
-								<input type="text" value={editingObject["Заказчик"] || ""} onChange={(e) => setEditingObject({ ...editingObject, "Заказчик": e.target.value })} placeholder="Заказчик" />
-							</div>
-							<div className="form-group">
-								<label>Подрядчик</label>
-								<select value={editingObject["Подрядчик"] || "СБ"} onChange={(e) => setEditingObject({ ...editingObject, "Подрядчик": e.target.value })}>
-									<option value="СБ">СБ</option>
-									<option value="СБ+">СБ+</option>
-									<option value="ВСТ">ВСТ</option>
-									<option value="ИП">ИП</option>
-								</select>
-							</div>
-							<div className="form-group">
-								<label>№ контр/дог</label>
-								<input type="text" value={editingObject["№ контр/дог"] || ""} onChange={(e) => setEditingObject({ ...editingObject, "№ контр/дог": e.target.value })} placeholder="№ 1-2024-РБ" />
-							</div>
-							<div className="form-group">
-								<label>Начало договора</label>
-								<input type="date" value={editingObject["Начало действия договора"] || ""} onChange={(e) => setEditingObject({ ...editingObject, "Начало действия договора": e.target.value })} />
-							</div>
-							<div className="form-group">
-								<label>Окончание договора</label>
-								<input type="date" value={editingObject["Окончание действия договора"] || ""} onChange={(e) => setEditingObject({ ...editingObject, "Окончание действия договора": e.target.value })} />
-							</div>
-							<div className="form-group">
-								<label>Тип договора</label>
-								<select value={editingObject["Тип договора"] || "ТО"} onChange={(e) => setEditingObject({ ...editingObject, "Тип договора": e.target.value })}>
-									<option value="ТО">ТО</option>
-									<option value="СМР">СМР</option>
-									<option value="ПИР">ПИР</option>
-									<option value="">—</option>
-								</select>
-							</div>
-							<div className="form-group">
-								<label>Продлеваемость</label>
-								<select value={editingObject["Продлеваемость"] || ""} onChange={(e) => setEditingObject({ ...editingObject, "Продлеваемость": e.target.value })}>
-									<option value="">—</option>
-									<option value="Продлеваемый автоматически">Продлеваемый автоматически</option>
-									<option value="Не продлеваемый">Не продлеваемый</option>
-									<option value="Конкурсный">Конкурсный</option>
-								</select>
-							</div>
-							<div className="form-group">
-								<label>Кто оплачивает ремонт</label>
-								<select value={editingObject["Кто оплачивает ремонт"] || ""} onChange={(e) => setEditingObject({ ...editingObject, "Кто оплачивает ремонт": e.target.value })}>
-									<option value="">—</option>
-									<option value="Заказчик">Заказчик</option>
-									<option value="Наш счёт">За наш счёт</option>
-								</select>
-							</div>
-							<div className="form-group">
-								<label>Аванс</label>
-								<select value={editingObject["К доп работам есть ли аванс"] || ""} onChange={(e) => setEditingObject({ ...editingObject, "К доп работам есть ли аванс": e.target.value })}>
-									<option value="">—</option>
-									<option value="Аванс">Аванс</option>
-									<option value="Без аванса">Без аванса</option>
-								</select>
-							</div>
-							<div className="form-group form-group-full">
-								<label>Адрес полный</label>
-								<input type="text" value={editingObject["Адрес полный объекта"] || ""} onChange={(e) => setEditingObject({ ...editingObject, "Адрес полный объекта": e.target.value })} placeholder="Полный адрес объекта" />
-							</div>
-							<div className="form-group">
-								<label>Адрес сокращенный</label>
-								<input type="text" value={editingObject["Адрес сокращенный"] || ""} onChange={(e) => setEditingObject({ ...editingObject, "Адрес сокращенный": e.target.value })} placeholder="Сокращенный адрес" />
-							</div>
-							<div className="form-group">
-								<label>Наименование объекта</label>
-								<input type="text" value={editingObject["Наименование объекта"] || ""} onChange={(e) => setEditingObject({ ...editingObject, "Наименование объекта": e.target.value })} placeholder="Наименование объекта" />
-							</div>
-							<div className="form-group">
-								<label>Арендатор</label>
-								<input type="text" value={editingObject["Арендатор"] || ""} onChange={(e) => setEditingObject({ ...editingObject, "Арендатор": e.target.value })} placeholder="Арендатор" />
-							</div>
-							<div className="form-group">
-								<label>РД ИД ПД</label>
-								<div className="checkbox-group">
-									{["РД", "ИД", "ПД"].map((opt) => {
-											const current = editingObject["РД ИД ПД"] || "";
-												const checked = current.includes(opt);
-													return (
-														<label key={opt} className="checkbox-label">
-															<input
-																	type="checkbox"
-																		checked={checked}
-																		onChange={() => {
-																		const vals = current.split(",").map((v) => v.trim()).filter(Boolean);
-																		const newVals = checked ? vals.filter((v) => v !== opt) : [...vals, opt];
-																			setEditingObject({ ...editingObject, "РД ИД ПД": newVals.join(", ") });
-																		}}
-																	/>
-																	<span>{opt}</span>
-																</label>
-													);
-												})}
-									</div>
-							</div>
-							<div className="form-group form-group-full">
-								<label>Системы</label>
-								<input type="text" value={editingObject["Системы"] || ""} onChange={(e) => setEditingObject({ ...editingObject, "Системы": e.target.value })} placeholder="Вентиляция, Кондиционирование..." />
-							</div>
-							<div className="form-group">
-								<label>Контакты</label>
-								<input type="text" value={editingObject["Контакты"] || ""} onChange={(e) => setEditingObject({ ...editingObject, "Контакты": e.target.value })} placeholder="Телефон, имя..." />
-							</div>
-							<div className="form-group">
-								<label>Инструмент</label>
-								<select value={editingObject["Инструмент на объекте"] || "нет"} onChange={(e) => setEditingObject({ ...editingObject, "Инструмент на объекте": e.target.value })}>
-									<option value="нет">Нет</option>
-									<option value="есть">Есть</option>
-								</select>
-							</div>
-							<div className="form-group">
-								<label>Расчетное время</label>
-								<input type="text" value={editingObject["Расчетное время на обслуживание"] || ""} onChange={(e) => setEditingObject({ ...editingObject, "Расчетное время на обслуживание": e.target.value })} placeholder="2 часа" />
-							</div>
-							<div className="form-group">
-								<label>Письмо о повышении ТО</label>
-								<input type="text" value={editingObject["Письмо о повышении стоимости ТО"] || ""} onChange={(e) => setEditingObject({ ...editingObject, "Письмо о повышении стоимости ТО": e.target.value })} />
-							</div>
-							<div className="form-group">
-								<label>Повышение цены ТО</label>
-								<input type="text" value={editingObject["Свершившееся повышение цены ТО"] || ""} onChange={(e) => setEditingObject({ ...editingObject, "Свершившееся повышение цены ТО": e.target.value })} />
-							</div>
-							<div className="form-group">
-								<label>Доп. соглашение</label>
-								<input type="text" value={editingObject["Доп соглашение"] || ""} onChange={(e) => setEditingObject({ ...editingObject, "Доп соглашение": e.target.value })} />
-							</div>
-							<div className="form-group">
-								<label>Письма</label>
-								<input type="text" value={editingObject["Письма"] || ""} onChange={(e) => setEditingObject({ ...editingObject, "Письма": e.target.value })} />
-							</div>
-							<div className="form-group">
-								<label>Оплата доп. работ</label>
-								<input type="text" value={editingObject["Как оплачиваются доп.работы"] || ""} onChange={(e) => setEditingObject({ ...editingObject, "Как оплачиваются доп.работы": e.target.value })} />
-							</div>
-							<div className="form-group form-group-full">
-								<label>Заметки</label>
-								<textarea value={editingObject["Заметки"] || ""} onChange={(e) => setEditingObject({ ...editingObject, "Заметки": e.target.value })} rows={3} placeholder="Дополнительная информация..." />
-							</div>
+								className="modal-close"
+								onClick={() => setIsEditModalOpen(false)}
+							>
+								<X size={24} />
+							</button>
 						</div>
-						<div className="modal-footer">
+						<form onSubmit={handleSaveEdit} className="modal-body">
+							<div className="form-grid">
+								<div className="form-group">
+									<label>Заказчик</label>
+									<input
+										type="text"
+										value={editingObject["Заказчик"] || ""}
+										onChange={(e) =>
+											setEditingObject({
+												...editingObject,
+												Заказчик: e.target.value,
+											})
+										}
+										placeholder="Заказчик"
+									/>
+								</div>
+								<div className="form-group">
+									<label>Подрядчик</label>
+									<select
+										value={editingObject["Подрядчик"] || "СБ"}
+										onChange={(e) =>
+											setEditingObject({
+												...editingObject,
+												Подрядчик: e.target.value,
+											})
+										}
+									>
+										<option value="СБ">СБ</option>
+										<option value="СБ+">СБ+</option>
+										<option value="ВСТ">ВСТ</option>
+										<option value="ИП">ИП</option>
+									</select>
+								</div>
+								<div className="form-group">
+									<label>№ контр/дог</label>
+									<input
+										type="text"
+										value={editingObject["№ контр/дог"] || ""}
+										onChange={(e) =>
+											setEditingObject({
+												...editingObject,
+												"№ контр/дог": e.target.value,
+											})
+										}
+										placeholder="№ 1-2024-РБ"
+									/>
+								</div>
+								<div className="form-group">
+									<label>Начало договора</label>
+									<input
+										type="date"
+										value={editingObject["Начало действия договора"] || ""}
+										onChange={(e) =>
+											setEditingObject({
+												...editingObject,
+												"Начало действия договора": e.target.value,
+											})
+										}
+									/>
+								</div>
+								<div className="form-group">
+									<label>Окончание договора</label>
+									<input
+										type="date"
+										value={editingObject["Окончание действия договора"] || ""}
+										onChange={(e) =>
+											setEditingObject({
+												...editingObject,
+												"Окончание действия договора": e.target.value,
+											})
+										}
+									/>
+								</div>
+								<div className="form-group">
+									<label>Тип договора</label>
+									<select
+										value={editingObject["Тип договора"] || "ТО"}
+										onChange={(e) =>
+											setEditingObject({
+												...editingObject,
+												"Тип договора": e.target.value,
+											})
+										}
+									>
+										<option value="ТО">ТО</option>
+										<option value="СМР">СМР</option>
+										<option value="ПИР">ПИР</option>
+										<option value="">—</option>
+									</select>
+								</div>
+								<div className="form-group">
+									<label>Продлеваемость</label>
+									<select
+										value={editingObject["Продлеваемость"] || ""}
+										onChange={(e) =>
+											setEditingObject({
+												...editingObject,
+												Продлеваемость: e.target.value,
+											})
+										}
+									>
+										<option value="">—</option>
+										<option value="Продлеваемый автоматически">
+											Продлеваемый автоматически
+										</option>
+										<option value="Не продлеваемый">Не продлеваемый</option>
+										<option value="Конкурсный">Конкурсный</option>
+									</select>
+								</div>
+								<div className="form-group">
+									<label>Кто оплачивает ремонт</label>
+									<select
+										value={editingObject["Кто оплачивает ремонт"] || ""}
+										onChange={(e) =>
+											setEditingObject({
+												...editingObject,
+												"Кто оплачивает ремонт": e.target.value,
+											})
+										}
+									>
+										<option value="">—</option>
+										<option value="Заказчик">Заказчик</option>
+										<option value="Наш счёт">За наш счёт</option>
+									</select>
+								</div>
+								<div className="form-group">
+									<label>Аванс</label>
+									<select
+										value={editingObject["К доп работам есть ли аванс"] || ""}
+										onChange={(e) =>
+											setEditingObject({
+												...editingObject,
+												"К доп работам есть ли аванс": e.target.value,
+											})
+										}
+									>
+										<option value="">—</option>
+										<option value="Аванс">Аванс</option>
+										<option value="Без аванса">Без аванса</option>
+									</select>
+								</div>
+								<div className="form-group form-group-full">
+									<label>Адрес полный</label>
+									<input
+										type="text"
+										value={editingObject["Адрес полный объекта"] || ""}
+										onChange={(e) =>
+											setEditingObject({
+												...editingObject,
+												"Адрес полный объекта": e.target.value,
+											})
+										}
+										placeholder="Полный адрес объекта"
+									/>
+								</div>
+								<div className="form-group">
+									<label>Адрес сокращенный</label>
+									<input
+										type="text"
+										value={editingObject["Адрес сокращенный"] || ""}
+										onChange={(e) =>
+											setEditingObject({
+												...editingObject,
+												"Адрес сокращенный": e.target.value,
+											})
+										}
+										placeholder="Сокращенный адрес"
+									/>
+								</div>
+								<div className="form-group">
+									<label>Наименование объекта</label>
+									<input
+										type="text"
+										value={editingObject["Наименование объекта"] || ""}
+										onChange={(e) =>
+											setEditingObject({
+												...editingObject,
+												"Наименование объекта": e.target.value,
+											})
+										}
+										placeholder="Наименование объекта"
+									/>
+								</div>
+								<div className="form-group">
+									<label>Арендатор</label>
+									<input
+										type="text"
+										value={editingObject["Арендатор"] || ""}
+										onChange={(e) =>
+											setEditingObject({
+												...editingObject,
+												Арендатор: e.target.value,
+											})
+										}
+										placeholder="Арендатор"
+									/>
+								</div>
+								<div className="form-group">
+									<label>РД ИД ПД</label>
+									<div className="checkbox-group">
+										{["РД", "ИД", "ПД"].map((opt) => {
+											const current = editingObject["РД ИД ПД"] || "";
+											const checked = current.includes(opt);
+											return (
+												<label key={opt} className="checkbox-label">
+													<input
+														type="checkbox"
+														checked={checked}
+														onChange={() => {
+															const vals = current
+																.split(",")
+																.map((v) => v.trim())
+																.filter(Boolean);
+															const newVals = checked
+																? vals.filter((v) => v !== opt)
+																: [...vals, opt];
+															setEditingObject({
+																...editingObject,
+																"РД ИД ПД": newVals.join(", "),
+															});
+														}}
+													/>
+													<span>{opt}</span>
+												</label>
+											);
+										})}
+									</div>
+								</div>
+								<div className="form-group form-group-full">
+									<label>Системы</label>
+									<input
+										type="text"
+										value={editingObject["Системы"] || ""}
+										onChange={(e) =>
+											setEditingObject({
+												...editingObject,
+												Системы: e.target.value,
+											})
+										}
+										placeholder="Вентиляция, Кондиционирование..."
+									/>
+								</div>
+								<div className="form-group">
+									<label>Контакты</label>
+									<input
+										type="text"
+										value={editingObject["Контакты"] || ""}
+										onChange={(e) =>
+											setEditingObject({
+												...editingObject,
+												Контакты: e.target.value,
+											})
+										}
+										placeholder="Телефон, имя..."
+									/>
+								</div>
+								<div className="form-group">
+									<label>Инструмент</label>
+									<select
+										value={editingObject["Инструмент на объекте"] || "нет"}
+										onChange={(e) =>
+											setEditingObject({
+												...editingObject,
+												"Инструмент на объекте": e.target.value,
+											})
+										}
+									>
+										<option value="нет">Нет</option>
+										<option value="есть">Есть</option>
+									</select>
+								</div>
+								<div className="form-group">
+									<label>Расчетное время</label>
+									<input
+										type="text"
+										value={
+											editingObject["Расчетное время на обслуживание"] || ""
+										}
+										onChange={(e) =>
+											setEditingObject({
+												...editingObject,
+												"Расчетное время на обслуживание": e.target.value,
+											})
+										}
+										placeholder="2 часа"
+									/>
+								</div>
+								<div className="form-group">
+									<label>Письмо о повышении ТО</label>
+									<input
+										type="text"
+										value={
+											editingObject["Письмо о повышении стоимости ТО"] || ""
+										}
+										onChange={(e) =>
+											setEditingObject({
+												...editingObject,
+												"Письмо о повышении стоимости ТО": e.target.value,
+											})
+										}
+									/>
+								</div>
+								<div className="form-group">
+									<label>Повышение цены ТО</label>
+									<input
+										type="text"
+										value={
+											editingObject["Свершившееся повышение цены ТО"] || ""
+										}
+										onChange={(e) =>
+											setEditingObject({
+												...editingObject,
+												"Свершившееся повышение цены ТО": e.target.value,
+											})
+										}
+									/>
+								</div>
+								<div className="form-group">
+									<label>Доп. соглашение</label>
+									<input
+										type="text"
+										value={editingObject["Доп соглашение"] || ""}
+										onChange={(e) =>
+											setEditingObject({
+												...editingObject,
+												"Доп соглашение": e.target.value,
+											})
+										}
+									/>
+								</div>
+								<div className="form-group">
+									<label>Письма</label>
+									<input
+										type="text"
+										value={editingObject["Письма"] || ""}
+										onChange={(e) =>
+											setEditingObject({
+												...editingObject,
+												Письма: e.target.value,
+											})
+										}
+									/>
+								</div>
+								<div className="form-group">
+									<label>Оплата доп. работ</label>
+									<input
+										type="text"
+										value={editingObject["Как оплачиваются доп.работы"] || ""}
+										onChange={(e) =>
+											setEditingObject({
+												...editingObject,
+												"Как оплачиваются доп.работы": e.target.value,
+											})
+										}
+									/>
+								</div>
+								<div className="form-group form-group-full">
+									<label>Заметки</label>
+									<textarea
+										value={editingObject["Заметки"] || ""}
+										onChange={(e) =>
+											setEditingObject({
+												...editingObject,
+												Заметки: e.target.value,
+											})
+										}
+										rows={3}
+										placeholder="Дополнительная информация..."
+									/>
+								</div>
+							</div>
+							<div className="modal-footer">
 								<button
 									type="button"
 									className="btn btn-secondary"
@@ -6651,7 +7001,6 @@ function renderActivationSection() {
 					</div>
 				</div>
 			)}
-
 
 			{/* МОДАЛЬНОЕ ОКНО РЕДАКТИРОВАНИЯ ТРАНСПОРТА */}
 			{isTransportModalOpen && editingTransport && (
