@@ -32,6 +32,12 @@ import {
 	Zap,
 	ChevronDown,
 	UserCog,
+	Folder,
+	FolderPlus,
+	File,
+	Upload,
+	Trash,
+	ArrowLeft,
 } from "lucide-react";
 import { authApi, hasAccess } from "./api/auth";
 import UsersPanel from "./components/UsersPanel";
@@ -61,6 +67,7 @@ const SECTION_ICONS = {
 	wishes: Target,
 	extra: Zap,
 	users: UserCog,
+	rd: Folder,
 };
 
 // === МАППИНГ НАЗВАНИЙ ===
@@ -85,6 +92,7 @@ const SECTION_LABELS = {
 	wishes: "Пожелания",
 	extra: "Доп. системы",
 	users: "Пользователи",
+	rd: "РД",
 };
 
 // === ВСЕ РАЗДЕЛЫ ===
@@ -103,6 +111,7 @@ const ALL_SECTIONS = [
 	{ id: "time", name: "Время", icon: "time" },
 	{ id: "wishes", name: "Пожелания", icon: "wishes" },
 	{ id: "users", name: "Пользователи", icon: "users" },
+	{ id: "rd", name: "РД", icon: "rd" },
 ];
 
 // === ДАННЫЕ ОБЪЕКТОВ (загружаются из Excel) ===
@@ -2288,6 +2297,8 @@ function App() {
 			case "accounts":
 			case "users":
 				return <UsersPanel />;
+			case "rd":
+				return renderRDSection();
 			default:
 				return renderPlaceholderSection();
 		}
@@ -5397,7 +5408,202 @@ function App() {
 		);
 	}
 
-	function renderActivationSection() {
+	
+function renderRDSection() {
+	const [rdFolders, setRDFolders] = useState(() => {
+		try { return JSON.parse(localStorage.getItem("baza_rd_folders")) || []; } catch { return []; }
+	});
+	const [rdFiles, setRDFiles] = useState(() => {
+		try { return JSON.parse(localStorage.getItem("baza_rd_files")) || []; } catch { return []; }
+	});
+	const [currentFolder, setCurrentFolder] = useState(null);
+	const [isCreatingFolder, setIsCreatingFolder] = useState(false);
+	const [newFolderName, setNewFolderName] = useState("");
+	const [searchQ, setSearchQ] = useState("");
+	const fileInputRef = useRef(null);
+
+	const saveFolders = (f) => { setRDFolders(f); localStorage.setItem("baza_rd_folders", JSON.stringify(f)); };
+	const saveFiles = (f) => { setRDFiles(f); localStorage.setItem("baza_rd_files", JSON.stringify(f)); };
+
+	const breadcrumbs = [];
+	let parent = currentFolder;
+	while (parent) {
+		breadcrumbs.unshift(parent);
+		parent = rdFolders.find((f) => f.id === parent.parentId);
+	}
+
+	const currentFolders = rdFolders.filter((f) => f.parentId === (currentFolder ? currentFolder.id : null));
+	const currentFiles = rdFiles.filter((f) => f.folderId === (currentFolder ? currentFolder.id : null));
+
+	const filteredFolders = currentFolders.filter((f) => !searchQ || f.name.toLowerCase().includes(searchQ.toLowerCase()));
+	const filteredFiles = currentFiles.filter((f) => !searchQ || f.name.toLowerCase().includes(searchQ.toLowerCase()));
+
+	const createFolder = () => {
+		if (!newFolderName.trim()) return;
+		const newFolder = { id: Date.now(), name: newFolderName.trim(), parentId: currentFolder ? currentFolder.id : null, createdAt: new Date().toISOString() };
+		saveFolders([...rdFolders, newFolder]);
+		setNewFolderName("");
+		setIsCreatingFolder(false);
+	};
+
+	const deleteFolder = (folderId) => {
+		if (!confirm("Удалить папку и все вложения?")) return;
+		const idsToDelete = new Set([folderId]);
+		let changed = true;
+		while (changed) {
+			changed = false;
+			rdFolders.forEach((f) => { if (f.parentId && idsToDelete.has(f.parentId) && !idsToDelete.has(f.id)) { idsToDelete.add(f.id); changed = true; } });
+		}
+		saveFolders(rdFolders.filter((f) => !idsToDelete.has(f.id)));
+		saveFiles(rdFiles.filter((f) => !idsToDelete.has(f.folderId)));
+	};
+
+	const handleFileUpload = (e) => {
+		const files = Array.from(e.target.files || []);
+		files.forEach((file) => {
+			const reader = new FileReader();
+			reader.onload = () => {
+				const record = { id: Date.now() + Math.random(), name: file.name, folderId: currentFolder ? currentFolder.id : null, type: file.type, size: file.size, data: reader.result, createdAt: new Date().toISOString() };
+				saveFiles([...rdFiles, record]);
+			};
+			reader.readAsDataURL(file);
+		});
+		e.target.value = "";
+	};
+
+	const downloadFile = (file) => {
+		const a = document.createElement("a");
+		a.href = file.data;
+		a.download = file.name;
+		a.click();
+	};
+
+	const deleteFile = (fileId) => {
+		if (!confirm("Удалить файл?")) return;
+		saveFiles(rdFiles.filter((f) => f.id !== fileId));
+	};
+
+	const formatSize = (bytes) => {
+		if (bytes < 1024) return bytes + " B";
+		if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + " KB";
+		return (bytes / (1024 * 1024)).toFixed(1) + " MB";
+	};
+
+	const formatDate = (iso) => new Date(iso).toLocaleDateString("ru-RU");
+
+	 return (
+		<div className="section">
+			<div className="content-header">
+				<div className="content-header-left">
+					<h2>РД — Рабочая документация</h2>
+				</div>
+				<div className="content-header-right">
+					<button className="btn btn-secondary" onClick={() => setIsCreatingFolder(true)}>
+						<FolderPlus size={16} /> Создать папку
+					</button>
+					<button className="btn btn-primary" onClick={() => fileInputRef.current?.click()}>
+						<Upload size={16} /> Загрузить файл
+					</button>
+					<input ref={fileInputRef} type="file" multiple style={{ display: "none" }} onChange={handleFileUpload} />
+				</div>
+			</div>
+
+			{/* Хлебные крошки */}
+			{currentFolder && (
+				<div className="rd-breadcrumbs">
+					<button className="rd-crumb" onClick={() => setCurrentFolder(null)}>РД</button>
+					{breadcrumbs.map((f) => (
+						<button key={f.id} className="rd-crumb" onClick={() => setCurrentFolder(f)}>
+							<span className="rd-crumb-sep">/</span> {f.name}
+						</button>
+					))}
+				</div>
+			)}
+
+			{/* Поиск */}
+			<div className="rd-search">
+				<Search size={16} className="rd-search-icon" />
+				<input type="text" placeholder="Поиск..." value={searchQ} onChange={(e) => setSearchQ(e.target.value)} className="rd-search-input" />
+			</div>
+
+			<div className="rd-content">
+				{/* Создание папки */}
+				{isCreatingFolder && (
+					<div className="rd-create-folder">
+						<FolderPlus size={16} />
+						<input autoFocus type="text" value={newFolderName} onChange={(e) => setNewFolderName(e.target.value)} placeholder="Название папки..." onKeyDown={(e) => { if (e.key === "Enter") createFolder(); if (e.key === "Escape") setIsCreatingFolder(false); }} />
+						<button className="btn btn-primary btn-sm" onClick={createFolder}>Создать</button>
+						<button className="btn btn-secondary btn-sm" onClick={() => setIsCreatingFolder(false)}>Отмена</button>
+					</div>
+				)}
+
+				{/* Папки */}
+				{filteredFolders.length > 0 && (
+					<div className="rd-section">
+						<h3 className="rd-section-title">Папки</h3>
+						<div className="rd-grid">
+							{filteredFolders.map((folder) => (
+								<div key={folder.id} className="rd-item rd-folder">
+									<div className="rd-item-icon" onClick={() => setCurrentFolder(folder)}>
+										<Folder size={40} />
+									</div>
+									<div className="rd-item-info">
+										<span className="rd-item-name" onClick={() => setCurrentFolder(folder)}>{folder.name}</span>
+										<span className="rd-item-meta">{formatDate(folder.createdAt)}</span>
+									</div>
+									<div className="rd-item-actions">
+										<button className="btn btn-icon" title="Удалить" onClick={() => deleteFolder(folder.id)}>
+											<Trash size={16} />
+										</button>
+									</div>
+								</div>
+							))}
+						</div>
+					</div>
+				)}
+
+				{/* Файлы */}
+				{filteredFiles.length > 0 && (
+					<div className="rd-section">
+						<h3 className="rd-section-title">Файлы</h3>
+						<div className="rd-grid">
+							{filteredFiles.map((file) => (
+								<div key={file.id} className="rd-item rd-file">
+									<div className="rd-item-icon" onClick={() => downloadFile(file)}>
+										<File size={40} />
+									</div>
+									<div className="rd-item-info">
+										<span className="rd-item-name" onClick={() => downloadFile(file)}>{file.name}</span>
+										<span className="rd-item-meta">{formatSize(file.size)} · {formatDate(file.createdAt)}</span>
+									</div>
+									<div className="rd-item-actions">
+										<button className="btn btn-icon" title="Скачать" onClick={() => downloadFile(file)}>
+											<Download size={16} />
+										</button>
+										<button className="btn btn-icon" title="Удалить" onClick={() => deleteFile(file.id)}>
+												<Trash size={16} />
+										</button>
+									</div>
+								</div>
+							))}
+						</div>
+					</div>
+				)}
+
+				{/* Пусто */}
+				{filteredFolders.length === 0 && filteredFiles.length === 0 && !isCreatingFolder && (
+					<div className="rd-empty">
+						<Folder size={64} />
+						<p>Папка пуста</p>
+						<span>Создайте папку или загрузите файлы</span>
+					</div>
+				)}
+			</div>
+		</div>
+	);
+}
+
+function renderActivationSection() {
 		return (
 			<>
 				<div className="content-header">
