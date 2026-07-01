@@ -351,6 +351,31 @@ class ApiClient {
 	async healthCheck() {
 		return this.request("/health");
 	}
+
+	// Mobile Objects (uses /api/mobile/objects)
+	async getMobileObjects() {
+		return this.request("/mobile/objects");
+	}
+
+	async createMobileObject(data) {
+		return this.request("/mobile/objects", {
+			method: "POST",
+			body: JSON.stringify(data),
+		});
+	}
+
+	async updateMobileObject(id, data) {
+		return this.request(`/mobile/objects/${id}`, {
+			method: "PUT",
+			body: JSON.stringify(data),
+		});
+	}
+
+	async deleteMobileObject(id) {
+		return this.request(`/mobile/objects/${id}`, {
+			method: "DELETE",
+		});
+	}
 }
 
 export const api = new ApiClient(API_BASE_URL);

@@ -1108,6 +1108,12 @@ function App() {
 		};
 		objectContactsSyncRef.current = true;
 		setObjects([newObj, ...objects]);
+		// Сохраняем в localStorage
+		try {
+			const saved = JSON.parse(localStorage.getItem("baza_objects") || "[]");
+			saved.unshift(newObj);
+			localStorage.setItem("baza_objects", JSON.stringify(saved));
+		} catch (err) {}
 		setNewFormData(getEmptyObjectForm());
 	};
 
@@ -1230,6 +1236,11 @@ function App() {
 		if (confirm("Удалить объект?")) {
 			objectContactsSyncRef.current = true;
 			setObjects(objects.filter((o) => o.id !== id));
+			try {
+				const saved = JSON.parse(localStorage.getItem("baza_objects") || "[]");
+				saved = saved.filter((o) => o.id !== id);
+				localStorage.setItem("baza_objects", JSON.stringify(saved));
+			} catch (err) {}
 		}
 	};
 
@@ -1242,6 +1253,18 @@ function App() {
 		e?.preventDefault();
 		const oldObject = objects.find((o) => o.id === editingObject.id);
 		const newObject = editingObject;
+
+		// Сохранение в localStorage
+		try {
+			const saved = JSON.parse(localStorage.getItem("baza_objects") || "[]");
+			const updated = saved.map((o) => (o.id === editingObject.id ? editingObject : o));
+			if (!updated.find((o) => o.id === editingObject.id)) {
+				updated.push(editingObject);
+			}
+			localStorage.setItem("baza_objects", JSON.stringify(updated));
+		} catch (err) {
+			console.warn("localStorage save error:", err);
+		}
 
 		// Синхронизация данных объекта во всех связанных разделах
 		const oldName = oldObject ? oldObject["Наименование объекта"] : "";
@@ -6203,37 +6226,162 @@ function App() {
 					className="modal-overlay"
 					onClick={() => setIsEditModalOpen(false)}
 				>
-					<div className="modal" onClick={(e) => e.stopPropagation()}>
+					<div className="modal modal-object-edit" onClick={(e) => e.stopPropagation()}>
 						<div className="modal-header">
 							<h2>Редактирование объекта</h2>
+							<span className="modal-subtitle">{editingObject["Наименование объекта"] || ""}</span>
 							<button
-								className="modal-close"
-								onClick={() => setIsEditModalOpen(false)}
-							>
-								<X size={24} />
-							</button>
-						</div>
-						<form onSubmit={handleSaveEdit} className="modal-body">
-							<div className="form-grid">
-								{Object.keys(editingObject)
-									.filter((k) => k !== "id")
-									.map((key) => (
-										<div key={key} className="form-group">
-											<label>{key}</label>
-											<input
-												type="text"
-												value={editingObject[key] || ""}
-												onChange={(e) =>
-													setEditingObject({
-														...editingObject,
-														[key]: e.target.value,
-													})
-												}
-											/>
-										</div>
-									))}
+							className="modal-close"
+							onClick={() => setIsEditModalOpen(false)}
+						>
+							<X size={24} />
+						</button>
+					</div>
+					<form onSubmit={handleSaveEdit} className="modal-body">
+						<div className="form-grid">
+							<div className="form-group">
+								<label>Заказчик</label>
+								<input type="text" value={editingObject["Заказчик"] || ""} onChange={(e) => setEditingObject({ ...editingObject, "Заказчик": e.target.value })} placeholder="Заказчик" />
 							</div>
-							<div className="modal-footer">
+							<div className="form-group">
+								<label>Подрядчик</label>
+								<select value={editingObject["Подрядчик"] || "СБ"} onChange={(e) => setEditingObject({ ...editingObject, "Подрядчик": e.target.value })}>
+									<option value="СБ">СБ</option>
+									<option value="СБ+">СБ+</option>
+									<option value="ВСТ">ВСТ</option>
+									<option value="ИП">ИП</option>
+								</select>
+							</div>
+							<div className="form-group">
+								<label>№ контр/дог</label>
+								<input type="text" value={editingObject["№ контр/дог"] || ""} onChange={(e) => setEditingObject({ ...editingObject, "№ контр/дог": e.target.value })} placeholder="№ 1-2024-РБ" />
+							</div>
+							<div className="form-group">
+								<label>Начало договора</label>
+								<input type="date" value={editingObject["Начало действия договора"] || ""} onChange={(e) => setEditingObject({ ...editingObject, "Начало действия договора": e.target.value })} />
+							</div>
+							<div className="form-group">
+								<label>Окончание договора</label>
+								<input type="date" value={editingObject["Окончание действия договора"] || ""} onChange={(e) => setEditingObject({ ...editingObject, "Окончание действия договора": e.target.value })} />
+							</div>
+							<div className="form-group">
+								<label>Тип договора</label>
+								<select value={editingObject["Тип договора"] || "ТО"} onChange={(e) => setEditingObject({ ...editingObject, "Тип договора": e.target.value })}>
+									<option value="ТО">ТО</option>
+									<option value="СМР">СМР</option>
+									<option value="ПИР">ПИР</option>
+									<option value="">—</option>
+								</select>
+							</div>
+							<div className="form-group">
+								<label>Продлеваемость</label>
+								<select value={editingObject["Продлеваемость"] || ""} onChange={(e) => setEditingObject({ ...editingObject, "Продлеваемость": e.target.value })}>
+									<option value="">—</option>
+									<option value="Продлеваемый автоматически">Продлеваемый автоматически</option>
+									<option value="Не продлеваемый">Не продлеваемый</option>
+									<option value="Конкурсный">Конкурсный</option>
+								</select>
+							</div>
+							<div className="form-group">
+								<label>Кто оплачивает ремонт</label>
+								<select value={editingObject["Кто оплачивает ремонт"] || ""} onChange={(e) => setEditingObject({ ...editingObject, "Кто оплачивает ремонт": e.target.value })}>
+									<option value="">—</option>
+									<option value="Заказчик">Заказчик</option>
+									<option value="Наш счёт">За наш счёт</option>
+								</select>
+							</div>
+							<div className="form-group">
+								<label>Аванс</label>
+								<select value={editingObject["К доп работам есть ли аванс"] || ""} onChange={(e) => setEditingObject({ ...editingObject, "К доп работам есть ли аванс": e.target.value })}>
+									<option value="">—</option>
+									<option value="Аванс">Аванс</option>
+									<option value="Без аванса">Без аванса</option>
+								</select>
+							</div>
+							<div className="form-group form-group-full">
+								<label>Адрес полный</label>
+								<input type="text" value={editingObject["Адрес полный объекта"] || ""} onChange={(e) => setEditingObject({ ...editingObject, "Адрес полный объекта": e.target.value })} placeholder="Полный адрес объекта" />
+							</div>
+							<div className="form-group">
+								<label>Адрес сокращенный</label>
+								<input type="text" value={editingObject["Адрес сокращенный"] || ""} onChange={(e) => setEditingObject({ ...editingObject, "Адрес сокращенный": e.target.value })} placeholder="Сокращенный адрес" />
+							</div>
+							<div className="form-group">
+								<label>Наименование объекта</label>
+								<input type="text" value={editingObject["Наименование объекта"] || ""} onChange={(e) => setEditingObject({ ...editingObject, "Наименование объекта": e.target.value })} placeholder="Наименование объекта" />
+							</div>
+							<div className="form-group">
+								<label>Арендатор</label>
+								<input type="text" value={editingObject["Арендатор"] || ""} onChange={(e) => setEditingObject({ ...editingObject, "Арендатор": e.target.value })} placeholder="Арендатор" />
+							</div>
+							<div className="form-group">
+								<label>РД ИД ПД</label>
+								<div className="checkbox-group">
+									{["РД", "ИД", "ПД"].map((opt) => {
+											const current = editingObject["РД ИД ПД"] || "";
+												const checked = current.includes(opt);
+													return (
+														<label key={opt} className="checkbox-label">
+															<input
+																	type="checkbox"
+																		checked={checked}
+																		onChange={() => {
+																		const vals = current.split(",").map((v) => v.trim()).filter(Boolean);
+																		const newVals = checked ? vals.filter((v) => v !== opt) : [...vals, opt];
+																			setEditingObject({ ...editingObject, "РД ИД ПД": newVals.join(", ") });
+																		}}
+																	/>
+																	<span>{opt}</span>
+																</label>
+													);
+												})}
+									</div>
+							</div>
+							<div className="form-group form-group-full">
+								<label>Системы</label>
+								<input type="text" value={editingObject["Системы"] || ""} onChange={(e) => setEditingObject({ ...editingObject, "Системы": e.target.value })} placeholder="Вентиляция, Кондиционирование..." />
+							</div>
+							<div className="form-group">
+								<label>Контакты</label>
+								<input type="text" value={editingObject["Контакты"] || ""} onChange={(e) => setEditingObject({ ...editingObject, "Контакты": e.target.value })} placeholder="Телефон, имя..." />
+							</div>
+							<div className="form-group">
+								<label>Инструмент</label>
+								<select value={editingObject["Инструмент на объекте"] || "нет"} onChange={(e) => setEditingObject({ ...editingObject, "Инструмент на объекте": e.target.value })}>
+									<option value="нет">Нет</option>
+									<option value="есть">Есть</option>
+								</select>
+							</div>
+							<div className="form-group">
+								<label>Расчетное время</label>
+								<input type="text" value={editingObject["Расчетное время на обслуживание"] || ""} onChange={(e) => setEditingObject({ ...editingObject, "Расчетное время на обслуживание": e.target.value })} placeholder="2 часа" />
+							</div>
+							<div className="form-group">
+								<label>Письмо о повышении ТО</label>
+								<input type="text" value={editingObject["Письмо о повышении стоимости ТО"] || ""} onChange={(e) => setEditingObject({ ...editingObject, "Письмо о повышении стоимости ТО": e.target.value })} />
+							</div>
+							<div className="form-group">
+								<label>Повышение цены ТО</label>
+								<input type="text" value={editingObject["Свершившееся повышение цены ТО"] || ""} onChange={(e) => setEditingObject({ ...editingObject, "Свершившееся повышение цены ТО": e.target.value })} />
+							</div>
+							<div className="form-group">
+								<label>Доп. соглашение</label>
+								<input type="text" value={editingObject["Доп соглашение"] || ""} onChange={(e) => setEditingObject({ ...editingObject, "Доп соглашение": e.target.value })} />
+							</div>
+							<div className="form-group">
+								<label>Письма</label>
+								<input type="text" value={editingObject["Письма"] || ""} onChange={(e) => setEditingObject({ ...editingObject, "Письма": e.target.value })} />
+							</div>
+							<div className="form-group">
+								<label>Оплата доп. работ</label>
+								<input type="text" value={editingObject["Как оплачиваются доп.работы"] || ""} onChange={(e) => setEditingObject({ ...editingObject, "Как оплачиваются доп.работы": e.target.value })} />
+							</div>
+							<div className="form-group form-group-full">
+								<label>Заметки</label>
+								<textarea value={editingObject["Заметки"] || ""} onChange={(e) => setEditingObject({ ...editingObject, "Заметки": e.target.value })} rows={3} placeholder="Дополнительная информация..." />
+							</div>
+						</div>
+						<div className="modal-footer">
 								<button
 									type="button"
 									className="btn btn-secondary"
@@ -6242,13 +6390,14 @@ function App() {
 									Отмена
 								</button>
 								<button type="submit" className="btn btn-primary">
-									Сохранить
+									<Check size={16} /> Сохранить
 								</button>
 							</div>
 						</form>
 					</div>
 				</div>
 			)}
+
 
 			{/* МОДАЛЬНОЕ ОКНО РЕДАКТИРОВАНИЯ ТРАНСПОРТА */}
 			{isTransportModalOpen && editingTransport && (

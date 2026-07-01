@@ -369,3 +369,157 @@ router.post("/locations", async (req, res) => {
 });
 
 export default router;
+
+// ============ OBJECTS ============
+const OBJECT_COLUMNS = {
+	Заказчик: "customer",
+	Подрядчик: "contractor",
+	"№ контр/дог": "contract_number",
+	"Начало действия договора": "contract_start_date",
+	"Окончание действия договора": "contract_end_date",
+	"Тип договора": "contract_type",
+	Продлеваемость: "renewability",
+	"Письмо о повышении стоимости ТО": "price_increase_letter_date",
+	"Свершившееся повышение цены ТО": "price_increase_percent",
+	"Доп соглашение": "additional_agreement",
+	Письма: "letters",
+	"Кто оплачивает ремонт": "repair_payer",
+	"Как оплачиваются доп.работы": "additional_works_payment",
+	"К доп работам есть ли аванс": "advance_payment",
+	"Адрес полный объекта": "full_address",
+	"Адрес сокращенный": "short_address",
+	"Наименование объекта": "object_name",
+	"РД ИД ПД": "rd_id_pd",
+	Арендатор: "tenant",
+	Системы: "systems",
+	"Расчетное время на обслуживание": "estimated_time",
+	Контакты: "contacts",
+	"Инструмент на объекте": "has_tool",
+	Заметки: "notes",
+	objectNumber: "object_number",
+	object_number: "object_number",
+	id: "id",
+	created_at: "created_at",
+	updated_at: "updated_at",
+};
+
+function mapObject(row) {
+	if (!row) return null;
+	return {
+		id: row.id,
+		objectNumber: row.object_number,
+		Заказчик: row.customer || "",
+		Подрядчик: row.contractor || "",
+		"№ контр/дог": row.contract_number || "",
+		"Начало действия договора": row.contract_start_date || "",
+		"Окончание действия договора": row.contract_end_date || "",
+		"Тип договора": row.contract_type || "",
+		Продлеваемость: row.renewability || "",
+		"Письмо о повышении стоимости ТО": row.price_increase_letter_date || "",
+		"Свершившееся повышение цены ТО": row.price_increase_percent || "",
+		"Доп соглашение": row.additional_agreement || "",
+		Письма: row.letters || "",
+		"Кто оплачивает ремонт": row.repair_payer || "",
+		"Как оплачиваются доп.работы": row.additional_works_payment || "",
+		"К доп работам есть ли аванс": row.advance_payment || "",
+		"Адрес полный объекта": row.full_address || "",
+		"Адрес сокращенный": row.short_address || "",
+		"Наименование объекта": row.object_name || "",
+		"РД ИД ПД": row.rd_id_pd || "",
+		Арендатор: row.tenant || "",
+		Системы: row.systems || "",
+		"Расчетное время на обслуживание": row.estimated_time || "",
+		Контакты: row.contacts || "",
+		"Инструмент на объекте": row.has_tool || "",
+		Заметки: row.notes || "",
+	};
+}
+
+function toDbFields(obj) {
+	const db = {};
+	for (const [rus, col] of Object.entries(OBJECT_COLUMNS)) {
+		if (rus in obj) {
+			db[col] = obj[rus];
+		}
+	}
+	return db;
+}
+
+router.get("/objects", async (_req, res) => {
+	try {
+		const result = await query(
+			"SELECT * FROM objects ORDER BY object_number DESC NULLS LAST, id DESC",
+		);
+		res.json(result.rows.map(mapObject));
+	} catch (error) {
+		console.error("Objects error:", error.message);
+		res.json([]);
+	}
+});
+
+router.post("/objects", async (req, res) => {
+	try {
+		const db = toDbFields(req.body);
+		const cols = Object.keys(db);
+		const vals = Object.values(db);
+		const maxNum = await query("SELECT MAX(object_number) as m FROM objects");
+		db.object_number = db.object_number || (maxNum.rows[0].m || 0) + 1;
+		const insertCols = [...cols];
+		const insertVals = [...vals];
+		if (!insertCols.includes("object_number")) {
+			insertCols.push("object_number");
+			insertVals.push(db.object_number);
+		}
+		const placeholders = insertVals.map((_, i) => `$${i + 1}`).join(", ");
+		const result = await query(
+			`INSERT INTO objects (${insertCols.join(", ")}) VALUES (${placeholders}) RETURNING *`,
+			insertVals,
+		);
+		res.status(201).json(mapObject(result.rows[0]));
+	} catch (error) {
+		console.error("Create object error:", error.message);
+		res.status(500).json({ error: error.message });
+	}
+});
+
+router.put("/objects/:id", async (req, res) => {
+	try {
+		const db = toDbFields(req.body);
+		delete db.id;
+		delete db.created_at;
+		const entries = Object.entries(db).filter(
+			([k]) => k !== "id" && k !== "created_at",
+		);
+		if (entries.length === 0) {
+			return res.status(400).json({ error: "No fields to update" });
+		}
+		const sets = entries.map(([k], i) => `${k} = $${i + 1}`).join(", ");
+		const vals = entries.map(([, v]) => v);
+		vals.push(req.params.id);
+		const result = await query(
+			`UPDATE objects SET ${sets}, updated_at = NOW() WHERE id = $${vals.length} RETURNING *`,
+			vals,
+		);
+		if (result.rows.length === 0)
+			return res.status(404).json({ error: "Not found" });
+		res.json(mapObject(result.rows[0]));
+	} catch (error) {
+		console.error("Update object error:", error.message);
+		res.status(500).json({ error: error.message });
+	}
+});
+
+router.delete("/objects/:id", async (req, res) => {
+	try {
+		const result = await query(
+			"DELETE FROM objects WHERE id = $1 RETURNING id",
+			[req.params.id],
+		);
+		if (result.rows.length === 0)
+			return res.status(404).json({ error: "Not found" });
+		res.json({ success: true });
+	} catch (error) {
+		console.error("Delete object error:", error.message);
+		res.status(500).json({ error: error.message });
+	}
+});
