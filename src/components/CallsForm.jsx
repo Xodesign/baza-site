@@ -6,6 +6,8 @@ import {
 	Truck,
 	ShoppingCart,
 	X,
+	Search,
+	Filter,
 } from "lucide-react";
 
 // === ЦВЕТА ИНСТРУМЕНТА (для справки) ===
@@ -303,6 +305,7 @@ function SystemMultiSelect({
 }
 
 // === НАШ ИНСТРУМЕНТ ВЫБОР ===
+// === ВЫБОР ИНСТРУМЕНТА — ВСПЛЫВАЮЩЕЕ ОКНО ===
 function OurToolSelect({
 	value,
 	onChange,
@@ -310,7 +313,9 @@ function OurToolSelect({
 	transportStatus,
 	tools,
 }) {
-	const [isOpen, setIsOpen] = useState(false);
+	const [isModalOpen, setIsModalOpen] = useState(false);
+	const [searchQuery, setSearchQuery] = useState("");
+	const [statusFilter, setStatusFilter] = useState("all"); // all, available, busy
 
 	// Базовые опции
 	const baseOptions = [
@@ -320,7 +325,7 @@ function OurToolSelect({
 		{ value: "3", label: "нужно", color: "#dc3545", type: "base" },
 	];
 
-	// Получаем выбранные ID инструментов (comma-separated string)
+	// Получаем выбранные ID инструментов
 	const selectedToolIds = value
 		? value
 				.split(",")
@@ -330,8 +335,6 @@ function OurToolSelect({
 
 	// Выбранный базовый вариант
 	const selectedBase = baseOptions.find((o) => o.value === value);
-
-	// Проверяем, выбран ли базовый вариант
 	const isBaseSelected = value && baseOptions.find((o) => o.value === value);
 
 	// Выбранные инструменты
@@ -339,13 +342,35 @@ function OurToolSelect({
 		.map((id) => tools?.find((t) => String(t.id) === String(id)))
 		.filter(Boolean);
 
-	const handleBaseSelect = (opt) => {
-		onChange(opt.value);
-		if (opt.value === "2") {
-			onCreateTransport?.();
-		}
-		setIsOpen(false);
-	};
+	// Фильтрация инструментов
+	const filteredTools = useMemo(() => {
+		if (!tools) return [];
+		return tools.filter((t) => {
+			// Поиск по названию или инвентарному номеру
+			const matchesSearch =
+				!searchQuery ||
+				t.tool.toLowerCase().includes(searchQuery.toLowerCase()) ||
+				t.inventoryNumber?.toLowerCase().includes(searchQuery.toLowerCase());
+
+			// Фильтр по статусу
+			const matchesStatus =
+				statusFilter === "all" ||
+				(statusFilter === "available" && t.call_status === "available") ||
+				(statusFilter === "busy" && t.call_status !== "available");
+
+			return matchesSearch && matchesStatus;
+		});
+	}, [tools, searchQuery, statusFilter]);
+
+	// Подсчёт статистики
+	const stats = useMemo(() => {
+		if (!tools) return { total: 0, available: 0, busy: 0 };
+		return {
+			total: tools.length,
+			available: tools.filter((t) => t.call_status === "available").length,
+			busy: tools.filter((t) => t.call_status !== "available").length,
+		};
+	}, [tools]);
 
 	const handleToolToggle = (toolId) => {
 		const strId = String(toolId);
@@ -359,28 +384,29 @@ function OurToolSelect({
 		onChange(newIds.join(","));
 	};
 
-	// Список опций с инструментами
-	const toolOptions =
-		tools?.length > 0
-			? tools.map((tool) => ({
-					id: tool.id,
-					label: `${tool.tool}${tool.short_address ? ` (${tool.short_address})` : ""}`,
-					color: tool.call_status === "available" ? "#28a745" : "#dc3545",
-					toolData: tool,
-					isBusy: tool.call_status !== "available",
-				}))
-			: [];
+	const handleBaseSelect = (opt) => {
+		onChange(opt.value);
+		if (opt.value === "2") {
+			onCreateTransport?.();
+		}
+		setIsModalOpen(false);
+	};
+
+	const handleClear = () => {
+		onChange("");
+		setSearchQuery("");
+		setStatusFilter("all");
+	};
 
 	// Цвет и текст поля
 	const displayColor = isBaseSelected
 		? selectedBase.color
 		: selectedTools.length > 0
 			? selectedTools.every((t) => t.call_status === "available")
-				? "#28a745"
-				: "#dc3545"
-			: "#6c757d";
+					? "#28a745"
+					: "#dc3545"
+				: "#6c757d";
 
-	// Составное описание
 	const displayLabel = isBaseSelected
 		? selectedBase.label
 		: selectedTools.length === 0
@@ -390,83 +416,166 @@ function OurToolSelect({
 				: `${selectedTools.length} инструмента`;
 
 	return (
-		<div className="tool-select-wrapper">
+		<>
+			{/* Кнопка открытия */}
 			<div
-				className="tool-selected"
+				className="tool-modal-trigger"
 				style={{
 					borderColor: displayColor,
 					backgroundColor: displayColor + "15",
 				}}
-				onClick={() => setIsOpen(!isOpen)}
+				onClick={() => setIsModalOpen(true)}
 			>
 				<span style={{ color: displayColor }}>{displayLabel}</span>
-				<ChevronDown size={14} />
+				<ChevronDown size={16} />
 			</div>
-			{isOpen && (
-				<div className="tool-dropdown">
-					{/* Базовые опции */}
-					{baseOptions.map((opt) => (
-						<div
-							key={opt.value}
-							className={`tool-option ${isBaseSelected && value === opt.value ? "tool-option-selected" : ""}`}
-							style={{ borderLeftColor: opt.color }}
-							onClick={() => handleBaseSelect(opt)}
-						>
-							<span style={{ color: opt.color }}>{opt.label}</span>
+
+			{/* Модальное окно */}
+			{isModalOpen && (
+				<div className="tool-modal-overlay" onClick={() => setIsModalOpen(false)}>
+					<div className="tool-modal-content" onClick={(e) => e.stopPropagation()}>
+						{/* Заголовок */}
+						<div className="tool-modal-header">
+							<h3>Выбор инструмента</h3>
+							<button className="tool-modal-close" onClick={() => setIsModalOpen(false)}>
+								<X size={20} />
+							</button>
 						</div>
-					))}
-					{toolOptions.length > 0 && (
-						<div className="tool-dropdown-divider">
-							— Инструменты в наличии —
+
+						{/* Статистика */}
+						<div className="tool-stats">
+							<span className="stat-total">Всего: {stats.total}</span>
+							<span className="stat-available">🟢 Свободен: {stats.available}</span>
+							<span className="stat-busy">🔴 Занят: {stats.busy}</span>
 						</div>
-					)}
-					{toolOptions.map((opt) => (
-						<div
-							key={opt.id}
-							className={`tool-option ${selectedToolIds.map(String).includes(String(opt.id)) ? "tool-option-selected" : ""} ${opt.isBusy ? "tool-busy" : ""}`}
-							style={{ borderLeftColor: opt.color }}
-							onClick={() => handleToolToggle(opt.id)}
-						>
+
+						{/* Поиск */}
+						<div className="tool-search">
+							<Search size={16} className="search-icon" />
 							<input
-								type="checkbox"
-								checked={selectedToolIds.map(String).includes(String(opt.id))}
-								onChange={() => handleToolToggle(opt.id)}
-								style={{ marginRight: 6 }}
+								type="text"
+								placeholder="Поиск по названию или инвентарному номеру..."
+								value={searchQuery}
+								onChange={(e) => setSearchQuery(e.target.value)}
+								className="tool-search-input"
 							/>
-							<span style={{ color: opt.color }}>{opt.label}</span>
-							{opt.isBusy && <span className="tool-busy-badge">занят</span>}
 						</div>
-					))}
-				</div>
-			)}
+
+						{/* Фильтры */}
+						<div className="tool-filters">
+							<button
+								className={`filter-btn ${statusFilter === "all" ? "active" : ""}`}
+								onClick={() => setStatusFilter("all")}
+							>
+								Все
+							</button>
+							<button
+								className={`filter-btn filter-available ${statusFilter === "available" ? "active" : ""}`}
+								onClick={() => setStatusFilter("available")}
+							>
+								🟢 Свободные
+							</button>
+							<button
+								className={`filter-btn filter-busy ${statusFilter === "busy" ? "active" : ""}`}
+								onClick={() => setStatusFilter("busy")}
+							>
+								🔴 Занятые
+							</button>
+						</div>
+
+						{/* Базовые опции */}
+						<div className="tool-base-options">
+							{baseOptions.map((opt) => (
+								<button
+									key={opt.value}
+									className={`base-option ${isBaseSelected && value === opt.value ? "selected" : ""}`}
+									style={{ borderColor: opt.color, color: opt.color }}
+									onClick={() => handleBaseSelect(opt)}
+								>
+									{opt.label}
+								</button>
+							))}
+						</div>
+
+						{/* Список инструментов */}
+						<div className="tool-list">
+							{filteredTools.length === 0 ? (
+								<div className="tool-empty">Инструменты не найдены</div>
+							) : filteredTools.map((t) => {
+										const isSelected = selectedToolIds.map(String).includes(String(t.id));
+										const isBusy = t.call_status !== "available";
+										return (
+											<div
+												key={t.id}
+												className={`tool-item ${isSelected ? "selected" : ""} ${isBusy ? "busy" : ""}`}
+												onClick={() => handleToolToggle(t.id)}
+											>
+												<div className="tool-item-checkbox">
+													<input
+														type="checkbox"
+														checked={isSelected}
+														onChange={() => handleToolToggle(t.id)}
+													/>
+												</div>
+												<div className="tool-item-info">
+													<div className="tool-item-name">{t.tool}</div>
+													<div className="tool-item-details">
+														{t.inventoryNumber && <span className="detail-inv">Инв. {t.inventoryNumber}</span>}
+														{t.short_address && <span className="detail-addr">{t.short_address}</span>}
+													</div>
+												</div>
+												<div className="tool-item-status">
+													<span className={`status-badge ${isBusy ? "busy" : "available"}`}>
+														{isBusy ? "🔴 Занят" : "🟢 Свободен"}
+													</span>
+													{isBusy && t.object_name && <div className="status-object">{t.object_name}</div>}
+												</div>
+											</div>
+										);
+									})}
+							</div>
+						</div>
+
+						{/* Выбранные инструменты */}
+						{selectedTools.length > 0 && (
+							<div className="tool-selected-section">
+								<div className="selected-header">
+									<span>Выбрано: {selectedTools.length}</span>
+									<button className="clear-btn" onClick={handleClear}>Очистить</button>
+								</div>
+								<div className="selected-chips">
+									{selectedTools.map((t) => (
+										<span
+											key={t.id}
+											className={`selected-chip ${t.call_status !== "available" ? "chip-busy" : "chip-available"}`}
+										>
+											{t.tool}
+											<span className="chip-remove" onClick={(e) => { e.stopPropagation(); handleToolToggle(t.id); }}>×</span>
+										</span>
+									))}
+								</div>
+							</div>
+						)}
+
+						{/* Кнопки действий */}
+						<div className="tool-modal-actions">
+							<button className="btn btn-secondary" onClick={() => setIsModalOpen(false)}>
+								Отмена
+							</button>
+									<button className="btn btn-primary" onClick={() => setIsModalOpen(false)}>
+										Готово {selectedTools.length > 0 && `(${selectedTools.length})`}
+									</button>
+									</div>
+								</div>
+							)}
+
 			{transportStatus && (
 				<div className="transport-status">
 					<Truck size={12} />
 					Заявка на транспорт создана
 				</div>
 			)}
-			{/* Выбранные инструменты — чипы */}
-			{selectedTools.length > 0 && (
-				<div className="tool-chips">
-					{selectedTools.map((t) => (
-						<span
-							key={t.id}
-							className={`tool-chip ${t.call_status !== "available" ? "chip-busy" : "chip-available"}`}
-						>
-							{t.tool}
-							<span
-								className="chip-remove"
-								onClick={(e) => {
-									e.stopPropagation();
-									handleToolToggle(t.id);
-								}}
-							>
-								×
-							</span>
-						</span>
-					))}
-				</div>
-			)}
+
 			{/* Карточки выбранных инструментов */}
 			{selectedTools.map((t) => (
 				<div key={t.id} className="tool-info-card">
@@ -510,7 +619,7 @@ function OurToolSelect({
 					)}
 				</div>
 			))}
-		</div>
+		</>
 	);
 }
 

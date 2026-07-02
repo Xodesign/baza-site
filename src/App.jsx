@@ -1859,9 +1859,9 @@ function App() {
 					return t;
 				}),
 			);
-			} catch (e) {
-				console.log("Failed to update tools status");
-			}
+		} catch (e) {
+			console.log("Failed to update tools status");
+		}
 	};
 
 	// Сохранение вызова в API
