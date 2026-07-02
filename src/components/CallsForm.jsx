@@ -499,11 +499,11 @@ function PurchaseSelect({ value, onChange, onCreateBuy, buyStatus }) {
 								className="tool-option"
 								style={{ borderLeftColor: opt.color }}
 								onClick={() => {
-								if (opt.value === "2") {
-									// Открываем модальное окно для ввода списка закупок
-									setShowModal(true);
-									setPurchaseText(formData.toPurchase || "");
-								} else if (opt.value === "3") {
+									if (opt.value === "2") {
+										// Открываем модальное окно для ввода списка закупок
+										setShowModal(true);
+										setPurchaseText(formData.toPurchase || "");
+									} else if (opt.value === "3") {
 										onChange("3");
 									} else {
 										onChange(opt.value);
