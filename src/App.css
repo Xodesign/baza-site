@@ -4458,6 +4458,42 @@ input[type="date"]:focus {
 	border-radius: 10px;
 	margin-left: auto;
 }
+.tool-option-selected {
+	background: #e8f5e9;
+}
+.tool-chip {
+	display: inline-flex;
+	align-items: center;
+	gap: 4px;
+	padding: 4px 10px;
+	border-radius: 16px;
+	font-size: 13px;
+	margin: 4px 4px 0 0;
+}
+.chip-available {
+	background: #d4edda;
+	color: #155724;
+	border: 1px solid #c3e6cb;
+}
+.chip-busy {
+	background: #f8d7da;
+	color: #721c24;
+	border: 1px solid #f5c6cb;
+}
+.chip-remove {
+	cursor: pointer;
+	font-size: 16px;
+	line-height: 1;
+	opacity: 0.6;
+}
+.chip-remove:hover {
+	opacity: 1;
+}
+.tool-chips {
+	display: flex;
+	flex-wrap: wrap;
+	margin-top: 8px;
+}
 /* Карточка информации об инструменте */
 .tool-info-card {
 	margin-top: 10px;
