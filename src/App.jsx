@@ -1694,9 +1694,10 @@ function App() {
 	};
 
 	// === ЛОГИКА ВЫЗОВОВ ===
-	const handleAddCall = async (formData) => {
+	const handleAddCall = async (formData, options = {}) => {
 		// formData может быть событием (e) или объектом с данными
 		const callData = formData?.preventDefault ? null : formData;
+		const { skipBuyCreation } = options;
 
 		if (callData) {
 			// Новый компонент передаёт данные напрямую
@@ -1709,6 +1710,7 @@ function App() {
 
 			// Создаём заявку на закупку, если указано что купить
 			if (
+				!skipBuyCreation &&
 				callData.toPurchase &&
 				callData.toPurchase !== "0" &&
 				callData.toPurchase !== "1" &&
@@ -1792,8 +1794,8 @@ function App() {
 					call_id: callId,
 					object_name: data.objectName || "",
 					short_address: data.shortAddress || "",
+					created_by: data.creator || "",
 				}),
-				n,
 			});
 			if (res.ok) {
 				const saved = await res.json();
@@ -1808,10 +1810,10 @@ function App() {
 				objectName: data.objectName || "",
 				shortAddress: data.shortAddress || "",
 				whatToBuy: data.whatToBuy || "",
+				creator: data.creator || "",
 			};
 			setBuyItems([newBuy, ...buyItems]);
 		}
-		alert("Заявка на закупку создана!");
 	};
 
 	const handleDeleteCall = (id) => {

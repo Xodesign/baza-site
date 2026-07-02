@@ -499,12 +499,11 @@ function PurchaseSelect({ value, onChange, onCreateBuy, buyStatus }) {
 								className="tool-option"
 								style={{ borderLeftColor: opt.color }}
 								onClick={() => {
-									if (opt.value === "2") {
-										// Открываем модальное окно для ввода списка закупок
-										setShowModal(true);
-										setPurchaseText("");
-										onCreateBuy?.();
-									} else if (opt.value === "3") {
+								if (opt.value === "2") {
+									// Открываем модальное окно для ввода списка закупок
+									setShowModal(true);
+									setPurchaseText(formData.toPurchase || "");
+								} else if (opt.value === "3") {
 										onChange("3");
 									} else {
 										onChange(opt.value);
@@ -560,6 +559,13 @@ function PurchaseSelect({ value, onChange, onCreateBuy, buyStatus }) {
 								onClick={() => {
 									if (purchaseText.trim()) {
 										onChange(purchaseText.trim());
+										// Создаём заявку на закупку с реальным текстом
+										onCreateBuy?.({
+											objectName: formData.objectName,
+											shortAddress: formData.shortAddress,
+											whatToBuy: purchaseText.trim(),
+											creator: formData.creator,
+										});
 									} else {
 										onChange("3");
 									}
@@ -897,7 +903,7 @@ export default function CallsForm({
 			return;
 		}
 
-		onAddCall?.(formData);
+		onAddCall?.(formData, { skipBuyCreation: true });
 		setFormData({
 			createdAt: new Date().toISOString().split("T")[0],
 			deadline: "",
