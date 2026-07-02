@@ -23,6 +23,7 @@ import {
 	MapPin,
 	Clock,
 	AlertCircle,
+	AlertTriangle,
 	Check,
 	ShoppingCart,
 	CreditCard,
@@ -1913,6 +1914,16 @@ function App() {
 		setCalls(calls.map((c) => (c.id === id ? { ...c, status } : c)));
 	};
 
+	const handleStatusClick = (call) => {
+		const nextStatus = {
+			new: "in_progress",
+			in_progress: "waiting",
+			waiting: "completed",
+			completed: "new",
+		};
+		handleStatusChange(call.id, nextStatus[call.status] || "new");
+	};
+
 	const filteredCalls = calls.filter((c) => {
 		if (callFilter === "all") return true;
 		return c.status === callFilter;
@@ -3761,10 +3772,10 @@ function App() {
 						>
 							{f === "all"
 								? "Все"
-										: f === "new"
-										? "Новые"
-										: f === "in_progress"
-											? "В работе"
+								: f === "new"
+									? "Новые"
+									: f === "in_progress"
+										? "В работе"
 										: f === "waiting"
 											? "Ожидает"
 											: "Выполнено"}
@@ -3816,10 +3827,18 @@ function App() {
 										<td>{call.id}</td>
 										<td>{call.createdAt || "-"}</td>
 										<td>{call.deadline || "-"}</td>
-										<td>{call.executionDate || "-"}</td>
-										<td>{call.engineer || "-"}</td>
-										<td>{call.assistant || "-"}</td>
-										<td>{getStatusBadge(call.status)}</td>
+			<td>{call.executionDate || "-"}</td>
+						<td>{call.engineer || "-"}</td>
+						<td>{call.assistant || "-"}</td>
+						<td
+							className="status-cell"
+							onClick={(e) => {
+								e.stopPropagation();
+								handleStatusClick(call);
+							}}
+						>
+							{getStatusBadge(call.status)}
+						</td>
 										<td>{call.type || "-"}</td>
 										<td>{call.objectName || "-"}</td>
 										<td>{call.shortAddress || "-"}</td>

@@ -368,6 +368,7 @@
 	font-size: 0.75rem;
 	font-weight: 500;
 	white-space: nowrap;
+	transition: all 0.2s;
 }
 
 .badge-client {
@@ -4637,6 +4638,13 @@ input[type="date"]:focus {
 }
 .call-row-clickable:hover {
 	background: #f0f4ff;
+}
+.status-cell {
+	cursor: pointer;
+}
+.status-cell:hover .badge {
+	opacity: 0.8;
+	transform: scale(1.05);
 }
 /* Модальное окно детальной информации вызова */
 .call-detail-modal {
