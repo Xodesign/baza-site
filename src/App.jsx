@@ -1710,6 +1710,9 @@ function App() {
 			};
 			setCalls([newCall, ...calls]);
 
+			// Обновляем статусы выбранных инструментов
+			await updateToolsForCall(callData, newCall.id);
+
 			// Создаём заявку на закупку, если указано что купить
 			if (
 				!skipBuyCreation &&
@@ -1814,7 +1817,47 @@ function App() {
 				whatToBuy: data.whatToBuy || "",
 				creator: data.creator || "",
 			};
-			setBuyItems([newBuy, ...buyItems]);
+				setBuyItems([newBuy, ...buyItems]);
+		}
+	};
+
+	// Обновление статуса инструментов при создании вызова
+	const updateToolsForCall = async (callData, callId) => {
+		if (!callData.ourTool) return;
+		const toolIds = callData.ourTool
+			.split(",")
+			.map((v) => v.trim())
+			.filter((v) => v);
+		if (toolIds.length === 0) return;
+
+		try {
+			for (const toolId of toolIds) {
+				await fetch(`http://37.252.17.205:3001/api/tools/${toolId}`, {
+					method: "PUT",
+					headers: { "Content-Type": "application/json" },
+					body: JSON.stringify({
+						call_status: "busy",
+						object_name: callData.objectName || "",
+						short_address: callData.shortAddress || "",
+					}),
+				});
+			}
+			// Обновляем локальный стейт
+			setTools(
+				tools.map((t) => {
+					if (toolIds.includes(String(t.id))) {
+						return {
+							...t,
+							call_status: "busy",
+							object_name: callData.objectName || "",
+							short_address: callData.shortAddress || "",
+						};
+					}
+					return t;
+				}),
+			);
+		} catch (e) {
+			console.log("Failed to update tools status");
 		}
 	};
 

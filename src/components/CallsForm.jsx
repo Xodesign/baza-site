@@ -326,7 +326,7 @@ function OurToolSelect({
 				.split(",")
 				.map((v) => v.trim())
 				.filter((v) => v && !baseOptions.find((o) => o.value === v))
-			: [];
+		: [];
 
 	// Выбранный базовый вариант
 	const selectedBase = baseOptions.find((o) => o.value === value);
@@ -360,15 +360,16 @@ function OurToolSelect({
 	};
 
 	// Список опций с инструментами
-	const toolOptions = tools?.length > 0
-		? tools.map((tool) => ({
-				id: tool.id,
-				label: `${tool.tool}${tool.short_address ? ` (${tool.short_address})` : ""}`,
-				color: tool.call_status === "available" ? "#28a745" : "#dc3545",
-				toolData: tool,
-				isBusy: tool.call_status !== "available",
-			}))
-		: [];
+	const toolOptions =
+		tools?.length > 0
+			? tools.map((tool) => ({
+					id: tool.id,
+					label: `${tool.tool}${tool.short_address ? ` (${tool.short_address})` : ""}`,
+					color: tool.call_status === "available" ? "#28a745" : "#dc3545",
+					toolData: tool,
+					isBusy: tool.call_status !== "available",
+				}))
+			: [];
 
 	// Цвет и текст поля
 	const displayColor = isBaseSelected
@@ -377,16 +378,16 @@ function OurToolSelect({
 			? selectedTools.every((t) => t.call_status === "available")
 				? "#28a745"
 				: "#dc3545"
-		: "#6c757d";
+			: "#6c757d";
 
 	// Составное описание
 	const displayLabel = isBaseSelected
 		? selectedBase.label
 		: selectedTools.length === 0
-		? "Выберите инструменты..."
-		: selectedTools.length === 1
-		? selectedTools[0].tool
-		: `${selectedTools.length} инструмента`;
+			? "Выберите инструменты..."
+			: selectedTools.length === 1
+				? selectedTools[0].tool
+				: `${selectedTools.length} инструмента`;
 
 	return (
 		<div className="tool-select-wrapper">
@@ -415,7 +416,9 @@ function OurToolSelect({
 						</div>
 					))}
 					{toolOptions.length > 0 && (
-						<div className="tool-dropdown-divider">— Инструменты в наличии —</div>
+						<div className="tool-dropdown-divider">
+							— Инструменты в наличии —
+						</div>
 					)}
 					{toolOptions.map((opt) => (
 						<div
@@ -469,7 +472,9 @@ function OurToolSelect({
 				<div key={t.id} className="tool-info-card">
 					<div className="tool-info-header">
 						<span className="tool-info-name">{t.tool}</span>
-						<span className={`tool-info-status ${t.call_status === "available" ? "available" : "busy"}`}>
+						<span
+							className={`tool-info-status ${t.call_status === "available" ? "available" : "busy"}`}
+						>
 							{t.call_status === "available" ? "✓ Свободен" : "⚠ Занят"}
 						</span>
 					</div>
