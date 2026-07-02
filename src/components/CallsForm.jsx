@@ -347,20 +347,20 @@ function OurToolSelect({
 					},
 					...tools.map((tool) => ({
 						value: tool.id,
-						label: `${tool.name}${tool.location ? ` (${tool.location})` : ""}`,
-						color: tool.status === "available" ? "#28a745" : "#dc3545",
+						label: `${tool.tool}${tool.short_address ? ` (${tool.short_address})` : ""}`,
+						color: tool.call_status === "available" ? "#28a745" : "#dc3545",
 						toolData: tool,
-						isBusy: tool.status !== "available" && tool.status !== "available",
+						isBusy: tool.call_status !== "available",
 					})),
 				]
 			: []),
 	];
 
 	const displayLabel = selectedTool
-		? `${selectedTool.name}${selectedTool.location ? ` (${selectedTool.location})` : ""}`
+		? `${selectedTool.tool}${selectedTool.short_address ? ` (${selectedTool.short_address})` : ""}`
 		: selectedBase?.label || "Выберите...";
 	const displayColor = selectedTool
-		? selectedTool.status === "available"
+		? selectedTool.call_status === "available"
 			? "#28a745"
 			: "#dc3545"
 		: selectedBase?.color || "#6c757d";
@@ -409,23 +409,37 @@ function OurToolSelect({
 			{isToolSelected && selectedTool && (
 				<div className="tool-info-card">
 					<div className="tool-info-header">
-						<span className="tool-info-name">{selectedTool.name}</span>
+						<span className="tool-info-name">{selectedTool.tool}</span>
 						<span
-							className={`tool-info-status ${selectedTool.status === "available" ? "available" : "busy"}`}
+							className={`tool-info-status ${selectedTool.call_status === "available" ? "available" : "busy"}`}
 						>
-							{selectedTool.status === "available" ? "✓ Свободен" : "⚠ Занят"}
+							{selectedTool.call_status === "available"
+								? "✓ Свободен"
+								: "⚠ Занят"}
 						</span>
 					</div>
-					{selectedTool.location && (
+					{selectedTool.inventory_number && (
 						<div className="tool-info-row">
-							<span className="tool-info-label">Место:</span>
-							<span className="tool-info-value">{selectedTool.location}</span>
+							<span className="tool-info-label">Инв.№:</span>
+							<span className="tool-info-value">
+								{selectedTool.inventory_number}
+							</span>
 						</div>
 					)}
-					{selectedTool.object && (
+					{selectedTool.short_address && (
+						<div className="tool-info-row">
+							<span className="tool-info-label">Место:</span>
+							<span className="tool-info-value">
+								{selectedTool.short_address}
+							</span>
+						</div>
+					)}
+					{selectedTool.object_name && (
 						<div className="tool-info-row">
 							<span className="tool-info-label">Объект:</span>
-							<span className="tool-info-value">{selectedTool.object}</span>
+							<span className="tool-info-value">
+								{selectedTool.object_name}
+							</span>
 						</div>
 					)}
 					{selectedTool.note && (
@@ -434,12 +448,13 @@ function OurToolSelect({
 							<span className="tool-info-value">{selectedTool.note}</span>
 						</div>
 					)}
-					{selectedTool.status !== "available" && selectedTool.object && (
-						<div className="tool-info-object">
-							<span>Инструмент на объекте: </span>
-							<strong>{selectedTool.object}</strong>
-						</div>
-					)}
+					{selectedTool.call_status !== "available" &&
+						selectedTool.object_name && (
+							<div className="tool-info-object">
+								<span>Инструмент на объекте: </span>
+								<strong>{selectedTool.object_name}</strong>
+							</div>
+						)}
 				</div>
 			)}
 		</div>

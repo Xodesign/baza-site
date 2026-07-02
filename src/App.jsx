@@ -785,6 +785,38 @@ function App() {
 	const [editingTool, setEditingTool] = useState(null); // Инструмент для редактирования в модалке
 	const [isToolModalOpen, setIsToolModalOpen] = useState(false); // Открыта ли модалка
 
+	// Загрузка инструментов с сервера
+	useEffect(() => {
+		const loadTools = async () => {
+			try {
+				const res = await fetch("http://37.252.17.205:3001/api/tools");
+				if (res.ok) {
+					const data = await res.json();
+					setTools(
+						data.map((t) => ({
+							id: t.id,
+							tool: t.tool || "",
+							inventoryNumber: t.inventory_number || "",
+							brand: t.brand || "",
+							objectName: t.object_name || "",
+							shortAddress: t.short_address || "",
+							status: t.call_status || t.status || "available",
+							location: t.short_address || "",
+							note: t.note || "",
+							createdAt: t.created_at,
+						})),
+					);
+				}
+			} catch (e) {
+				console.log("Failed to load tools from server, using localStorage");
+				const saved = localStorage.getItem("demo_tools");
+				if (saved) setTools(JSON.parse(saved));
+				else setTools(INITIAL_TOOLS);
+			}
+		};
+		loadTools();
+	}, []);
+
 	// --- СТЕЙТЫ АКТИРОВАНИЯ ---
 	const [activations, setActivations] = useState(() => {
 		const saved = localStorage.getItem("demo_activations");
@@ -1674,15 +1706,24 @@ function App() {
 				createdAt: callData.createdAt || new Date().toISOString().split("T")[0],
 			};
 			setCalls([newCall, ...calls]);
-			
+
 			// Создаём заявку на закупку, если указано что купить
-			if (callData.toPurchase && callData.toPurchase !== "0" && callData.toPurchase !== "1" && callData.toPurchase !== "2" && callData.toPurchase !== "3") {
-				await handleCreateBuyFromCall({
-					objectName: callData.objectName,
-					shortAddress: callData.shortAddress,
-					whatToBuy: callData.toPurchase,
-					creator: callData.creator,
-				}, newCall.id);
+			if (
+				callData.toPurchase &&
+				callData.toPurchase !== "0" &&
+				callData.toPurchase !== "1" &&
+				callData.toPurchase !== "2" &&
+				callData.toPurchase !== "3"
+			) {
+				await handleCreateBuyFromCall(
+					{
+						objectName: callData.objectName,
+						shortAddress: callData.shortAddress,
+						whatToBuy: callData.toPurchase,
+						creator: callData.creator,
+					},
+					newCall.id,
+				);
 			}
 		} else {
 			// Старая форма через событие
@@ -1751,7 +1792,9 @@ function App() {
 					call_id: callId,
 					object_name: data.objectName || "",
 					short_address: data.shortAddress || "",
-				}),n			});
+				}),
+				n,
+			});
 			if (res.ok) {
 				const saved = await res.json();
 				setBuyItems([saved, ...buyItems]);
@@ -4584,54 +4627,54 @@ function App() {
 								</tr>
 							) : (
 								buyItems.map((b) => (
-								<tr key={b.id}>
-									<td className="cell-id">{b.id}</td>
-									<td>{b.created_at ? b.created_at.split("T")[0] : "—"}</td>
-									<td>
-										{b.deadline || <span className="text-muted">—</span>}
-									</td>
-									<td>
-										<select
-										value={b.status || "pending"}
-										onChange={(e) =>
-											handleStatusChange(b.id, e.target.value)
-										}
-										style={{
-											padding: "4px 8px",
-											borderRadius: "6px",
-											border: "1px solid var(--border)",
-										}}
-									>
-											<option value="pending">Ожидает</option>
-											<option value="ordered">Заказан</option>
-											<option value="received">Получен</option>
-											<option value="cancelled">Отменён</option>
-										</select>
-									</td>
-									<td>{b.object_name || b.title || "—"}</td>
-									<td>
-										<span className="text-muted">—</span>
-									</td>
-									<td>
-										{b.short_address || <span className="text-muted">—</span>}
-									</td>
-									<td>{b.description || "—"}</td>
-									<td>
-										<span className="text-muted">—</span>
-									</td>
-									<td>
-										<span className="text-muted">—</span>
-									</td>
-									<td>
-										<button
-										className="btn-icon btn-delete"
-										onClick={() => handleDeleteBuy(b.id)}
-									>
-										<Trash2 size={16} />
-									</button>
-									</td>
-								</tr>
-							))
+									<tr key={b.id}>
+										<td className="cell-id">{b.id}</td>
+										<td>{b.created_at ? b.created_at.split("T")[0] : "—"}</td>
+										<td>
+											{b.deadline || <span className="text-muted">—</span>}
+										</td>
+										<td>
+											<select
+												value={b.status || "pending"}
+												onChange={(e) =>
+													handleStatusChange(b.id, e.target.value)
+												}
+												style={{
+													padding: "4px 8px",
+													borderRadius: "6px",
+													border: "1px solid var(--border)",
+												}}
+											>
+												<option value="pending">Ожидает</option>
+												<option value="ordered">Заказан</option>
+												<option value="received">Получен</option>
+												<option value="cancelled">Отменён</option>
+											</select>
+										</td>
+										<td>{b.object_name || b.title || "—"}</td>
+										<td>
+											<span className="text-muted">—</span>
+										</td>
+										<td>
+											{b.short_address || <span className="text-muted">—</span>}
+										</td>
+										<td>{b.description || "—"}</td>
+										<td>
+											<span className="text-muted">—</span>
+										</td>
+										<td>
+											<span className="text-muted">—</span>
+										</td>
+										<td>
+											<button
+												className="btn-icon btn-delete"
+												onClick={() => handleDeleteBuy(b.id)}
+											>
+												<Trash2 size={16} />
+											</button>
+										</td>
+									</tr>
+								))
 							)}
 						</tbody>
 					</table>
