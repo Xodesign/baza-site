@@ -152,7 +152,6 @@ function AddressSelect({ value, onChange, objects, onSelectObject }) {
 	const [inputValue, setInputValue] = useState(value || "");
 	const [showDropdown, setShowDropdown] = useState(false);
 	const [filteredObjects, setFilteredObjects] = useState([]);
-	const _inputRef = useState(null);
 
 	useEffect(() => {
 		if (inputValue.length >= 1) {
@@ -308,63 +307,132 @@ function OurToolSelect({
 	onChange,
 	onCreateTransport,
 	transportStatus,
+	tools,
 }) {
 	const [isOpen, setIsOpen] = useState(false);
-	const options = [
-		{ value: "0", label: "------------", color: "#dc3545" },
-		{ value: "1", label: "не нужно", color: "#28a745" },
-		{ value: "2", label: "заявка на доставку", color: "#007bff" },
-		{ value: "3", label: "нужно", color: "#dc3545" },
+
+	// Базовые опции
+	const baseOptions = [
+		{ value: "0", label: "------------", color: "#dc3545", type: "base" },
+		{ value: "1", label: "не нужно", color: "#28a745", type: "base" },
+		{ value: "2", label: "заявка на доставку", color: "#007bff", type: "base" },
+		{ value: "3", label: "нужно", color: "#dc3545", type: "base" },
 	];
 
-	const selectedOption = options.find((o) => o.value === value) || options[0];
+	// Получаем информацию о выбранном инструменте
+	const selectedBase = baseOptions.find((o) => o.value === value);
+	const selectedTool = tools?.find((t) => t.id === value);
+
+	// Проверяем, выбран ли конкретный инструмент из базы
+	const isToolSelected = value && !baseOptions.find((o) => o.value === value);
+
+	const handleSelect = (opt) => {
+		onChange(opt.value);
+		if (opt.value === "2") {
+			onCreateTransport?.();
+		}
+		setIsOpen(false);
+	};
+
+	// Формируем опции с инструментами из базы
+	const allOptions = [
+		...baseOptions,
+		...(tools?.length > 0
+			? [
+					{ value: "divider", label: "— Инструменты в наличии —", divider: true },
+					...tools.map((tool) => ({
+						value: tool.id,
+						label: `${tool.name}${tool.location ? ` (${tool.location})` : ""}`,
+						color: tool.status === "available" ? "#28a745" : "#dc3545",
+						toolData: tool,
+						isBusy: tool.status !== "available" && tool.status !== "available",
+					}))
+			  ]
+			: [])
+	];
+
+	const displayLabel = selectedTool
+		? `${selectedTool.name}${selectedTool.location ? ` (${selectedTool.location})` : ""}`
+		: selectedBase?.label || "Выберите...";
+	const displayColor = selectedTool ? selectedTool.status === "available" ? "#28a745" : "#dc3545" : selectedBase?.color || "#6c757d";
 
 	return (
 		<div className="tool-select-wrapper">
 			<div
 				className="tool-selected"
 				style={{
-					borderColor: selectedOption.color,
-					backgroundColor: selectedOption.color + "15",
+					borderColor: displayColor,
+					backgroundColor: displayColor + "15",
 				}}
 				onClick={() => setIsOpen(!isOpen)}
 			>
-				<span style={{ color: selectedOption.color }}>
-					{selectedOption.label}
+				<span style={{ color: displayColor }}>
+					{displayLabel}
 				</span>
 				<ChevronDown size={14} />
 			</div>
 			{isOpen && (
 				<div className="tool-dropdown">
-					{options.map((opt) => (
-						<div
-							key={opt.value}
-							className="tool-option"
-							style={{ borderLeftColor: opt.color }}
-							onClick={() => {
-								onChange(opt.value);
-								if (opt.value === "2") {
-									onCreateTransport?.();
-								}
-								setIsOpen(false);
-							}}
-						>
-							<span style={{ color: opt.color }}>{opt.label}</span>
-						</div>
-					))}
+					{allOptions.map((opt, idx) =>
+						opt.divider ? (
+							<div key={idx} className="tool-dropdown-divider">
+								{opt.label}
+							</div>
+						) : (
+							<div
+								key={opt.value}
+								className={`tool-option ${opt.isBusy ? "tool-busy" : ""}`}
+								style={{ borderLeftColor: opt.color }}
+								onClick={() => handleSelect(opt)}
+							>
+								<span style={{ color: opt.color }}>{opt.label}</span>
+								{opt.isBusy && (
+									<span className="tool-busy-badge">занят</span>
+								)}
+							</div>
+						)
+					)}
 				</div>
 			)}
 			{transportStatus && (
 				<div className="transport-status">
 					<Truck size={12} />
-					<a
-						href="#"
-						onClick={(e) => {
-							e.preventDefault(); /* переход в транспорт */
-						}}
-					>
-						Заявка на транспорт
-					</a>
+					Заявка на транспорт создана
+				</div>
+			)}
+			{/* Информация о выбранном инструменте */}
+			{isToolSelected && selectedTool && (
+				<div className="tool-info-card">
+					<div className="tool-info-header">
+						<span className="tool-info-name">{selectedTool.name}</span>
+						<span className={`tool-info-status ${selectedTool.status === "available" ? "available" : "busy"}`}>
+							{selectedTool.status === "available" ? "✓ Свободен" : "⚠ Занят"}
+						</span>
+					</div>
+					{selectedTool.location && (
+						<div className="tool-info-row">
+							<span className="tool-info-label">Место:</span>
+							<span className="tool-info-value">{selectedTool.location}</span>
+						</div>
+					)}
+					{selectedTool.object && (
+						<div className="tool-info-row">
+							<span className="tool-info-label">Объект:</span>
+							<span className="tool-info-value">{selectedTool.object}</span>
+						</div>
+					)}
+					{selectedTool.note && (
+						<div className="tool-info-row">
+							<span className="tool-info-label">Примечание:</span>
+							<span className="tool-info-value">{selectedTool.note}</span>
+						</div>
+					)}
+					{selectedTool.status !== "available" && selectedTool.object && (
+						<div className="tool-info-object">
+							<span>Инструмент на объекте: </span>
+							<strong>{selectedTool.object}</strong>
+						</div>
+					)}
 				</div>
 			)}
 		</div>
@@ -440,7 +508,6 @@ function StaffSelect({ value, onChange, staff, placeholder }) {
 	const [isOpen, setIsOpen] = useState(false);
 	const [inputValue, setInputValue] = useState(value || "");
 
-	const _selectedStaff = staff.find((s) => s.fullName === value);
 
 	return (
 		<div className="staff-select-wrapper">
@@ -601,6 +668,7 @@ export default function CallsForm({
 	staff,
 	systems,
 	contacts,
+	tools,
 	onAddCall,
 	onCreateTransport,
 	onCreateBuy,
@@ -687,24 +755,7 @@ export default function CallsForm({
 		return "normal";
 	};
 
-	// Валидация
-	const _validate = () => {
-		const errs = {};
-
-		// Наименование объекта - обязательно
-		if (!formData.objectName?.trim()) {
-			errs.objectName = "Выберите объект";
-		}
-
-		// Заявка - минимум 10 символов
-		if (formData.request?.trim() && formData.request.trim().length < 10) {
-			errs.request = "Минимум 10 символов";
-		}
-
-		return errs;
-	};
-
-	// Обработка изменения поля
+		// Обработка изменения поля
 	const handleChange = (field, value) => {
 		setFormData({ ...formData, [field]: value });
 		setTouched({ ...touched, [field]: true });
@@ -1072,6 +1123,8 @@ export default function CallsForm({
 							onCreateTransport={handleCreateTransport}
 							transportStatus={formData.ourTool === "2"}
 							disabled={!isObjectSelected}
+							tools={tools}
+							objects={objects}
 						/>
 					</div>
 

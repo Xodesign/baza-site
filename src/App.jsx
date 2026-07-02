@@ -893,7 +893,12 @@ function App() {
 	});
 
 	// Открытие страницы системы
-	const openSystemDetail = (obj, systemName, fromTab = "objects", fromCallDetail = false) => {
+	const openSystemDetail = (
+		obj,
+		systemName,
+		fromTab = "objects",
+		fromCallDetail = false,
+	) => {
 		setSystemFromTab(fromTab);
 		setSystemFromCallDetail(fromCallDetail);
 		setSystemDetail({
@@ -3680,6 +3685,7 @@ function App() {
 					staff={staff}
 					systems={systems}
 					contacts={contacts}
+					tools={tools}
 					onAddCall={handleAddCall}
 					onCreateTransport={handleCreateTransportFromCall}
 					onCreateBuy={handleCreateBuyFromCall}
@@ -7814,25 +7820,35 @@ function App() {
 											}
 										/>
 									</div>
-										<div className="call-detail-field full-width">
-											<label>Система</label>
-											<div className="call-detail-systems">
-												{(() => {
+									<div className="call-detail-field full-width">
+										<label>Система</label>
+										<div className="call-detail-systems">
+											{(() => {
 												const obj = objects.find(
 													(o) =>
-														o["Наименование объекта"] === editingCall.objectName ||
-														o["Адрес сокращенный"] === editingCall.shortAddress
-													);
-													const systemsStr = obj?.["Системы"] || "";
-													const available = systemsStr.split(",").map((s) => s.trim()).filter(Boolean);
-													const selected = (editingCall.system || "").split(",").map((s) => s.trim()).filter(Boolean);
-													if (available.length === 0) {
+														o["Наименование объекта"] ===
+															editingCall.objectName ||
+														o["Адрес сокращенный"] === editingCall.shortAddress,
+												);
+												const systemsStr = obj?.["Системы"] || "";
+												const available = systemsStr
+													.split(",")
+													.map((s) => s.trim())
+													.filter(Boolean);
+												const selected = (editingCall.system || "")
+													.split(",")
+													.map((s) => s.trim())
+													.filter(Boolean);
+												if (available.length === 0) {
 													return (
 														<input
 															type="text"
 															value={editingCall.system || ""}
 															onChange={(e) =>
-																setEditingCall({ ...editingCall, system: e.target.value })
+																setEditingCall({
+																	...editingCall,
+																	system: e.target.value,
+																})
 															}
 															placeholder="Введите системы..."
 														/>
@@ -7841,40 +7857,52 @@ function App() {
 												return (
 													<>
 														<div className="system-checkboxes">
-														{available.map((sys) => (
-															<label key={sys} className="system-checkbox-label">
-																<input
-																	type="checkbox"
-																	checked={selected.includes(sys)}
-																	onChange={() => {
-																		const newSelected = selected.includes(sys)
-																			? selected.filter((s) => s !== sys)
-																			: [...selected, sys];
-																	setEditingCall({ ...editingCall, system: newSelected.join(", ") });
+															{available.map((sys) => (
+																<label
+																	key={sys}
+																	className="system-checkbox-label"
+																>
+																	<input
+																		type="checkbox"
+																		checked={selected.includes(sys)}
+																		onChange={() => {
+																			const newSelected = selected.includes(sys)
+																				? selected.filter((s) => s !== sys)
+																				: [...selected, sys];
+																			setEditingCall({
+																				...editingCall,
+																				system: newSelected.join(", "),
+																			});
 																		}}
-																/>
-																<span>{sys}</span>
-															</label>
-														))}
-													</div>
-													{obj && (
-													<button
-														className="system-open-link"
-															type="button"
-															onClick={() => {
-																setIsCallModalOpen(false);
-																const firstSys = available[0];
-																if (firstSys) openSystemDetail(obj, firstSys, "objects", true);
-															}}
-														>
-														→ Открыть системы объекта
-													</button>
-												)}
-												</>
-											);
+																	/>
+																	<span>{sys}</span>
+																</label>
+															))}
+														</div>
+														{obj && (
+															<button
+																className="system-open-link"
+																type="button"
+																onClick={() => {
+																	setIsCallModalOpen(false);
+																	const firstSys = available[0];
+																	if (firstSys)
+																		openSystemDetail(
+																			obj,
+																			firstSys,
+																			"objects",
+																			true,
+																		);
+																}}
+															>
+																→ Открыть системы объекта
+															</button>
+														)}
+													</>
+												);
 											})()}
-											</div>
 										</div>
+									</div>
 								</div>
 							</div>
 							<div className="call-detail-section">

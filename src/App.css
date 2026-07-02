@@ -4435,3 +4435,78 @@ input[type="date"]:focus {
 .system-checkbox-label span {
 	font-weight: 500;
 }
+
+/* Стили для OurToolSelect с инструментами из базы */
+.tool-dropdown-divider {
+	padding: 8px 12px;
+	font-size: 11px;
+	font-weight: 600;
+	color: #6c757d;
+	text-transform: uppercase;
+	letter-spacing: 0.5px;
+	border-top: 1px solid #e5e7eb;
+	margin-top: 4px;
+}
+.tool-busy {
+	opacity: 0.8;
+}
+.tool-busy-badge {
+	font-size: 11px;
+	background: #dc3545;
+	color: white;
+	padding: 2px 6px;
+	border-radius: 10px;
+	margin-left: auto;
+}
+/* Карточка информации об инструменте */
+.tool-info-card {
+	margin-top: 10px;
+	padding: 12px;
+	background: #f8f9fa;
+	border: 1px solid #e9ecef;
+	border-radius: 8px;
+	font-size: 13px;
+}
+.tool-info-header {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	margin-bottom: 8px;
+}
+.tool-info-name {
+	font-weight: 600;
+	color: #212529;
+}
+.tool-info-status {
+	font-size: 12px;
+	padding: 3px 8px;
+	border-radius: 12px;
+}
+.tool-info-status.available {
+	background: #d4edda;
+	color: #155724;
+}
+.tool-info-status.busy {
+	background: #f8d7da;
+	color: #721c24;
+}
+.tool-info-row {
+	display: flex;
+	gap: 6px;
+	margin-bottom: 4px;
+}
+.tool-info-label {
+	color: #6c757d;
+	font-weight: 500;
+}
+.tool-info-value {
+	color: #212529;
+}
+.tool-info-object {
+	margin-top: 8px;
+	padding: 8px;
+	background: #fff3cd;
+	border: 1px solid #ffc107;
+	border-radius: 4px;
+	color: #856404;
+}
