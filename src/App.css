@@ -1231,6 +1231,16 @@
 	color: #059669;
 }
 
+.stat-waiting .stat-icon {
+	background: #fef3c7;
+	color: #d97706;
+}
+
+.badge.stat-waiting {
+	background: #fef3c7;
+	color: #d97706;
+}
+
 .stat-cancelled .stat-icon {
 	background: #fee2e2;
 	color: #dc2626;

@@ -403,9 +403,9 @@ function OurToolSelect({
 		? selectedBase.color
 		: selectedTools.length > 0
 			? selectedTools.every((t) => t.call_status === "available")
-					? "#28a745"
-					: "#dc3545"
-				: "#6c757d";
+				? "#28a745"
+				: "#dc3545"
+			: "#6c757d";
 
 	const displayLabel = isBaseSelected
 		? selectedBase.label
@@ -432,12 +432,21 @@ function OurToolSelect({
 
 			{/* Модальное окно */}
 			{isModalOpen && (
-				<div className="tool-modal-overlay" onClick={() => setIsModalOpen(false)}>
-					<div className="tool-modal-content" onClick={(e) => e.stopPropagation()}>
+				<div
+					className="tool-modal-overlay"
+					onClick={() => setIsModalOpen(false)}
+				>
+					<div
+						className="tool-modal-content"
+						onClick={(e) => e.stopPropagation()}
+					>
 						{/* Заголовок */}
 						<div className="tool-modal-header">
 							<h3>Выбор инструмента</h3>
-							<button className="tool-modal-close" onClick={() => setIsModalOpen(false)}>
+							<button
+								className="tool-modal-close"
+								onClick={() => setIsModalOpen(false)}
+							>
 								<X size={20} />
 							</button>
 						</div>
@@ -445,7 +454,9 @@ function OurToolSelect({
 						{/* Статистика */}
 						<div className="tool-stats">
 							<span className="stat-total">Всего: {stats.total}</span>
-							<span className="stat-available">🟢 Свободен: {stats.available}</span>
+							<span className="stat-available">
+								🟢 Свободен: {stats.available}
+							</span>
 							<span className="stat-busy">🔴 Занят: {stats.busy}</span>
 						</div>
 
@@ -501,73 +512,105 @@ function OurToolSelect({
 						<div className="tool-list">
 							{filteredTools.length === 0 ? (
 								<div className="tool-empty">Инструменты не найдены</div>
-							) : filteredTools.map((t) => {
-										const isSelected = selectedToolIds.map(String).includes(String(t.id));
-										const isBusy = t.call_status !== "available";
-										return (
-											<div
-												key={t.id}
-												className={`tool-item ${isSelected ? "selected" : ""} ${isBusy ? "busy" : ""}`}
-												onClick={() => handleToolToggle(t.id)}
-											>
-												<div className="tool-item-checkbox">
-													<input
-														type="checkbox"
-														checked={isSelected}
-														onChange={() => handleToolToggle(t.id)}
-													/>
-												</div>
-												<div className="tool-item-info">
-													<div className="tool-item-name">{t.tool}</div>
-													<div className="tool-item-details">
-														{t.inventoryNumber && <span className="detail-inv">Инв. {t.inventoryNumber}</span>}
-														{t.short_address && <span className="detail-addr">{t.short_address}</span>}
-													</div>
-												</div>
-												<div className="tool-item-status">
-													<span className={`status-badge ${isBusy ? "busy" : "available"}`}>
-														{isBusy ? "🔴 Занят" : "🟢 Свободен"}
-													</span>
-													{isBusy && t.object_name && <div className="status-object">{t.object_name}</div>}
+							) : (
+								filteredTools.map((t) => {
+									const isSelected = selectedToolIds
+										.map(String)
+										.includes(String(t.id));
+									const isBusy = t.call_status !== "available";
+									return (
+										<div
+											key={t.id}
+											className={`tool-item ${isSelected ? "selected" : ""} ${isBusy ? "busy" : ""}`}
+											onClick={() => handleToolToggle(t.id)}
+										>
+											<div className="tool-item-checkbox">
+												<input
+													type="checkbox"
+													checked={isSelected}
+													onChange={() => handleToolToggle(t.id)}
+												/>
+											</div>
+											<div className="tool-item-info">
+												<div className="tool-item-name">{t.tool}</div>
+												<div className="tool-item-details">
+													{t.inventoryNumber && (
+														<span className="detail-inv">
+															Инв. {t.inventoryNumber}
+														</span>
+													)}
+													{t.short_address && (
+														<span className="detail-addr">
+															{t.short_address}
+														</span>
+													)}
 												</div>
 											</div>
-										);
-									})}
+											<div className="tool-item-status">
+												<span
+													className={`status-badge ${isBusy ? "busy" : "available"}`}
+												>
+													{isBusy ? "🔴 Занят" : "🟢 Свободен"}
+												</span>
+												{isBusy && t.object_name && (
+													<div className="status-object">{t.object_name}</div>
+												)}
+											</div>
+										</div>
+									);
+								})
+							)}
+						</div>
+					</div>
+
+					{/* Выбранные инструменты */}
+					{selectedTools.length > 0 && (
+						<div className="tool-selected-section">
+							<div className="selected-header">
+								<span>Выбрано: {selectedTools.length}</span>
+								<button className="clear-btn" onClick={handleClear}>
+									Очистить
+								</button>
+							</div>
+							<div className="selected-chips">
+								{selectedTools.map((t) => (
+									<span
+										key={t.id}
+										className={`selected-chip ${t.call_status !== "available" ? "chip-busy" : "chip-available"}`}
+									>
+										{t.tool}
+										<span
+											className="chip-remove"
+											onClick={(e) => {
+												e.stopPropagation();
+												handleToolToggle(t.id);
+											}}
+										>
+											×
+										</span>
+									</span>
+								))}
 							</div>
 						</div>
+					)}
 
-						{/* Выбранные инструменты */}
-						{selectedTools.length > 0 && (
-							<div className="tool-selected-section">
-								<div className="selected-header">
-									<span>Выбрано: {selectedTools.length}</span>
-									<button className="clear-btn" onClick={handleClear}>Очистить</button>
-								</div>
-								<div className="selected-chips">
-									{selectedTools.map((t) => (
-										<span
-											key={t.id}
-											className={`selected-chip ${t.call_status !== "available" ? "chip-busy" : "chip-available"}`}
-										>
-											{t.tool}
-											<span className="chip-remove" onClick={(e) => { e.stopPropagation(); handleToolToggle(t.id); }}>×</span>
-										</span>
-									))}
-								</div>
-							</div>
-						)}
-
-						{/* Кнопки действий */}
-						<div className="tool-modal-actions">
-							<button className="btn btn-secondary" onClick={() => setIsModalOpen(false)}>
-								Отмена
-							</button>
-									<button className="btn btn-primary" onClick={() => setIsModalOpen(false)}>
-										Готово {selectedTools.length > 0 && `(${selectedTools.length})`}
-									</button>
-									</div>
-								</div>
-							)}
+					{/* Кнопки действий */}
+					<div className="tool-modal-actions">
+						<button
+							className="btn btn-secondary"
+							onClick={() => setIsModalOpen(false)}
+						>
+							Отмена
+						</button>
+						<button
+							className="btn btn-primary"
+							onClick={() => setIsModalOpen(false)}
+						>
+							Готово {selectedTools.length > 0 && `(${selectedTools.length})`}
+						</button>
+					</div>
+				</div>
+			)}
 
 			{transportStatus && (
 				<div className="transport-status">

@@ -3692,7 +3692,8 @@ function App() {
 			const statusMap = {
 				new: { label: "Новый", class: "stat-new" },
 				in_progress: { label: "В работе", class: "stat-progress" },
-				completed: { label: "Завершён", class: "stat-completed" },
+				waiting: { label: "Ожидает", class: "stat-waiting" },
+				completed: { label: "Выполнен", class: "stat-completed" },
 			};
 			const info = statusMap[status] || { label: status, class: "" };
 			return <span className={`badge ${info.class}`}>{info.label}</span>;
@@ -3727,6 +3728,17 @@ function App() {
 							<span className="stat-label">В работе</span>
 						</div>
 					</div>
+					<div className="stat-card stat-waiting">
+						<div className="stat-icon">
+							<AlertTriangle size={20} />
+						</div>
+						<div className="stat-info">
+							<span className="stat-count">
+								{calls.filter((c) => c.status === "waiting").length}
+							</span>
+							<span className="stat-label">Ожидает</span>
+						</div>
+					</div>
 					<div className="stat-card stat-completed">
 						<div className="stat-icon">
 							<Check size={20} />
@@ -3735,13 +3747,13 @@ function App() {
 							<span className="stat-count">
 								{calls.filter((c) => c.status === "completed").length}
 							</span>
-							<span className="stat-label">Завершено</span>
+							<span className="stat-label">Выполнено</span>
 						</div>
 					</div>
 				</div>
 
 				<div className="filter-tabs">
-					{["all", "new", "in_progress", "completed"].map((f) => (
+					{["all", "new", "in_progress", "waiting", "completed"].map((f) => (
 						<button
 							key={f}
 							className={`filter-tab ${callFilter === f ? "active" : ""}`}
@@ -3749,11 +3761,13 @@ function App() {
 						>
 							{f === "all"
 								? "Все"
-								: f === "new"
-									? "Новые"
-									: f === "in_progress"
-										? "В работе"
-										: "Завершённые"}
+										: f === "new"
+										? "Новые"
+										: f === "in_progress"
+											? "В работе"
+										: f === "waiting"
+											? "Ожидает"
+											: "Выполнено"}
 						</button>
 					))}
 				</div>
