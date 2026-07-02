@@ -4523,6 +4523,20 @@ input[type="date"]:focus {
 	background: #f8d7da;
 	color: #721c24;
 }
+.tool-status-display {
+	padding: 8px 16px;
+	border-radius: 8px;
+	font-size: 14px;
+	font-weight: 600;
+}
+.status-avail-display {
+	background: #d4edda;
+	color: #155724;
+}
+.status-busy-display {
+	background: #f8d7da;
+	color: #721c24;
+}
 /* Карточка информации об инструменте */
 .tool-info-card {
 	margin-top: 10px;

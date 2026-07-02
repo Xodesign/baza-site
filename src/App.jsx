@@ -4283,11 +4283,15 @@ function App() {
 												<span className="text-muted">Не назначен</span>
 											)}
 										</td>
-									<td>
-										<span className={`tool-status-badge ${t.call_status !== "available" ? "status-busy" : "status-available"}`}>
-											{t.call_status !== "available" ? "🔴 Занят" : "🟢 Свободен"}
-										</span>
-									</td>
+										<td>
+											<span
+												className={`tool-status-badge ${t.call_status !== "available" ? "status-busy" : "status-available"}`}
+											>
+												{t.call_status !== "available"
+													? "🔴 Занят"
+													: "🟢 Свободен"}
+											</span>
+										</td>
 										<td onClick={(e) => e.stopPropagation()}>
 											<button
 												className="btn-icon btn-delete"
@@ -4452,18 +4456,24 @@ function App() {
 										}
 									/>
 								</div>
-								<div className="form-group">
-									<label>Марка</label>
-									<input
-										type="text"
-										value={editingTool.brand}
-										onChange={(e) =>
-											setEditingTool({ ...editingTool, brand: e.target.value })
-										}
-									/>
+									<div className="form-group">
+										<label>Марка</label>
+										<input
+											type="text"
+												value={editingTool.brand}
+												onChange={(e) =>
+													setEditingTool({ ...editingTool, brand: e.target.value })
+												}
+											/>
+										</div>
+										<div className="form-group">
+											<label>Статус</label>
+											<div className={`tool-status-display ${editingTool.call_status !== "available" ? "status-busy-display" : "status-avail-display"}`}>
+												{editingTool.call_status === "available" ? "✓ Свободен" : "⚠ Занят (привязан к вызову)"}
+											</div>
+										</div>
+									</div>
 								</div>
-							</div>
-						</div>
 
 						<div className="tool-target-section">
 							<h3>Целевые данные (откуда забираем)</h3>
