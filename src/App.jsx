@@ -1713,6 +1713,9 @@ function App() {
 			// Обновляем статусы выбранных инструментов
 			await updateToolsForCall(callData, newCall.id);
 
+			// Сохраняем вызов в API (включая our_tool)
+			syncCallToServer(callData);
+
 			// Создаём заявку на закупку, если указано что купить
 			if (
 				!skipBuyCreation &&
@@ -1856,8 +1859,37 @@ function App() {
 					return t;
 				}),
 			);
+			} catch (e) {
+				console.log("Failed to update tools status");
+			}
+	};
+
+	// Сохранение вызова в API
+	const syncCallToServer = async (callData) => {
+		try {
+			const objectId = callData.objectId || null;
+			await fetch("http://37.252.17.205:3001/api/calls", {
+				method: "POST",
+				headers: { "Content-Type": "application/json" },
+				body: JSON.stringify({
+					object_name: callData.objectName || null,
+					short_address: callData.shortAddress || null,
+					tenant: callData.tenant || null,
+					system: callData.system || null,
+					engineer: callData.engineer || null,
+					client_name: callData.customerContact || null,
+					phone: null,
+					description: callData.request || null,
+					status: callData.status || "new",
+					priority: "normal",
+					latitude: null,
+					longitude: null,
+					manager_id: objectId,
+					our_tool: callData.ourTool || null,
+				}),
+			});
 		} catch (e) {
-			console.log("Failed to update tools status");
+			console.log("Failed to sync call to server");
 		}
 	};
 
@@ -4456,24 +4488,28 @@ function App() {
 										}
 									/>
 								</div>
-									<div className="form-group">
-										<label>Марка</label>
-										<input
-											type="text"
-												value={editingTool.brand}
-												onChange={(e) =>
-													setEditingTool({ ...editingTool, brand: e.target.value })
-												}
-											/>
-										</div>
-										<div className="form-group">
-											<label>Статус</label>
-											<div className={`tool-status-display ${editingTool.call_status !== "available" ? "status-busy-display" : "status-avail-display"}`}>
-												{editingTool.call_status === "available" ? "✓ Свободен" : "⚠ Занят (привязан к вызову)"}
-											</div>
-										</div>
+								<div className="form-group">
+									<label>Марка</label>
+									<input
+										type="text"
+										value={editingTool.brand}
+										onChange={(e) =>
+											setEditingTool({ ...editingTool, brand: e.target.value })
+										}
+									/>
+								</div>
+								<div className="form-group">
+									<label>Статус</label>
+									<div
+										className={`tool-status-display ${editingTool.call_status !== "available" ? "status-busy-display" : "status-avail-display"}`}
+									>
+										{editingTool.call_status === "available"
+											? "✓ Свободен"
+											: "⚠ Занят (привязан к вызову)"}
 									</div>
 								</div>
+							</div>
+						</div>
 
 						<div className="tool-target-section">
 							<h3>Целевые данные (откуда забираем)</h3>
