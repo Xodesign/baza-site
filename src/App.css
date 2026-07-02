@@ -4494,6 +4494,21 @@ input[type="date"]:focus {
 	flex-wrap: wrap;
 	margin-top: 8px;
 }
+.tool-chip-sm {
+	display: inline-block;
+	padding: 2px 8px;
+	border-radius: 12px;
+	font-size: 12px;
+	margin: 2px 4px 2px 0;
+}
+.chip-avail-sm {
+	background: #d4edda;
+	color: #155724;
+}
+.chip-busy-sm {
+	background: #f8d7da;
+	color: #721c24;
+}
 /* Карточка информации об инструменте */
 .tool-info-card {
 	margin-top: 10px;
