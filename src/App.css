@@ -4298,3 +4298,111 @@ input[type="date"]:focus {
 		transform: translateY(0);
 	}
 }
+
+/* Кликабельная строка вызова */
+.call-row-clickable {
+	cursor: pointer;
+}
+.call-row-clickable:hover {
+	background: #f0f4ff;
+}
+/* Модальное окно детальной информации вызова */
+.call-detail-modal {
+	max-width: 700px;
+	width: 95%;
+	max-height: 90vh;
+	overflow: hidden;
+	display: flex;
+	flex-direction: column;
+}
+.call-detail-header {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	padding: 16px 20px;
+	background: var(--primary, #4f46e5);
+	color: white;
+	border-radius: 12px 12px 0 0;
+}
+.call-detail-title {
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+}
+.call-detail-id {
+	font-size: 20px;
+	font-weight: 700;
+}
+.call-detail-date {
+	font-size: 13px;
+	opacity: 0.9;
+}
+.call-detail-body {
+	padding: 20px;
+	overflow-y: auto;
+	flex: 1;
+}
+.call-detail-section {
+	margin-bottom: 20px;
+}
+.call-detail-section h3 {
+	font-size: 14px;
+	font-weight: 600;
+	color: var(--primary, #4f46e5);
+	margin: 0 0 12px 0;
+	padding-bottom: 8px;
+	border-bottom: 1px solid #e5e7eb;
+}
+.call-detail-grid {
+	display: grid;
+	grid-template-columns: 1fr 1fr;
+	gap: 12px;
+}
+.call-detail-field {
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+}
+.call-detail-field.full-width {
+	grid-column: 1 / -1;
+}
+.call-detail-field label {
+	font-size: 12px;
+	font-weight: 600;
+	color: #6b7280;
+}
+.call-detail-field input,
+.call-detail-field select,
+.call-detail-field textarea {
+	padding: 10px 12px;
+	border: 1px solid #d1d5db;
+	border-radius: 6px;
+	font-size: 14px;
+	font-family: inherit;
+	background: white;
+}
+.call-detail-field input:focus,
+.call-detail-field select:focus,
+.call-detail-field textarea:focus {
+	outline: none;
+	border-color: var(--primary, #4f46e5);
+	box-shadow: 0 0 0 2px rgba(79, 70, 229, 0.1);
+}
+.call-detail-field textarea {
+	resize: vertical;
+	min-height: 80px;
+}
+.call-detail-footer {
+	display: flex;
+	gap: 12px;
+	justify-content: flex-end;
+	padding: 16px 20px;
+	background: #f9fafb;
+	border-top: 1px solid #e5e7eb;
+	border-radius: 0 0 12px 12px;
+}
+.call-detail-footer .btn {
+	padding: 12px 24px;
+	font-size: 14px;
+	font-weight: 600;
+}

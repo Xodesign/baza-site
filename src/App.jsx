@@ -3609,7 +3609,11 @@ function App() {
 								</tr>
 							) : (
 								filteredCalls.map((call) => (
-									<tr key={call.id}>
+									<tr
+										key={call.id}
+										className="call-row-clickable"
+										onClick={() => handleEditCall(call)}
+									>
 										<td>{call.id}</td>
 										<td>{call.createdAt || "-"}</td>
 										<td>{call.deadline || "-"}</td>
@@ -3630,33 +3634,33 @@ function App() {
 										<td>{call.dataOwner || "-"}</td>
 										<td>{call.customerContact || "-"}</td>
 										<td>{call.creator || "-"}</td>
-										<td>
+										<td onClick={(e) => e.stopPropagation()}>
 											{call.status !== "completed" && (
-												<button
-													className="btn btn-success btn-sm"
-													onClick={() =>
-														handleStatusChange(call.id, "completed")
+											<button
+												className="btn btn-success btn-sm"
+												onClick={() =>
+													handleStatusChange(call.id, "completed")
 													}
-													title="Завершить"
-												>
-													<Check size={14} />
-												</button>
-											)}
-											<button
-												className="btn btn-icon btn-edit"
-												onClick={() => handleEditCall(call)}
-												title="Редактировать"
+												title="Завершить"
 											>
-												<Edit2 size={14} />
+												<Check size={14} />
 											</button>
-											<button
-												className="btn btn-icon btn-delete"
-												onClick={() => handleDeleteCall(call.id)}
-												title="Удалить"
-											>
-												<Trash2 size={14} />
-											</button>
-										</td>
+										)}
+										<button
+											className="btn btn-icon btn-edit"
+											onClick={() => handleEditCall(call)}
+											title="Редактировать"
+										>
+											<Edit2 size={14} />
+										</button>
+										<button
+											className="btn btn-icon btn-delete"
+											onClick={() => handleDeleteCall(call.id)}
+											title="Удалить"
+										>
+											<Trash2 size={14} />
+										</button>
+									</td>
 									</tr>
 								))
 							)}
@@ -7679,18 +7683,21 @@ function App() {
 				</div>
 			)}
 
-			{/* МОДАЛЬНОЕ ОКНО РЕДАКТИРОВАНИЯ ВЫЗОВА */}
+			{/* МОДАЛЬНОЕ ОКНО ВЫЗОВА */}
 			{isCallModalOpen && editingCall && (
 				<div
 					className="modal-overlay"
 					onClick={() => setIsCallModalOpen(false)}
 				>
 					<div
-						className="modal modal-call"
+						className="modal modal-call call-detail-modal"
 						onClick={(e) => e.stopPropagation()}
 					>
-						<div className="modal-header">
-							<h2>Редактирование вызова</h2>
+						<div className="call-detail-header">
+							<div className="call-detail-title">
+								<span className="call-detail-id">Вызов #{editingCall.id}</span>
+								<span className="call-detail-date">{editingCall.createdAt}</span>
+							</div>
 							<button
 								className="modal-close"
 								onClick={() => setIsCallModalOpen(false)}
@@ -7698,39 +7705,228 @@ function App() {
 								<X size={24} />
 							</button>
 						</div>
-						<form onSubmit={handleSaveCall} className="modal-body">
-							<div className="form-grid">
-								{Object.keys(editingCall)
-									.filter((k) => k !== "id" && k !== "createdAt")
-									.map((key) => (
-										<div key={key} className="form-group">
-											<label>{key}</label>
-											<input
-												type="text"
-												value={editingCall[key] || ""}
-												onChange={(e) =>
-													setEditingCall({
-														...editingCall,
-														[key]: e.target.value,
-													})
-												}
-											/>
-										</div>
-									))}
+						<div className="call-detail-body">
+							<div className="call-detail-section">
+								<h3>Информация</h3>
+								<div className="call-detail-grid">
+									<div className="call-detail-field">
+										<label>Статус</label>
+										<select
+											value={editingCall.status || "new"}
+											onChange={(e) =>
+												setEditingCall({ ...editingCall, status: e.target.value })
+											}
+										>
+											<option value="new">Новый</option>
+											<option value="in_progress">В работе</option>
+											<option value="completed">Завершён</option>
+										</select>
+									</div>
+									<div className="call-detail-field">
+										<label>Тип</label>
+										<input
+											type="text"
+											value={editingCall.type || ""}
+											onChange={(e) =>
+												setEditingCall({ ...editingCall, type: e.target.value })
+											}
+										/>
+									</div>
+									<div className="call-detail-field">
+										<label>Дедлайн</label>
+										<input
+											type="date"
+											value={editingCall.deadline || ""}
+											onChange={(e) =>
+												setEditingCall({ ...editingCall, deadline: e.target.value })
+											}
+										/>
+									</div>
+									<div className="call-detail-field">
+										<label>Дата выполнения</label>
+										<input
+											type="date"
+											value={editingCall.executionDate || ""}
+											onChange={(e) =>
+												setEditingCall({ ...editingCall, executionDate: e.target.value })
+											}
+										/>
+									</div>
+								</div>
 							</div>
-							<div className="modal-footer">
-								<button
-									type="button"
-									className="btn btn-secondary"
-									onClick={() => setIsCallModalOpen(false)}
-								>
-									Отмена
-								</button>
-								<button type="submit" className="btn btn-primary">
-									Сохранить
-								</button>
+							<div className="call-detail-section">
+								<h3>Объект</h3>
+								<div className="call-detail-grid">
+									<div className="call-detail-field full-width">
+										<label>Объект</label>
+										<input
+											type="text"
+											value={editingCall.objectName || ""}
+											onChange={(e) =>
+												setEditingCall({ ...editingCall, objectName: e.target.value })
+											}
+										/>
+									</div>
+									<div className="call-detail-field">
+										<label>Адрес</label>
+										<input
+											type="text"
+											value={editingCall.shortAddress || ""}
+											onChange={(e) =>
+												setEditingCall({ ...editingCall, shortAddress: e.target.value })
+											}
+										/>
+									</div>
+									<div className="call-detail-field">
+										<label>Арендатор</label>
+										<input
+											type="text"
+											value={editingCall.tenant || ""}
+											onChange={(e) =>
+												setEditingCall({ ...editingCall, tenant: e.target.value })
+											}
+										/>
+									</div>
+									<div className="call-detail-field">
+										<label>Система</label>
+										<input
+											type="text"
+											value={editingCall.system || ""}
+											onChange={(e) =>
+												setEditingCall({ ...editingCall, system: e.target.value })
+											}
+										/>
+									</div>
+								</div>
 							</div>
-						</form>
+							<div className="call-detail-section">
+								<h3>Исполнители</h3>
+								<div className="call-detail-grid">
+									<div className="call-detail-field">
+										<label>Исполнитель</label>
+										<input
+											type="text"
+											value={editingCall.engineer || ""}
+											onChange={(e) =>
+												setEditingCall({ ...editingCall, engineer: e.target.value })
+											}
+										/>
+									</div>
+									<div className="call-detail-field">
+										<label>Помощник</label>
+										<input
+											type="text"
+											value={editingCall.assistant || ""}
+											onChange={(e) =>
+												setEditingCall({ ...editingCall, assistant: e.target.value })
+											}
+										/>
+									</div>
+									<div className="call-detail-field">
+										<label>Создатель</label>
+										<input
+											type="text"
+											value={editingCall.creator || ""}
+											onChange={(e) =>
+												setEditingCall({ ...editingCall, creator: e.target.value })
+											}
+										/>
+									</div>
+									<div className="call-detail-field">
+										<label>Контакт</label>
+										<input
+											type="text"
+											value={editingCall.customerContact || ""}
+											onChange={(e) =>
+												setEditingCall({ ...editingCall, customerContact: e.target.value })
+											}
+										/>
+									</div>
+								</div>
+							</div>
+							<div className="call-detail-section">
+								<h3>Заявка</h3>
+								<div className="call-detail-field full-width">
+									<label>Описание заявки</label>
+									<textarea
+										value={editingCall.request || ""}
+										onChange={(e) =>
+											setEditingCall({ ...editingCall, request: e.target.value })
+											}
+										rows={3}
+									/>
+								</div>
+							</div>
+							<div className="call-detail-section">
+								<h3>Дополнительно</h3>
+								<div className="call-detail-grid">
+									<div className="call-detail-field">
+										<label>Инструмент</label>
+										<input
+											type="text"
+											value={editingCall.ourTool || ""}
+											onChange={(e) =>
+												setEditingCall({ ...editingCall, ourTool: e.target.value })
+											}
+										/>
+									</div>
+									<div className="call-detail-field">
+										<label>Приобрести</label>
+										<input
+											type="text"
+											value={editingCall.toPurchase || ""}
+											onChange={(e) =>
+												setEditingCall({ ...editingCall, toPurchase: e.target.value })
+											}
+										/>
+									</div>
+									<div className="call-detail-field">
+										<label>В ремонт</label>
+										<input
+											type="text"
+											value={editingCall.toRepair || ""}
+											onChange={(e) =>
+												setEditingCall({ ...editingCall, toRepair: e.target.value })
+											}
+										/>
+									</div>
+									<div className="call-detail-field">
+										<label>Актирование</label>
+										<input
+											type="text"
+											value={editingCall.activation || ""}
+											onChange={(e) =>
+												setEditingCall({ ...editingCall, activation: e.target.value })
+											}
+										/>
+									</div>
+									<div className="call-detail-field">
+										<label>Данные у</label>
+										<input
+											type="text"
+											value={editingCall.dataOwner || ""}
+											onChange={(e) =>
+												setEditingCall({ ...editingCall, dataOwner: e.target.value })
+											}
+										/>
+									</div>
+								</div>
+							</div>
+						</div>
+						<div className="call-detail-footer">
+							<button
+								className="btn btn-secondary"
+								onClick={() => setIsCallModalOpen(false)}
+							>
+								Закрыть
+							</button>
+							<button
+								className="btn btn-primary"
+								onClick={handleSaveCall}
+							>
+								💾 Сохранить
+							</button>
+						</div>
 					</div>
 				</div>
 			)}
