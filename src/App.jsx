@@ -3780,24 +3780,29 @@ function App() {
 										<td>{call.tenant || "-"}</td>
 										<td>{call.system || "-"}</td>
 										<td className="cell-notes">{call.request || "-"}</td>
-										<td className="cell-notes">
-											{(() => {
-												const toolIds = (
-													call.ourTool ? String(call.ourTool) : ""
-												)
+									<td className="cell-notes">
+										{(() => {
+											const toolIds = (call.ourTool ? String(call.ourTool) : "")
 													.split(",")
 													.map((v) => v.trim())
 													.filter((v) => v);
 												if (toolIds.length === 0) return "-";
 												return toolIds
 													.map((id) => {
-														const t = tools.find(
-															(tool) => String(tool.id) === String(id),
+														const t = tools.find((tool) => String(tool.id) === String(id));
+														if (!t) return <span key={id} className="text-muted">#{id}</span>;
+														return (
+															<span
+															key={id}
+																className={`tool-chip-sm ${t.call_status !== "available" ? "chip-busy-sm" : "chip-avail-sm"}`}
+																title={`${t.short_address ? t.short_address + " | " : ""}${t.call_status === "available" ? "Свободен" : "Занят"}${t.object_name ? " | " + t.object_name : ""}`}
+															>
+																{t.tool}
+															</span>
 														);
-														return t ? t.tool : `#${id}`;
 													})
-													.join(", ");
-											})()}
+														.join(" ");
+												})()}
 										</td>
 										<td className="cell-notes">{call.toPurchase || "-"}</td>
 										<td className="cell-notes">{call.toRepair || "-"}</td>
@@ -8144,57 +8149,85 @@ function App() {
 									<div className="call-detail-field full-width">
 										<label>Инструмент</label>
 										{(() => {
-											const toolIds = (editingCall.ourTool ? String(editingCall.ourTool) : "")
+											const toolIds = (
+												editingCall.ourTool ? String(editingCall.ourTool) : ""
+											)
 												.split(",")
 												.map((v) => v.trim())
 												.filter((v) => v);
-											if (toolIds.length === 0) return <span className="text-muted">—</span>;
+											if (toolIds.length === 0)
+												return <span className="text-muted">—</span>;
 											return toolIds.map((id) => {
-												const t = tools.find((tool) => String(tool.id) === String(id));
-												if (!t) return <span key={id} className="text-muted">Инструмент #{id}</span>;
-												return (
-													<div key={id} className="tool-info-card" style={{ marginTop: 8 }}>
-													<div className="tool-info-header">
-														<span className="tool-info-name">{t.tool}</span>
-														<span className={`tool-info-status ${t.call_status === "available" ? "available" : "busy"}`}>
-															{t.call_status === "available" ? "✓ Свободен" : "⚠ Занят"}
+												const t = tools.find(
+													(tool) => String(tool.id) === String(id),
+												);
+												if (!t)
+													return (
+														<span key={id} className="text-muted">
+															Инструмент #{id}
 														</span>
+													);
+												return (
+													<div
+														key={id}
+														className="tool-info-card"
+														style={{ marginTop: 8 }}
+													>
+														<div className="tool-info-header">
+															<span className="tool-info-name">{t.tool}</span>
+															<span
+																className={`tool-info-status ${t.call_status === "available" ? "available" : "busy"}`}
+															>
+																{t.call_status === "available"
+																	? "✓ Свободен"
+																	: "⚠ Занят"}
+															</span>
+														</div>
+														{t.inventoryNumber && (
+															<div className="tool-info-row">
+																<span className="tool-info-label">Инв.№:</span>
+																<span className="tool-info-value">
+																	{t.inventoryNumber}
+																</span>
+															</div>
+														)}
+														{t.short_address && (
+															<div className="tool-info-row">
+																<span className="tool-info-label">Место:</span>
+																<span className="tool-info-value">
+																	{t.short_address}
+																</span>
+															</div>
+														)}
+														{t.object_name && (
+															<div className="tool-info-row">
+																<span className="tool-info-label">Объект:</span>
+																<span className="tool-info-value">
+																	{t.object_name}
+																</span>
+															</div>
+														)}
+														{t.note && (
+															<div className="tool-info-row">
+																<span className="tool-info-label">
+																	Примечание:
+																</span>
+																<span className="tool-info-value">
+																	{t.note}
+																</span>
+															</div>
+														)}
+														{t.call_status !== "available" && t.object_name && (
+															<div className="tool-info-object">
+																<span>На объекте: </span>
+																<strong>{t.object_name}</strong>
+															</div>
+														)}
 													</div>
-													{t.inventoryNumber && (
-														<div className="tool-info-row">
-															<span className="tool-info-label">Инв.№:</span>
-															<span className="tool-info-value">{t.inventoryNumber}</span>
-														</div>
-													)}
-													{t.short_address && (
-														<div className="tool-info-row">
-															<span className="tool-info-label">Место:</span>
-															<span className="tool-info-value">{t.short_address}</span>
-														</div>
-													)}
-													{t.object_name && (
-														<div className="tool-info-row">
-															<span className="tool-info-label">Объект:</span>
-															<span className="tool-info-value">{t.object_name}</span>
-														</div>
-													)}
-													{t.note && (
-														<div className="tool-info-row">
-															<span className="tool-info-label">Примечание:</span>
-															<span className="tool-info-value">{t.note}</span>
-														</div>
-													)}
-													{t.call_status !== "available" && t.object_name && (
-														<div className="tool-info-object">
-															<span>На объекте: </span>
-															<strong>{t.object_name}</strong>
-														</div>
-													)}
-												</div>
 												);
 											});
-											})()}
-										</div>
+										})()}
+									</div>
 									<div className="call-detail-field">
 										<label>Приобрести</label>
 										<input
