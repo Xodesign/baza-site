@@ -339,22 +339,30 @@ function OurToolSelect({
 		...baseOptions,
 		...(tools?.length > 0
 			? [
-					{ value: "divider", label: "— Инструменты в наличии —", divider: true },
+					{
+						value: "divider",
+						label: "— Инструменты в наличии —",
+						divider: true,
+					},
 					...tools.map((tool) => ({
 						value: tool.id,
 						label: `${tool.name}${tool.location ? ` (${tool.location})` : ""}`,
 						color: tool.status === "available" ? "#28a745" : "#dc3545",
 						toolData: tool,
 						isBusy: tool.status !== "available" && tool.status !== "available",
-					}))
-			  ]
-			: [])
+					})),
+				]
+			: []),
 	];
 
 	const displayLabel = selectedTool
 		? `${selectedTool.name}${selectedTool.location ? ` (${selectedTool.location})` : ""}`
 		: selectedBase?.label || "Выберите...";
-	const displayColor = selectedTool ? selectedTool.status === "available" ? "#28a745" : "#dc3545" : selectedBase?.color || "#6c757d";
+	const displayColor = selectedTool
+		? selectedTool.status === "available"
+			? "#28a745"
+			: "#dc3545"
+		: selectedBase?.color || "#6c757d";
 
 	return (
 		<div className="tool-select-wrapper">
@@ -366,9 +374,7 @@ function OurToolSelect({
 				}}
 				onClick={() => setIsOpen(!isOpen)}
 			>
-				<span style={{ color: displayColor }}>
-					{displayLabel}
-				</span>
+				<span style={{ color: displayColor }}>{displayLabel}</span>
 				<ChevronDown size={14} />
 			</div>
 			{isOpen && (
@@ -386,11 +392,9 @@ function OurToolSelect({
 								onClick={() => handleSelect(opt)}
 							>
 								<span style={{ color: opt.color }}>{opt.label}</span>
-								{opt.isBusy && (
-									<span className="tool-busy-badge">занят</span>
-								)}
+								{opt.isBusy && <span className="tool-busy-badge">занят</span>}
 							</div>
-						)
+						),
 					)}
 				</div>
 			)}
@@ -405,7 +409,9 @@ function OurToolSelect({
 				<div className="tool-info-card">
 					<div className="tool-info-header">
 						<span className="tool-info-name">{selectedTool.name}</span>
-						<span className={`tool-info-status ${selectedTool.status === "available" ? "available" : "busy"}`}>
+						<span
+							className={`tool-info-status ${selectedTool.status === "available" ? "available" : "busy"}`}
+						>
 							{selectedTool.status === "available" ? "✓ Свободен" : "⚠ Занят"}
 						</span>
 					</div>
@@ -442,6 +448,8 @@ function OurToolSelect({
 // === ПРИОБРЕСТИ ДЛЯ ВЫПОЛНЕНИЯ ===
 function PurchaseSelect({ value, onChange, onCreateBuy, buyStatus }) {
 	const [isOpen, setIsOpen] = useState(false);
+	const [showModal, setShowModal] = useState(false);
+	const [purchaseText, setPurchaseText] = useState("");
 	const options = [
 		{ value: "0", label: "------------", color: "#dc3545" },
 		{ value: "1", label: "не нужно", color: "#28a745" },
@@ -451,18 +459,23 @@ function PurchaseSelect({ value, onChange, onCreateBuy, buyStatus }) {
 
 	const selectedOption = options.find((o) => o.value === value) || options[0];
 
+	// Если выбрано "нужно", показываем текст вместо label
+	const isNeedSelected = value === "3";
+	const displayText = isNeedSelected ? (value.length > 20 ? value.substring(0, 20) + "..." : value) : selectedOption.label;
+
 	return (
+		<>
 		<div className="purchase-select-wrapper">
 			<div
 				className="tool-selected"
 				style={{
-					borderColor: selectedOption.color,
-					backgroundColor: selectedOption.color + "15",
+					borderColor: isNeedSelected ? "#dc3545" : selectedOption.color,
+					backgroundColor: isNeedSelected ? "#f8d7da" : selectedOption.color + "15",
 				}}
 				onClick={() => setIsOpen(!isOpen)}
 			>
-				<span style={{ color: selectedOption.color }}>
-					{selectedOption.label}
+				<span style={{ color: isNeedSelected ? "#dc3545" : selectedOption.color }}>
+					{displayText}
 				</span>
 				<ChevronDown size={14} />
 			</div>
@@ -474,9 +487,15 @@ function PurchaseSelect({ value, onChange, onCreateBuy, buyStatus }) {
 							className="tool-option"
 							style={{ borderLeftColor: opt.color }}
 							onClick={() => {
-								onChange(opt.value);
 								if (opt.value === "2") {
 									onCreateBuy?.();
+									onChange("2");
+								} else if (opt.value === "3") {
+									// Открываем модальное окно для ввода
+									setShowModal(true);
+									setPurchaseText("");
+								} else {
+									onChange(opt.value);
 								}
 								setIsOpen(false);
 							}}
@@ -489,17 +508,56 @@ function PurchaseSelect({ value, onChange, onCreateBuy, buyStatus }) {
 			{buyStatus && (
 				<div className="transport-status">
 					<ShoppingCart size={12} />
-					<a
-						href="#"
-						onClick={(e) => {
-							e.preventDefault(); /* переход в купить */
-						}}
-					>
-						Заявка на закупку
-					</a>
+					Заявка на закупку создана
 				</div>
 			)}
 		</div>
+
+		{/* МОДАЛЬНОЕ ОКНО ДЛЯ ВВОДА СПИСКА ЗАКУПОК */}
+		{showModal && (
+			<div className="modal-overlay" onClick={() => setShowModal(false)}>
+				<div className="modal" onClick={(e) => e.stopPropagation()}>
+					<div className="modal-header">
+						<h3>Заявка на закупку</h3>
+						<button className="modal-close" onClick={() => setShowModal(false)}>
+							<X size={20} />
+						</button>
+					</div>
+					<div className="modal-body">
+						<label>Что необходимо закупить:</label>
+						<textarea
+							autoFocus
+							value={purchaseText}
+							onChange={(e) => setPurchaseText(e.target.value)}
+							placeholder="Введите список необходимых материалов/инструментов..."
+							rows={6}
+						/>
+					</div>
+					<div className="modal-footer">
+						<button
+							className="btn btn-secondary"
+							onClick={() => setShowModal(false)}
+						>
+							Отмена
+						</button>
+						<button
+							className="btn btn-primary"
+							onClick={() => {
+								if (purchaseText.trim()) {
+									onChange(purchaseText.trim());
+								} else {
+									onChange("3");
+								}
+								setShowModal(false);
+							}}
+						>
+							Сохранить
+						</button>
+					</div>
+				</div>
+			</div>
+		)}
+		</>
 	);
 }
 
@@ -507,7 +565,6 @@ function PurchaseSelect({ value, onChange, onCreateBuy, buyStatus }) {
 function StaffSelect({ value, onChange, staff, placeholder }) {
 	const [isOpen, setIsOpen] = useState(false);
 	const [inputValue, setInputValue] = useState(value || "");
-
 
 	return (
 		<div className="staff-select-wrapper">
@@ -755,7 +812,7 @@ export default function CallsForm({
 		return "normal";
 	};
 
-		// Обработка изменения поля
+	// Обработка изменения поля
 	const handleChange = (field, value) => {
 		setFormData({ ...formData, [field]: value });
 		setTouched({ ...touched, [field]: true });
