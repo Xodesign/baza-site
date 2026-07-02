@@ -4406,3 +4406,32 @@ input[type="date"]:focus {
 	font-size: 14px;
 	font-weight: 600;
 }
+
+/* Чекбоксы систем в карточке вызова */
+.call-detail-systems {
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+}
+.system-checkboxes {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 8px;
+}
+.system-checkbox-label {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+	cursor: pointer;
+	font-size: 14px;
+	color: #374151;
+}
+.system-checkbox-label input[type="checkbox"] {
+	width: 16px;
+	height: 16px;
+	cursor: pointer;
+	accent-color: var(--primary, #4f46e5);
+}
+.system-checkbox-label span {
+	font-weight: 500;
+}

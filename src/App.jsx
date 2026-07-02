@@ -883,6 +883,7 @@ function App() {
 	const [systemDetail, setSystemDetail] = useState(null);
 	const [systemSaved, setSystemSaved] = useState(false);
 	const [systemFromTab, setSystemFromTab] = useState("objects");
+	const [systemFromCallDetail, setSystemFromCallDetail] = useState(false);
 	const [systemFormData, setSystemFormData] = useState({
 		sps: { brand: "", type: "", qty: "", link: "", alarm: "" },
 		soue: { brand: "", type: "", qty: "", link: "", alarm: "" },
@@ -892,8 +893,9 @@ function App() {
 	});
 
 	// Открытие страницы системы
-	const openSystemDetail = (obj, systemName, fromTab = "objects") => {
+	const openSystemDetail = (obj, systemName, fromTab = "objects", fromCallDetail = false) => {
 		setSystemFromTab(fromTab);
+		setSystemFromCallDetail(fromCallDetail);
 		setSystemDetail({
 			objectId: obj.id,
 			objectName: obj["Наименование объекта"] || "",
@@ -952,7 +954,12 @@ function App() {
 	// Закрытие страницы системы
 	const closeSystemDetail = () => {
 		setSystemDetail(null);
-		setActiveTab(systemFromTab);
+		if (systemFromCallDetail) {
+			// Вернуться к карточке вызова
+			setIsCallModalOpen(true);
+		} else {
+			setActiveTab(systemFromTab);
+		}
 	};
 
 	// --- СТЕЙТЫ ФИЛЬТРОВ ОБЪЕКТОВ ---
@@ -3636,31 +3643,31 @@ function App() {
 										<td>{call.creator || "-"}</td>
 										<td onClick={(e) => e.stopPropagation()}>
 											{call.status !== "completed" && (
-											<button
-												className="btn btn-success btn-sm"
-												onClick={() =>
-													handleStatusChange(call.id, "completed")
+												<button
+													className="btn btn-success btn-sm"
+													onClick={() =>
+														handleStatusChange(call.id, "completed")
 													}
-												title="Завершить"
+													title="Завершить"
+												>
+													<Check size={14} />
+												</button>
+											)}
+											<button
+												className="btn btn-icon btn-edit"
+												onClick={() => handleEditCall(call)}
+												title="Редактировать"
 											>
-												<Check size={14} />
+												<Edit2 size={14} />
 											</button>
-										)}
-										<button
-											className="btn btn-icon btn-edit"
-											onClick={() => handleEditCall(call)}
-											title="Редактировать"
-										>
-											<Edit2 size={14} />
-										</button>
-										<button
-											className="btn btn-icon btn-delete"
-											onClick={() => handleDeleteCall(call.id)}
-											title="Удалить"
-										>
-											<Trash2 size={14} />
-										</button>
-									</td>
+											<button
+												className="btn btn-icon btn-delete"
+												onClick={() => handleDeleteCall(call.id)}
+												title="Удалить"
+											>
+												<Trash2 size={14} />
+											</button>
+										</td>
 									</tr>
 								))
 							)}
@@ -7696,7 +7703,9 @@ function App() {
 						<div className="call-detail-header">
 							<div className="call-detail-title">
 								<span className="call-detail-id">Вызов #{editingCall.id}</span>
-								<span className="call-detail-date">{editingCall.createdAt}</span>
+								<span className="call-detail-date">
+									{editingCall.createdAt}
+								</span>
 							</div>
 							<button
 								className="modal-close"
@@ -7714,7 +7723,10 @@ function App() {
 										<select
 											value={editingCall.status || "new"}
 											onChange={(e) =>
-												setEditingCall({ ...editingCall, status: e.target.value })
+												setEditingCall({
+													...editingCall,
+													status: e.target.value,
+												})
 											}
 										>
 											<option value="new">Новый</option>
@@ -7738,7 +7750,10 @@ function App() {
 											type="date"
 											value={editingCall.deadline || ""}
 											onChange={(e) =>
-												setEditingCall({ ...editingCall, deadline: e.target.value })
+												setEditingCall({
+													...editingCall,
+													deadline: e.target.value,
+												})
 											}
 										/>
 									</div>
@@ -7748,7 +7763,10 @@ function App() {
 											type="date"
 											value={editingCall.executionDate || ""}
 											onChange={(e) =>
-												setEditingCall({ ...editingCall, executionDate: e.target.value })
+												setEditingCall({
+													...editingCall,
+													executionDate: e.target.value,
+												})
 											}
 										/>
 									</div>
@@ -7763,7 +7781,10 @@ function App() {
 											type="text"
 											value={editingCall.objectName || ""}
 											onChange={(e) =>
-												setEditingCall({ ...editingCall, objectName: e.target.value })
+												setEditingCall({
+													...editingCall,
+													objectName: e.target.value,
+												})
 											}
 										/>
 									</div>
@@ -7773,7 +7794,10 @@ function App() {
 											type="text"
 											value={editingCall.shortAddress || ""}
 											onChange={(e) =>
-												setEditingCall({ ...editingCall, shortAddress: e.target.value })
+												setEditingCall({
+													...editingCall,
+													shortAddress: e.target.value,
+												})
 											}
 										/>
 									</div>
@@ -7783,20 +7807,74 @@ function App() {
 											type="text"
 											value={editingCall.tenant || ""}
 											onChange={(e) =>
-												setEditingCall({ ...editingCall, tenant: e.target.value })
+												setEditingCall({
+													...editingCall,
+													tenant: e.target.value,
+												})
 											}
 										/>
 									</div>
-									<div className="call-detail-field">
-										<label>Система</label>
-										<input
-											type="text"
-											value={editingCall.system || ""}
-											onChange={(e) =>
-												setEditingCall({ ...editingCall, system: e.target.value })
-											}
-										/>
-									</div>
+										<div className="call-detail-field full-width">
+											<label>Система</label>
+											<div className="call-detail-systems">
+												{(() => {
+												const obj = objects.find(
+													(o) =>
+														o["Наименование объекта"] === editingCall.objectName ||
+														o["Адрес сокращенный"] === editingCall.shortAddress
+													);
+													const systemsStr = obj?.["Системы"] || "";
+													const available = systemsStr.split(",").map((s) => s.trim()).filter(Boolean);
+													const selected = (editingCall.system || "").split(",").map((s) => s.trim()).filter(Boolean);
+													if (available.length === 0) {
+													return (
+														<input
+															type="text"
+															value={editingCall.system || ""}
+															onChange={(e) =>
+																setEditingCall({ ...editingCall, system: e.target.value })
+															}
+															placeholder="Введите системы..."
+														/>
+													);
+												}
+												return (
+													<>
+														<div className="system-checkboxes">
+														{available.map((sys) => (
+															<label key={sys} className="system-checkbox-label">
+																<input
+																	type="checkbox"
+																	checked={selected.includes(sys)}
+																	onChange={() => {
+																		const newSelected = selected.includes(sys)
+																			? selected.filter((s) => s !== sys)
+																			: [...selected, sys];
+																	setEditingCall({ ...editingCall, system: newSelected.join(", ") });
+																		}}
+																/>
+																<span>{sys}</span>
+															</label>
+														))}
+													</div>
+													{obj && (
+													<button
+														className="system-open-link"
+															type="button"
+															onClick={() => {
+																setIsCallModalOpen(false);
+																const firstSys = available[0];
+																if (firstSys) openSystemDetail(obj, firstSys, "objects", true);
+															}}
+														>
+														→ Открыть системы объекта
+													</button>
+												)}
+												</>
+											);
+											})()}
+											</div>
+										</div>
 								</div>
 							</div>
 							<div className="call-detail-section">
@@ -7808,7 +7886,10 @@ function App() {
 											type="text"
 											value={editingCall.engineer || ""}
 											onChange={(e) =>
-												setEditingCall({ ...editingCall, engineer: e.target.value })
+												setEditingCall({
+													...editingCall,
+													engineer: e.target.value,
+												})
 											}
 										/>
 									</div>
@@ -7818,7 +7899,10 @@ function App() {
 											type="text"
 											value={editingCall.assistant || ""}
 											onChange={(e) =>
-												setEditingCall({ ...editingCall, assistant: e.target.value })
+												setEditingCall({
+													...editingCall,
+													assistant: e.target.value,
+												})
 											}
 										/>
 									</div>
@@ -7828,7 +7912,10 @@ function App() {
 											type="text"
 											value={editingCall.creator || ""}
 											onChange={(e) =>
-												setEditingCall({ ...editingCall, creator: e.target.value })
+												setEditingCall({
+													...editingCall,
+													creator: e.target.value,
+												})
 											}
 										/>
 									</div>
@@ -7838,7 +7925,10 @@ function App() {
 											type="text"
 											value={editingCall.customerContact || ""}
 											onChange={(e) =>
-												setEditingCall({ ...editingCall, customerContact: e.target.value })
+												setEditingCall({
+													...editingCall,
+													customerContact: e.target.value,
+												})
 											}
 										/>
 									</div>
@@ -7851,8 +7941,11 @@ function App() {
 									<textarea
 										value={editingCall.request || ""}
 										onChange={(e) =>
-											setEditingCall({ ...editingCall, request: e.target.value })
-											}
+											setEditingCall({
+												...editingCall,
+												request: e.target.value,
+											})
+										}
 										rows={3}
 									/>
 								</div>
@@ -7866,7 +7959,10 @@ function App() {
 											type="text"
 											value={editingCall.ourTool || ""}
 											onChange={(e) =>
-												setEditingCall({ ...editingCall, ourTool: e.target.value })
+												setEditingCall({
+													...editingCall,
+													ourTool: e.target.value,
+												})
 											}
 										/>
 									</div>
@@ -7876,7 +7972,10 @@ function App() {
 											type="text"
 											value={editingCall.toPurchase || ""}
 											onChange={(e) =>
-												setEditingCall({ ...editingCall, toPurchase: e.target.value })
+												setEditingCall({
+													...editingCall,
+													toPurchase: e.target.value,
+												})
 											}
 										/>
 									</div>
@@ -7886,7 +7985,10 @@ function App() {
 											type="text"
 											value={editingCall.toRepair || ""}
 											onChange={(e) =>
-												setEditingCall({ ...editingCall, toRepair: e.target.value })
+												setEditingCall({
+													...editingCall,
+													toRepair: e.target.value,
+												})
 											}
 										/>
 									</div>
@@ -7896,7 +7998,10 @@ function App() {
 											type="text"
 											value={editingCall.activation || ""}
 											onChange={(e) =>
-												setEditingCall({ ...editingCall, activation: e.target.value })
+												setEditingCall({
+													...editingCall,
+													activation: e.target.value,
+												})
 											}
 										/>
 									</div>
@@ -7906,7 +8011,10 @@ function App() {
 											type="text"
 											value={editingCall.dataOwner || ""}
 											onChange={(e) =>
-												setEditingCall({ ...editingCall, dataOwner: e.target.value })
+												setEditingCall({
+													...editingCall,
+													dataOwner: e.target.value,
+												})
 											}
 										/>
 									</div>
@@ -7920,10 +8028,7 @@ function App() {
 							>
 								Закрыть
 							</button>
-							<button
-								className="btn btn-primary"
-								onClick={handleSaveCall}
-							>
+							<button className="btn btn-primary" onClick={handleSaveCall}>
 								💾 Сохранить
 							</button>
 						</div>
