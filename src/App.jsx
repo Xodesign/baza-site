@@ -882,6 +882,7 @@ function App() {
 	// --- СТЕЙТЫ СТРАНИЦЫ ДЕТАЛЕЙ СИСТЕМЫ ---
 	const [systemDetail, setSystemDetail] = useState(null);
 	const [systemSaved, setSystemSaved] = useState(false);
+	const [systemFromTab, setSystemFromTab] = useState("objects");
 	const [systemFormData, setSystemFormData] = useState({
 		sps: { brand: "", type: "", qty: "", link: "", alarm: "" },
 		soue: { brand: "", type: "", qty: "", link: "", alarm: "" },
@@ -891,7 +892,8 @@ function App() {
 	});
 
 	// Открытие страницы системы
-	const openSystemDetail = (obj, systemName) => {
+	const openSystemDetail = (obj, systemName, fromTab = "objects") => {
+		setSystemFromTab(fromTab);
 		setSystemDetail({
 			objectId: obj.id,
 			objectName: obj["Наименование объекта"] || "",
@@ -950,6 +952,7 @@ function App() {
 	// Закрытие страницы системы
 	const closeSystemDetail = () => {
 		setSystemDetail(null);
+		setActiveTab(systemFromTab);
 	};
 
 	// --- СТЕЙТЫ ФИЛЬТРОВ ОБЪЕКТОВ ---
@@ -3338,7 +3341,7 @@ function App() {
 														<span
 															key={systemName}
 															className="system-chip"
-															onClick={() => openSystemDetail(obj, systemName)}
+															onClick={() => openSystemDetail(obj, systemName, "objects")}
 															title={`Открыть детали системы ${systemName}`}
 														>
 															{systemName}
@@ -3477,7 +3480,7 @@ function App() {
 		const systemsStr = obj["Системы"] || "";
 		const firstSystem = systemsStr.split(",")[0]?.trim();
 		if (firstSystem) {
-			openSystemDetail(obj, firstSystem);
+			openSystemDetail(obj, firstSystem, "calls");
 		}
 	};
 

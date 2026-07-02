@@ -222,7 +222,14 @@ function AddressSelect({ value, onChange, objects, onSelectObject }) {
 }
 
 // === ВЫБОР СИСТЕМ С ГАЛОЧКАМИ ===
-function SystemMultiSelect({ value, onChange, availableSystems, disabled, objectId, onOpenSystem }) {
+function SystemMultiSelect({
+	value,
+	onChange,
+	availableSystems,
+	disabled,
+	objectId,
+	onOpenSystem,
+}) {
 	const [isOpen, setIsOpen] = useState(false);
 	const selected = value
 		? value
@@ -269,15 +276,15 @@ function SystemMultiSelect({ value, onChange, availableSystems, disabled, object
 						<>
 							{availableSystems.map((system) => (
 								<label key={system} className="system-option">
-								<input
-									type="checkbox"
-									checked={selected.includes(system)}
-									onChange={() => toggleSystem(system)}
-									disabled={disabled}
-								/>
-								<span>{system}</span>
-							</label>
-						))}
+									<input
+										type="checkbox"
+										checked={selected.includes(system)}
+										onChange={() => toggleSystem(system)}
+										disabled={disabled}
+									/>
+									<span>{system}</span>
+								</label>
+							))}
 							<div className="system-dropdown-footer">
 								<button
 									className="system-open-link"
