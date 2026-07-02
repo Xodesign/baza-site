@@ -460,31 +460,19 @@ function PurchaseSelect({ value, onChange, onCreateBuy, buyStatus }) {
 
 	const selectedOption = options.find((o) => o.value === value) || options[0];
 
-	// Если выбрано "нужно", показываем текст вместо label
-	const isNeedSelected = value === "3";
-	const displayText = isNeedSelected
-		? value.length > 20
-			? value.substring(0, 20) + "..."
-			: value
-		: selectedOption.label;
-
 	return (
 		<>
 			<div className="purchase-select-wrapper">
 				<div
 					className="tool-selected"
 					style={{
-						borderColor: isNeedSelected ? "#dc3545" : selectedOption.color,
-						backgroundColor: isNeedSelected
-							? "#f8d7da"
-							: selectedOption.color + "15",
+						borderColor: selectedOption.color,
+						backgroundColor: selectedOption.color + "15",
 					}}
 					onClick={() => setIsOpen(!isOpen)}
 				>
-					<span
-						style={{ color: isNeedSelected ? "#dc3545" : selectedOption.color }}
-					>
-						{displayText}
+					<span style={{ color: selectedOption.color }}>
+						{selectedOption.label}
 					</span>
 					<ChevronDown size={14} />
 				</div>
@@ -497,19 +485,19 @@ function PurchaseSelect({ value, onChange, onCreateBuy, buyStatus }) {
 								style={{ borderLeftColor: opt.color }}
 								onClick={() => {
 									if (opt.value === "2") {
-										onCreateBuy?.();
-										onChange("2");
-									} else if (opt.value === "3") {
-										// Открываем модальное окно для ввода
+										// Открываем модальное окно для ввода списка закупок
 										setShowModal(true);
 										setPurchaseText("");
+										onCreateBuy?.();
+									} else if (opt.value === "3") {
+										onChange("3");
 									} else {
 										onChange(opt.value);
 									}
 									setIsOpen(false);
 								}}
 							>
-								<span style={{ color: opt.color }}>{opt.label}</span>
+							<span style={{ color: opt.color }}>{opt.label}</span>
 							</div>
 						))}
 					</div>
@@ -519,19 +507,6 @@ function PurchaseSelect({ value, onChange, onCreateBuy, buyStatus }) {
 						<ShoppingCart size={12} />
 						Заявка на закупку создана
 					</div>
-				)}
-				{/* Кнопка для ввода списка закупок */}
-				{isNeedSelected && (
-					<button
-						className="btn btn-outline btn-sm"
-						style={{ marginTop: "8px", width: "100%" }}
-						onClick={() => {
-									setShowModal(true);
-									setPurchaseText(typeof value === "string" && value !== "3" ? value : "");
-						}}
-					>
-						📝 Ввести список закупок
-					</button>
 				)}
 			</div>
 
