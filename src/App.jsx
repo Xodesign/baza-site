@@ -880,7 +880,8 @@ function App() {
 	const [selectedSystemsForObject, setSelectedSystemsForObject] = useState([]);
 
 	// --- СТЕЙТЫ СТРАНИЦЫ ДЕТАЛЕЙ СИСТЕМЫ ---
-	const [systemDetail, setSystemDetail] = useState(null); // { objectId, objectName, shortAddress, systemName, brand, type, quantity, link }
+	const [systemDetail, setSystemDetail] = useState(null);
+	const [systemSaved, setSystemSaved] = useState(false);
 	const [systemFormData, setSystemFormData] = useState({
 		sps: { brand: "", type: "", qty: "", link: "", alarm: "" },
 		soue: { brand: "", type: "", qty: "", link: "", alarm: "" },
@@ -930,6 +931,9 @@ function App() {
 					: o,
 			),
 		);
+		// Показываем плашку
+		setSystemSaved(true);
+		setTimeout(() => setSystemSaved(false), 2500);
 	};
 
 	// Сброс формы
@@ -2539,6 +2543,9 @@ function App() {
 							})}
 						</tbody>
 					</table>
+					{systemSaved && (
+						<div className="system-saved-toast">✓ Данные сохранены</div>
+					)}
 					<div className="system-detail-actions">
 						<button className="btn btn-primary" onClick={saveSystemDetail}>
 							Сохранить

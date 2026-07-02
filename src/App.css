@@ -4256,3 +4256,20 @@ input[type="date"]:focus {
 	background: #d9e1f2;
 	font-size: 12px !important;
 }
+
+/* Плашка сохранения системы */
+.system-saved-toast {
+	margin: 12px 0 0 0;
+	padding: 12px 20px;
+	background: #10b981;
+	color: white;
+	border-radius: 8px;
+	font-size: 14px;
+	font-weight: 600;
+	text-align: center;
+	animation: toastIn 0.3s ease;
+}
+@keyframes toastIn {
+	from { opacity: 0; transform: translateY(-10px); }
+	to { opacity: 1; transform: translateY(0); }
+}
