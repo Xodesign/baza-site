@@ -497,7 +497,7 @@ function PurchaseSelect({ value, onChange, onCreateBuy, buyStatus }) {
 									setIsOpen(false);
 								}}
 							>
-							<span style={{ color: opt.color }}>{opt.label}</span>
+								<span style={{ color: opt.color }}>{opt.label}</span>
 							</div>
 						))}
 					</div>

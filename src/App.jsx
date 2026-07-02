@@ -795,11 +795,27 @@ function App() {
 	);
 
 	// --- СТЕЙТЫ КУПИТЬ ---
-	const [buyItems, setBuyItems] = useState(() => {
-		const saved = localStorage.getItem("demo_buy");
-		return saved ? JSON.parse(saved) : INITIAL_BUY;
-	});
+	const [buyItems, setBuyItems] = useState([]);
 	const [newBuyData, setNewBuyData] = useState(getEmptyBuyForm());
+
+	// Загрузка закупок с сервера
+	useEffect(() => {
+		const loadBuyItems = async () => {
+			try {
+				const res = await fetch("http://37.252.17.205:3001/api/requests");
+				if (res.ok) {
+					const data = await res.json();
+					setBuyItems(data);
+				}
+			} catch (e) {
+				console.log("Failed to load buy items from server, using localStorage");
+				const saved = localStorage.getItem("demo_buy");
+				if (saved) setBuyItems(JSON.parse(saved));
+				else setBuyItems(INITIAL_BUY);
+			}
+		};
+		loadBuyItems();
+	}, []);
 
 	// --- СТЕЙТЫ ТРАНСПОРТ ---
 	const [transportItems, setTransportItems] = useState(() => {
@@ -1646,7 +1662,7 @@ function App() {
 	};
 
 	// === ЛОГИКА ВЫЗОВОВ ===
-	const handleAddCall = (formData) => {
+	const handleAddCall = async (formData) => {
 		// formData может быть событием (e) или объектом с данными
 		const callData = formData?.preventDefault ? null : formData;
 
@@ -1658,6 +1674,16 @@ function App() {
 				createdAt: callData.createdAt || new Date().toISOString().split("T")[0],
 			};
 			setCalls([newCall, ...calls]);
+			
+			// Создаём заявку на закупку, если указано что купить
+			if (callData.toPurchase && callData.toPurchase !== "0" && callData.toPurchase !== "1" && callData.toPurchase !== "2" && callData.toPurchase !== "3") {
+				await handleCreateBuyFromCall({
+					objectName: callData.objectName,
+					shortAddress: callData.shortAddress,
+					whatToBuy: callData.toPurchase,
+					creator: callData.creator,
+				}, newCall.id);
+			}
 		} else {
 			// Старая форма через событие
 			if (!newCallData.objectName?.trim()) {
@@ -1707,23 +1733,41 @@ function App() {
 	};
 
 	// Создание заявки на закупку из раздела Вызовы
-	const handleCreateBuyFromCall = (data) => {
+	const handleCreateBuyFromCall = async (data, callId = null) => {
 		const obj = objects.find(
 			(o) => o["Наименование объекта"] === data.objectName,
 		);
-		const newBuy = {
-			id: Date.now(),
-			requestDate: new Date().toISOString().split("T")[0],
-			deadline: "",
-			status: "new",
-			contractNumber: obj?.["№ контр/дог"] || "",
-			objectName: data.objectName || "",
-			shortAddress: data.shortAddress || "",
-			payer: obj?.["Кто оплачивает ремонт"] || "",
-			whatToBuy: data.whatToBuy || "",
-			creator: data.creator || "",
-		};
-		setBuyItems([newBuy, ...buyItems]);
+		// Сохраняем на сервер
+		try {
+			const res = await fetch("http://37.252.17.205:3001/api/requests", {
+				method: "POST",
+				headers: { "Content-Type": "application/json" },
+				body: JSON.stringify({
+					request_type: "purchase",
+					title: data.objectName || "Заявка на закупку",
+					description: data.whatToBuy || "",
+					priority: "normal",
+					status: "pending",
+					call_id: callId,
+					object_name: data.objectName || "",
+					short_address: data.shortAddress || "",
+				}),n			});
+			if (res.ok) {
+				const saved = await res.json();
+				setBuyItems([saved, ...buyItems]);
+			}
+		} catch (e) {
+			console.log("Failed to save to server, saving locally");
+			const newBuy = {
+				id: Date.now(),
+				requestDate: new Date().toISOString().split("T")[0],
+				status: "new",
+				objectName: data.objectName || "",
+				shortAddress: data.shortAddress || "",
+				whatToBuy: data.whatToBuy || "",
+			};
+			setBuyItems([newBuy, ...buyItems]);
+		}
 		alert("Заявка на закупку создана!");
 	};
 
@@ -1998,9 +2042,16 @@ function App() {
 		setNewBuyData(getEmptyBuyForm());
 	};
 
-	const handleDeleteBuy = (id) => {
-		if (confirm("Удалить заявку?"))
-			setBuyItems(buyItems.filter((b) => b.id !== id));
+	const handleDeleteBuy = async (id) => {
+		if (!confirm("Удалить заявку?")) return;
+		try {
+			await fetch(`http://37.252.17.205:3001/api/requests/${id}`, {
+				method: "DELETE",
+			});
+		} catch (e) {
+			console.log("Failed to delete from server");
+		}
+		setBuyItems(buyItems.filter((b) => b.id !== id));
 	};
 
 	// === ЛОГИКА ТРАНСПОРТ ===
@@ -4463,10 +4514,19 @@ function App() {
 		};
 
 		// Обработчик изменения статуса
-		const handleStatusChange = (id, newStatus) => {
+		const handleStatusChange = async (id, newStatus) => {
 			setBuyItems(
 				buyItems.map((b) => (b.id === id ? { ...b, status: newStatus } : b)),
 			);
+			try {
+				await fetch(`http://37.252.17.205:3001/api/requests/${id}`, {
+					method: "PUT",
+					headers: { "Content-Type": "application/json" },
+					body: JSON.stringify({ status: newStatus }),
+				});
+			} catch (e) {
+				console.log("Failed to update status on server");
+			}
 		};
 
 		// Статус заявки на покупку
@@ -4524,62 +4584,54 @@ function App() {
 								</tr>
 							) : (
 								buyItems.map((b) => (
-									<tr key={b.id}>
-										<td className="cell-id">{b.id}</td>
-										<td>{b.requestDate}</td>
-										<td>
-											{b.deadline || <span className="text-muted">—</span>}
-										</td>
-										<td>
-											<select
-												value={b.status}
-												onChange={(e) =>
-													handleStatusChange(b.id, e.target.value)
-												}
-												style={{
-													padding: "4px 8px",
-													borderRadius: "6px",
-													border: "1px solid var(--border)",
-												}}
-											>
-												<option value={BUY_STATUS.ORDERED}>Заказан счёт</option>
-												<option value={BUY_STATUS.WAITING_CONFIRM}>
-													Счёт ждёт подтверждения
-												</option>
-												<option value={BUY_STATUS.CAN_PAY}>
-													Счёт можно оплачивать
-												</option>
-												<option value={BUY_STATUS.PAID}>Счёт оплачен</option>
-												<option value={BUY_STATUS.WAREHOUSE}>
-													Заказ на складе
-												</option>
-												<option value={BUY_STATUS.OFFICE}>Заказ в офисе</option>
-											</select>
-										</td>
-										<td>{b.objectName}</td>
-										<td>
-											{b.contractNumber || (
-												<span className="text-muted">—</span>
-											)}
-										</td>
-										<td>
-											{b.shortAddress || <span className="text-muted">—</span>}
-										</td>
-										<td>{b.whatToBuy}</td>
-										<td>{b.payer || <span className="text-muted">—</span>}</td>
-										<td>
-											{b.creator || <span className="text-muted">—</span>}
-										</td>
-										<td>
-											<button
-												className="btn-icon btn-delete"
-												onClick={() => handleDeleteBuy(b.id)}
-											>
-												<Trash2 size={16} />
-											</button>
-										</td>
-									</tr>
-								))
+								<tr key={b.id}>
+									<td className="cell-id">{b.id}</td>
+									<td>{b.created_at ? b.created_at.split("T")[0] : "—"}</td>
+									<td>
+										{b.deadline || <span className="text-muted">—</span>}
+									</td>
+									<td>
+										<select
+										value={b.status || "pending"}
+										onChange={(e) =>
+											handleStatusChange(b.id, e.target.value)
+										}
+										style={{
+											padding: "4px 8px",
+											borderRadius: "6px",
+											border: "1px solid var(--border)",
+										}}
+									>
+											<option value="pending">Ожидает</option>
+											<option value="ordered">Заказан</option>
+											<option value="received">Получен</option>
+											<option value="cancelled">Отменён</option>
+										</select>
+									</td>
+									<td>{b.object_name || b.title || "—"}</td>
+									<td>
+										<span className="text-muted">—</span>
+									</td>
+									<td>
+										{b.short_address || <span className="text-muted">—</span>}
+									</td>
+									<td>{b.description || "—"}</td>
+									<td>
+										<span className="text-muted">—</span>
+									</td>
+									<td>
+										<span className="text-muted">—</span>
+									</td>
+									<td>
+										<button
+										className="btn-icon btn-delete"
+										onClick={() => handleDeleteBuy(b.id)}
+									>
+										<Trash2 size={16} />
+									</button>
+									</td>
+								</tr>
+							))
 							)}
 						</tbody>
 					</table>
