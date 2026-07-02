@@ -39,6 +39,8 @@ import {
 	Upload,
 	Trash,
 	ArrowLeft,
+	FileDown,
+	FileUp,
 } from "lucide-react";
 import { authApi, hasAccess } from "./api/auth";
 import UsersPanel from "./components/UsersPanel";
@@ -1924,6 +1926,60 @@ function App() {
 		handleStatusChange(call.id, nextStatus[call.status] || "new");
 	};
 
+	// Экспорт звонков в Excel
+	const handleExportCalls = async () => {
+		try {
+			const response = await fetch(`${API_URL}/calls/export/excel`);
+			if (!response.ok) throw new Error("Export failed");
+			const blob = await response.blob();
+			const url = window.URL.createObjectURL(blob);
+			const a = document.createElement("a");
+			a.href = url;
+			a.download = `calls_${new Date().toISOString().split("T")[0]}.xlsx`;
+			document.body.appendChild(a);
+			a.click();
+			document.body.removeChild(a);
+			window.URL.revokeObjectURL(url);
+		} catch (err) {
+			console.error("Export error:", err);
+			alert("Ошибка экспорта: " + err.message);
+		}
+	};
+
+	// Импорт звонков из Excel
+	const handleImportCalls = async (e) => {
+		const file = e.target.files?.[0];
+		if (!file) return;
+
+		const reader = new FileReader();
+		reader.onload = async (event) => {
+			try {
+				const base64 = event.target.result.split(",")[1];
+				const response = await fetch(`${API_URL}/calls/import/excel`, {
+					method: "POST",
+					headers: { "Content-Type": "application/json" },
+					body: JSON.stringify({ file: base64 }),
+				});
+				const result = await response.json();
+				if (response.ok) {
+					alert(`Импорт завершён!\nОбновлено: ${result.updated}\nСоздано: ${result.created}\nОшибок: ${result.errors?.length || 0}`);
+					if (result.errors?.length > 0) {
+						console.log("Import errors:", result.errors);
+					}
+					// Refresh calls
+					fetchCalls();
+				} else {
+					alert("Ошибка импорта: " + result.error);
+				}
+			} catch (err) {
+				console.error("Import error:", err);
+				alert("Ошибка импорта: " + err.message);
+			}
+		};
+		reader.readAsDataURL(file);
+		e.target.value = "";
+	};
+
 	const filteredCalls = calls.filter((c) => {
 		if (callFilter === "all") return true;
 		return c.status === callFilter;
@@ -3712,9 +3768,30 @@ function App() {
 
 		return (
 			<>
-				<div className="content-header">
-					<h2>Вызовы (заявки)</h2>
+		<div className="content-header">
+				<h2>Вызовы (заявки)</h2>
+				<div className="header-actions">
+					<button
+						className="btn btn-secondary"
+						onClick={handleExportCalls}
+						title="Экспорт в Excel"
+					>
+						<FileDown size={16} /> Экспорт
+					</button>
+					<label className="btn btn-secondary import-btn">
+						<FileUp size={16} /> Импорт
+						<input
+							type="file"
+							accept=".xlsx,.xls"
+							style={{ display: "none" }}
+							onChange={handleImportCalls}
+						/>
+					</label>
+					<button className="btn btn-primary" onClick={() => setIsCallModalOpen(true)}>
+						<Plus size={16} /> Новый вызов
+					</button>
 				</div>
+			</div>
 
 				<div className="calls-stats">
 					<div className="stat-card stat-new">
@@ -3827,18 +3904,18 @@ function App() {
 										<td>{call.id}</td>
 										<td>{call.createdAt || "-"}</td>
 										<td>{call.deadline || "-"}</td>
-			<td>{call.executionDate || "-"}</td>
-						<td>{call.engineer || "-"}</td>
-						<td>{call.assistant || "-"}</td>
-						<td
-							className="status-cell"
-							onClick={(e) => {
-								e.stopPropagation();
-								handleStatusClick(call);
-							}}
-						>
-							{getStatusBadge(call.status)}
-						</td>
+										<td>{call.executionDate || "-"}</td>
+										<td>{call.engineer || "-"}</td>
+										<td>{call.assistant || "-"}</td>
+										<td
+											className="status-cell"
+											onClick={(e) => {
+												e.stopPropagation();
+												handleStatusClick(call);
+											}}
+										>
+											{getStatusBadge(call.status)}
+										</td>
 										<td>{call.type || "-"}</td>
 										<td>{call.objectName || "-"}</td>
 										<td>{call.shortAddress || "-"}</td>
