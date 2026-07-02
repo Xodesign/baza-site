@@ -1021,6 +1021,22 @@ function App() {
 		fetchCount();
 	}, []);
 
+	// Обновляем счётчик папок РД при переходе в раздел
+	useEffect(() => {
+		if (activeTab === "rd") {
+			const fetchCount = async () => {
+				try {
+					const res = await fetch("http://37.252.17.205:3001/api/rd/folders");
+					if (res.ok) {
+						const data = await res.json();
+						setRDFolderCount(Array.isArray(data) ? data.length : 0);
+					}
+				} catch {}
+			};
+			fetchCount();
+		}
+	}, [activeTab]);
+
 	useEffect(() => {
 		localStorage.setItem("demo_calls", JSON.stringify(calls));
 	}, [calls]);
@@ -3341,7 +3357,9 @@ function App() {
 														<span
 															key={systemName}
 															className="system-chip"
-															onClick={() => openSystemDetail(obj, systemName, "objects")}
+															onClick={() =>
+																openSystemDetail(obj, systemName, "objects")
+															}
 															title={`Открыть детали системы ${systemName}`}
 														>
 															{systemName}
