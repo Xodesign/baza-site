@@ -5,6 +5,7 @@ import {
 	ChevronDown,
 	Truck,
 	ShoppingCart,
+	X,
 } from "lucide-react";
 
 // === ЦВЕТА ИНСТРУМЕНТА (для справки) ===
@@ -461,102 +462,126 @@ function PurchaseSelect({ value, onChange, onCreateBuy, buyStatus }) {
 
 	// Если выбрано "нужно", показываем текст вместо label
 	const isNeedSelected = value === "3";
-	const displayText = isNeedSelected ? (value.length > 20 ? value.substring(0, 20) + "..." : value) : selectedOption.label;
+	const displayText = isNeedSelected
+		? value.length > 20
+			? value.substring(0, 20) + "..."
+			: value
+		: selectedOption.label;
 
 	return (
 		<>
-		<div className="purchase-select-wrapper">
-			<div
-				className="tool-selected"
-				style={{
-					borderColor: isNeedSelected ? "#dc3545" : selectedOption.color,
-					backgroundColor: isNeedSelected ? "#f8d7da" : selectedOption.color + "15",
-				}}
-				onClick={() => setIsOpen(!isOpen)}
-			>
-				<span style={{ color: isNeedSelected ? "#dc3545" : selectedOption.color }}>
-					{displayText}
-				</span>
-				<ChevronDown size={14} />
-			</div>
-			{isOpen && (
-				<div className="tool-dropdown">
-					{options.map((opt) => (
-						<div
-							key={opt.value}
-							className="tool-option"
-							style={{ borderLeftColor: opt.color }}
-							onClick={() => {
-								if (opt.value === "2") {
-									onCreateBuy?.();
-									onChange("2");
-								} else if (opt.value === "3") {
-									// Открываем модальное окно для ввода
+			<div className="purchase-select-wrapper">
+				<div
+					className="tool-selected"
+					style={{
+						borderColor: isNeedSelected ? "#dc3545" : selectedOption.color,
+						backgroundColor: isNeedSelected
+							? "#f8d7da"
+							: selectedOption.color + "15",
+					}}
+					onClick={() => setIsOpen(!isOpen)}
+				>
+					<span
+						style={{ color: isNeedSelected ? "#dc3545" : selectedOption.color }}
+					>
+						{displayText}
+					</span>
+					<ChevronDown size={14} />
+				</div>
+				{isOpen && (
+					<div className="tool-dropdown">
+						{options.map((opt) => (
+							<div
+								key={opt.value}
+								className="tool-option"
+								style={{ borderLeftColor: opt.color }}
+								onClick={() => {
+									if (opt.value === "2") {
+										onCreateBuy?.();
+										onChange("2");
+									} else if (opt.value === "3") {
+										// Открываем модальное окно для ввода
+										setShowModal(true);
+										setPurchaseText("");
+									} else {
+										onChange(opt.value);
+									}
+									setIsOpen(false);
+								}}
+							>
+								<span style={{ color: opt.color }}>{opt.label}</span>
+							</div>
+						))}
+					</div>
+				)}
+				{buyStatus && (
+					<div className="transport-status">
+						<ShoppingCart size={12} />
+						Заявка на закупку создана
+					</div>
+				)}
+				{/* Кнопка для ввода списка закупок */}
+				{isNeedSelected && (
+					<button
+						className="btn btn-outline btn-sm"
+						style={{ marginTop: "8px", width: "100%" }}
+						onClick={() => {
 									setShowModal(true);
-									setPurchaseText("");
-								} else {
-									onChange(opt.value);
-								}
-								setIsOpen(false);
-							}}
-						>
-							<span style={{ color: opt.color }}>{opt.label}</span>
-						</div>
-					))}
-				</div>
-			)}
-			{buyStatus && (
-				<div className="transport-status">
-					<ShoppingCart size={12} />
-					Заявка на закупку создана
-				</div>
-			)}
-		</div>
-
-		{/* МОДАЛЬНОЕ ОКНО ДЛЯ ВВОДА СПИСКА ЗАКУПОК */}
-		{showModal && (
-			<div className="modal-overlay" onClick={() => setShowModal(false)}>
-				<div className="modal" onClick={(e) => e.stopPropagation()}>
-					<div className="modal-header">
-						<h3>Заявка на закупку</h3>
-						<button className="modal-close" onClick={() => setShowModal(false)}>
-							<X size={20} />
-						</button>
-					</div>
-					<div className="modal-body">
-						<label>Что необходимо закупить:</label>
-						<textarea
-							autoFocus
-							value={purchaseText}
-							onChange={(e) => setPurchaseText(e.target.value)}
-							placeholder="Введите список необходимых материалов/инструментов..."
-							rows={6}
-						/>
-					</div>
-					<div className="modal-footer">
-						<button
-							className="btn btn-secondary"
-							onClick={() => setShowModal(false)}
-						>
-							Отмена
-						</button>
-						<button
-							className="btn btn-primary"
-							onClick={() => {
-								if (purchaseText.trim()) {
-									onChange(purchaseText.trim());
-								} else {
-									onChange("3");
-								}
-								setShowModal(false);
-							}}
-						>
-							Сохранить
-						</button>
-					</div>
-				</div>
+									setPurchaseText(typeof value === "string" && value !== "3" ? value : "");
+						}}
+					>
+						📝 Ввести список закупок
+					</button>
+				)}
 			</div>
-		)}
+
+			{/* МОДАЛЬНОЕ ОКНО ДЛЯ ВВОДА СПИСКА ЗАКУПОК */}
+			{showModal && (
+				<div className="modal-overlay" onClick={() => setShowModal(false)}>
+					<div className="modal" onClick={(e) => e.stopPropagation()}>
+						<div className="modal-header">
+							<h3>Заявка на закупку</h3>
+							<button
+								className="modal-close"
+								onClick={() => setShowModal(false)}
+							>
+								<X size={20} />
+							</button>
+						</div>
+						<div className="modal-body">
+							<label>Что необходимо закупить:</label>
+							<textarea
+								autoFocus
+								value={purchaseText}
+								onChange={(e) => setPurchaseText(e.target.value)}
+								placeholder="Введите список необходимых материалов/инструментов..."
+								rows={6}
+							/>
+						</div>
+						<div className="modal-footer">
+							<button
+								className="btn btn-secondary"
+								onClick={() => setShowModal(false)}
+							>
+								Отмена
+							</button>
+							<button
+								className="btn btn-primary"
+								onClick={() => {
+									if (purchaseText.trim()) {
+										onChange(purchaseText.trim());
+									} else {
+										onChange("3");
+									}
+									setShowModal(false);
+								}}
+							>
+								Сохранить
+							</button>
+						</div>
+					</div>
+				</div>
+			)}
 		</>
 	);
 }
