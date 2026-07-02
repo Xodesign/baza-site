@@ -1824,7 +1824,7 @@ function App() {
 	// Обновление статуса инструментов при создании вызова
 	const updateToolsForCall = async (callData, callId) => {
 		if (!callData.ourTool) return;
-		const toolIds = callData.ourTool
+		const toolIds = String(callData.ourTool)
 			.split(",")
 			.map((v) => v.trim())
 			.filter((v) => v);
@@ -3780,21 +3780,23 @@ function App() {
 										<td>{call.tenant || "-"}</td>
 										<td>{call.system || "-"}</td>
 										<td className="cell-notes">{call.request || "-"}</td>
-									<td className="cell-notes">
-										{(() => {
-											const toolIds = (call.ourTool || "")
-												.split(",")
-												.map((v) => v.trim())
-												.filter((v) => v);
-											if (toolIds.length === 0) return "-";
-											return toolIds
-												.map((id) => {
-												const t = tools.find((tool) => String(tool.id) === String(id));
-												return t ? t.tool : `#${id}`;
-											})
-												.join(", ");
-										})()}
-									</td>
+										<td className="cell-notes">
+											{(() => {
+												const toolIds = (call.ourTool ? String(call.ourTool) : "")
+													.split(",")
+													.map((v) => v.trim())
+													.filter((v) => v);
+												if (toolIds.length === 0) return "-";
+												return toolIds
+													.map((id) => {
+														const t = tools.find(
+															(tool) => String(tool.id) === String(id),
+														);
+														return t ? t.tool : `#${id}`;
+													})
+													.join(", ");
+											})()}
+										</td>
 										<td className="cell-notes">{call.toPurchase || "-"}</td>
 										<td className="cell-notes">{call.toRepair || "-"}</td>
 										<td>{call.activation || "-"}</td>
@@ -8140,26 +8142,31 @@ function App() {
 									<div className="call-detail-field">
 										<label>Инструмент</label>
 										{(() => {
-											const toolIds = (editingCall.ourTool || "")
+											const toolIds = (editingCall.ourTool ? String(editingCall.ourTool) : "")
 												.split(",")
 												.map((v) => v.trim())
 												.filter((v) => v);
-											if (toolIds.length === 0) return <span className="text-muted">—</span>;
+											if (toolIds.length === 0)
+												return <span className="text-muted">—</span>;
 											return toolIds.map((id) => {
-												const t = tools.find((tool) => String(tool.id) === String(id));
+												const t = tools.find(
+													(tool) => String(tool.id) === String(id),
+												);
 												return t ? (
 													<span
-													key={id}
-													className={`tool-chip-sm ${t.call_status !== "available" ? "chip-busy-sm" : "chip-avail-sm"}`}
-												>
-													{t.tool}
-												</span>
-											) : (
-												<span key={id} className="text-muted">#{id}</span>
-											);
+														key={id}
+														className={`tool-chip-sm ${t.call_status !== "available" ? "chip-busy-sm" : "chip-avail-sm"}`}
+													>
+														{t.tool}
+													</span>
+												) : (
+													<span key={id} className="text-muted">
+														#{id}
+													</span>
+												);
 											});
 										})()}
-										</div>
+									</div>
 									<div className="call-detail-field">
 										<label>Приобрести</label>
 										<input
