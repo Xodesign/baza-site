@@ -3780,20 +3780,29 @@ function App() {
 										<td>{call.tenant || "-"}</td>
 										<td>{call.system || "-"}</td>
 										<td className="cell-notes">{call.request || "-"}</td>
-									<td className="cell-notes">
-										{(() => {
-											const toolIds = (call.ourTool ? String(call.ourTool) : "")
+										<td className="cell-notes">
+											{(() => {
+												const toolIds = (
+													call.ourTool ? String(call.ourTool) : ""
+												)
 													.split(",")
 													.map((v) => v.trim())
 													.filter((v) => v);
 												if (toolIds.length === 0) return "-";
 												return toolIds
 													.map((id) => {
-														const t = tools.find((tool) => String(tool.id) === String(id));
-														if (!t) return <span key={id} className="text-muted">#{id}</span>;
+														const t = tools.find(
+															(tool) => String(tool.id) === String(id),
+														);
+														if (!t)
+															return (
+																<span key={id} className="text-muted">
+																	#{id}
+																</span>
+															);
 														return (
 															<span
-															key={id}
+																key={id}
 																className={`tool-chip-sm ${t.call_status !== "available" ? "chip-busy-sm" : "chip-avail-sm"}`}
 																title={`${t.short_address ? t.short_address + " | " : ""}${t.call_status === "available" ? "Свободен" : "Занят"}${t.object_name ? " | " + t.object_name : ""}`}
 															>
@@ -3801,8 +3810,8 @@ function App() {
 															</span>
 														);
 													})
-														.join(" ");
-												})()}
+													.join(" ");
+											})()}
 										</td>
 										<td className="cell-notes">{call.toPurchase || "-"}</td>
 										<td className="cell-notes">{call.toRepair || "-"}</td>
@@ -4274,13 +4283,11 @@ function App() {
 												<span className="text-muted">Не назначен</span>
 											)}
 										</td>
-										<td>
-											{t.transportRequestId
-												? transportItems.find(
-														(tr) => tr.id === t.transportRequestId,
-													)?.callStatus || "-"
-												: "-"}
-										</td>
+									<td>
+										<span className={`tool-status-badge ${t.call_status !== "available" ? "status-busy" : "status-available"}`}>
+											{t.call_status !== "available" ? "🔴 Занят" : "🟢 Свободен"}
+										</span>
+									</td>
 										<td onClick={(e) => e.stopPropagation()}>
 											<button
 												className="btn-icon btn-delete"
