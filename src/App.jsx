@@ -3467,6 +3467,20 @@ function App() {
 		);
 	}
 
+	// Переход к объекту и открытие системы из формы вызова
+	const handleOpenSystemFromCall = (objectId) => {
+		if (!objectId) return;
+		const obj = objects.find((o) => o.id === objectId);
+		if (!obj) return;
+		setActiveTab("objects");
+		// Открываем страницу первой системы объекта
+		const systemsStr = obj["Системы"] || "";
+		const firstSystem = systemsStr.split(",")[0]?.trim();
+		if (firstSystem) {
+			openSystemDetail(obj, firstSystem);
+		}
+	};
+
 	function renderCallsSection() {
 		const getStatusBadge = (status) => {
 			const statusMap = {
@@ -3637,6 +3651,7 @@ function App() {
 					onAddCall={handleAddCall}
 					onCreateTransport={handleCreateTransportFromCall}
 					onCreateBuy={handleCreateBuyFromCall}
+					onOpenSystemDetail={handleOpenSystemFromCall}
 				/>
 			</>
 		);

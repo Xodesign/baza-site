@@ -222,7 +222,7 @@ function AddressSelect({ value, onChange, objects, onSelectObject }) {
 }
 
 // === ВЫБОР СИСТЕМ С ГАЛОЧКАМИ ===
-function SystemMultiSelect({ value, onChange, availableSystems, disabled }) {
+function SystemMultiSelect({ value, onChange, availableSystems, disabled, objectId, onOpenSystem }) {
 	const [isOpen, setIsOpen] = useState(false);
 	const selected = value
 		? value
@@ -266,8 +266,9 @@ function SystemMultiSelect({ value, onChange, availableSystems, disabled }) {
 					{availableSystems.length === 0 ? (
 						<div className="system-empty">Нет доступных систем</div>
 					) : (
-						availableSystems.map((system) => (
-							<label key={system} className="system-option">
+						<>
+							{availableSystems.map((system) => (
+								<label key={system} className="system-option">
 								<input
 									type="checkbox"
 									checked={selected.includes(system)}
@@ -276,7 +277,17 @@ function SystemMultiSelect({ value, onChange, availableSystems, disabled }) {
 								/>
 								<span>{system}</span>
 							</label>
-						))
+						))}
+							<div className="system-dropdown-footer">
+								<button
+									className="system-open-link"
+									onClick={() => onOpenSystem?.(objectId)}
+									type="button"
+								>
+									→ Открыть системы объекта в разделе «Объекты»
+								</button>
+							</div>
+						</>
 					)}
 				</div>
 			)}
@@ -586,6 +597,7 @@ export default function CallsForm({
 	onAddCall,
 	onCreateTransport,
 	onCreateBuy,
+	onOpenSystemDetail,
 }) {
 	const [formData, setFormData] = useState({
 		createdAt: new Date().toISOString().split("T")[0],
@@ -614,6 +626,16 @@ export default function CallsForm({
 
 	// Проверяем заполнен ли объект
 	const isObjectSelected = formData.objectName?.trim()?.length > 0;
+
+	// Получаем выбранный объект и его id
+	const selectedObjId = useMemo(() => {
+		const obj = objects.find(
+			(o) =>
+				o["Наименование объекта"] === formData.objectName ||
+				o["Адрес сокращенный"] === formData.objectName,
+		);
+		return obj?.id || null;
+	}, [formData.objectName, objects]);
 
 	// Получаем системы для выбранного объекта
 	const objectSystems = useMemo(() => {
@@ -998,6 +1020,8 @@ export default function CallsForm({
 									: ["АПС", "СОУЭ", "ВПВ", "ОПС", "ВИДЕОНАБЛЮДЕНИЕ", "СКУД"]
 							}
 							disabled={!isObjectSelected}
+							objectId={selectedObjId}
+							onOpenSystem={() => onOpenSystemDetail?.(selectedObjId)}
 						/>
 						{!isObjectSelected && (
 							<span className="field-hint">Сначала выберите объект</span>

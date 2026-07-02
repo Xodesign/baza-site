@@ -3174,6 +3174,25 @@ input[type="date"]:focus {
 	text-align: center;
 	color: var(--gray-400);
 }
+.system-dropdown-footer {
+	border-top: 1px solid #e5e7eb;
+	padding: 8px 12px;
+	margin-top: 4px;
+}
+.system-open-link {
+	background: none;
+	border: none;
+	color: var(--primary, #4f46e5);
+	font-size: 12px;
+	font-weight: 500;
+	cursor: pointer;
+	padding: 4px 0;
+	text-align: left;
+	width: 100%;
+}
+.system-open-link:hover {
+	text-decoration: underline;
+}
 
 /* TOOL & PURCHASE SELECT */
 .tool-select-wrapper,
@@ -4270,6 +4289,12 @@ input[type="date"]:focus {
 	animation: toastIn 0.3s ease;
 }
 @keyframes toastIn {
-	from { opacity: 0; transform: translateY(-10px); }
-	to { opacity: 1; transform: translateY(0); }
+	from {
+		opacity: 0;
+		transform: translateY(-10px);
+	}
+	to {
+		opacity: 1;
+		transform: translateY(0);
+	}
 }
